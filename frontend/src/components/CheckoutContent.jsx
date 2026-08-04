@@ -32,6 +32,14 @@ export default function CheckoutContent() {
 
   const API_BASE = `${API_BASE_CONFIG}/api`;
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem("redirectAfterLogin", "/checkout");
+      navigate("/login");
+    }
+  }, [user, navigate]);
+
   // Sync logged in user info
   useEffect(() => {
     if (user) {
@@ -284,6 +292,10 @@ export default function CheckoutContent() {
     }
   };
 
+  if (!user) {
+    return null;
+  }
+
   if (cart.items.length === 0) {
     return (
       <div className="container py-5 text-center">
@@ -300,50 +312,6 @@ export default function CheckoutContent() {
         <span className="br-line fake-class top-0 bg-line-5"></span>
         <div className="col-left flat-spacing-2">
           <div className="content-left">
-            {/* Customer Information */}
-            <h4 className="font-instrument_serif mb-24">Customer Information</h4>
-            <div className="row gy-3 mb-40">
-              <div className="col-12 col-md-4">
-                <fieldset className="tf-field">
-                  <label className="text-body-xs">Full Name*</label>
-                  <input
-                    className="style-4"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={!!user}
-                  />
-                </fieldset>
-              </div>
-              <div className="col-12 col-md-4">
-                <fieldset className="tf-field">
-                  <label className="text-body-xs">Email Address*</label>
-                  <input
-                    className="style-4"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={!!user}
-                  />
-                </fieldset>
-              </div>
-              <div className="col-12 col-md-4">
-                <fieldset className="tf-field">
-                  <label className="text-body-xs">Mobile Number*</label>
-                  <input
-                    className="style-4"
-                    type="tel"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    required
-                    disabled={!!user}
-                  />
-                </fieldset>
-              </div>
-            </div>
-
             <h4 className="font-instrument_serif mb-24">Shipping Address</h4>
 
             {/* Address Selection Grid (Only if logged in) */}

@@ -7,12 +7,14 @@ import "swiper/css/navigation";
 import "swiper/css/thumbs";
 import "swiper/css/free-mode";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import InfiniteText from "./InfiniteText";
 
 import { API_BASE } from "../config";
 
 export default function ProductDetailsContent() {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
@@ -62,7 +64,12 @@ export default function ProductDetailsContent() {
     if (!product) return;
     try {
       await addToCart(product, quantity, selectedSize);
-      navigate("/checkout");
+      if (user) {
+        navigate("/checkout");
+      } else {
+        localStorage.setItem("redirectAfterLogin", "/checkout");
+        navigate("/login");
+      }
     } catch (err) {
       console.error(err);
     }

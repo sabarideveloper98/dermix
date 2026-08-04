@@ -25,7 +25,12 @@ export default function ShoppingCart() {
       closeBtn.click();
     }
 
-    navigate("/checkout");
+    if (user) {
+      navigate("/checkout");
+    } else {
+      localStorage.setItem("redirectAfterLogin", "/checkout");
+      navigate("/login");
+    }
   };
 
   return (

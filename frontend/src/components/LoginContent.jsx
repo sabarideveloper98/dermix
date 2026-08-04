@@ -26,7 +26,13 @@ export default function LoginContent() {
             } else if (res && res.role === "admin") {
                 navigate("/admin");
             } else {
-                navigate(from);
+                const redirectRoute = localStorage.getItem("redirectAfterLogin");
+                if (redirectRoute) {
+                    localStorage.removeItem("redirectAfterLogin");
+                    navigate(redirectRoute);
+                } else {
+                    navigate(from);
+                }
             }
         } catch (err) {
             setLocalError(err.message || "Invalid credentials. Please try again.");
