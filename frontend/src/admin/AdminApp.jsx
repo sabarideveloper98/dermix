@@ -473,7 +473,7 @@ export default function AdminApp() {
 
   return (
     <div 
-      className="d-flex min-vh-100 text-white" 
+      className="d-flex min-vh-100 text-dark" 
       style={{ 
         background: "#0b0f19",
         fontFamily: "'Inter', sans-serif"
@@ -482,111 +482,197 @@ export default function AdminApp() {
       {/* Dynamic CSS styles for premium looks */}
       <style>{`
         .admin-sidebar {
-          width: 260px;
-          background: #111827;
+          width: 280px;
+          background: #0b0f19;
           border-right: 1px solid rgba(255,255,255,0.05);
         }
         .admin-main {
           flex: 1;
-          background: #0f172a;
+          background: #f8fafc;
         }
         .nav-item-btn {
-          width: 100%;
+          width: calc(100% - 32px);
+          margin: 4px 16px;
+          border-radius: 8px;
           text-align: left;
-          padding: 14px 20px;
+          padding: 12px 16px;
           background: transparent;
           border: none;
-          color: #9ca3af;
-          font-weight: 500;
+          color: #94a3b8;
+          font-weight: 600;
+          font-size: 14px;
           display: flex;
           align-items: center;
           gap: 12px;
           transition: all 0.2s ease;
         }
         .nav-item-btn:hover {
-          color: #fff;
-          background: rgba(255,255,255,0.03);
+          color: #f8fafc;
+          background: rgba(255,255,255,0.05);
         }
         .nav-item-btn.active {
           color: #fff;
-          background: #003087;
-          border-left: 4px solid #3b82f6;
+          background: #9333ea; /* Purple 600 */
+        }
+        .nav-item-btn .chevron-icon {
+          margin-left: auto;
+          display: none;
+        }
+        .nav-item-btn.active .chevron-icon {
+          display: block;
         }
         .stat-card {
-          background: #1e293b;
-          border: 1px solid rgba(255,255,255,0.05);
+          background: #ffffff;
+          border: 1px solid #f1f5f9;
           border-radius: 12px;
           padding: 24px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-card .text-muted {
+          color: #94a3b8 !important;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+        .stat-card h4 {
+          color: #0f172a;
+          font-weight: 800;
         }
         .table-premium {
-          color: #e2e8f0;
-          background: #1e293b;
+          color: #334155;
+          background: #ffffff;
           border-radius: 12px;
           overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          border: 1px solid #f1f5f9;
         }
         .table-premium th {
-          background: #111827;
-          color: #94a3b8;
-          font-weight: 600;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          background: #f8fafc;
+          color: #64748b;
+          font-weight: 700;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-bottom: 1px solid #f1f5f9;
+          padding: 16px;
         }
         .table-premium td {
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid #f1f5f9;
+          padding: 16px;
+          vertical-align: middle;
+        }
+        .table-premium tr:hover {
+          background-color: #f8fafc;
         }
         .form-control, .form-select {
-          background: #1e293b;
-          border: 1px solid rgba(255,255,255,0.1);
-          color: #fff;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #0f172a;
+          border-radius: 8px;
+          padding: 10px 14px;
         }
         .form-control:focus, .form-select:focus {
-          background: #1e293b;
-          border-color: #3b82f6;
-          color: #fff;
-          box-shadow: none;
+          background: #ffffff;
+          border-color: #9333ea;
+          color: #0f172a;
+          box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+        }
+        .btn-primary {
+          background-color: #9333ea;
+          border-color: #9333ea;
+          font-weight: 600;
+          border-radius: 8px;
+        }
+        .btn-primary:hover {
+          background-color: #7e22ce;
+          border-color: #7e22ce;
+        }
+        .modal-content {
+          border-radius: 16px;
+          border: none;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal-header {
+          border-bottom: 1px solid #f1f5f9;
+          background-color: #ffffff;
+          border-radius: 16px 16px 0 0;
+        }
+        .modal-body {
+          background-color: #ffffff;
+        }
+        .modal-footer {
+          border-top: 1px solid #f1f5f9;
+          background-color: #f8fafc;
+          border-radius: 0 0 16px 16px;
+        }
+        .modal-title {
+          font-weight: 700;
+          color: #0f172a;
         }
         .custom-chart-bar {
-          background: linear-gradient(180deg, #3b82f6 0%, #003087 100%);
+          background: #9333ea;
           border-radius: 6px 6px 0 0;
-          width: 32px;
+          width: 40px;
           transition: height 0.6s ease;
         }
+
       `}</style>
 
       {/* Sidebar Navigation */}
       <aside className="admin-sidebar d-flex flex-column">
-        <div className="p-4 border-bottom border-secondary border-opacity-10">
-          <h4 className="font-instrument_serif text-white mb-0">Dermix Admin</h4>
-          <span className="text-muted small">Control Center v1.2</span>
+        
+
+        {/* Profile Card Section */}
+        <div className="px-3 mb-2">
+          <div className="rounded p-3 d-flex align-items-center gap-3" style={{ backgroundColor: '#1e293b' }}>
+            <div className="rounded d-flex align-items-center justify-content-center fw-bold text-white" style={{ width: 36, height: 36, backgroundColor: '#9333ea', fontSize: '14px' }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+            </div>
+            <div>
+              <div className="text-white fw-bold" style={{ fontSize: '13px' }}>{user?.name || 'Administrator'}</div>
+              <div style={{ color: '#9333ea', fontSize: '11px', fontWeight: '600' }}>Verified Shop Owner</div>
+            </div>
+          </div>
         </div>
-        <nav className="flex-grow-1 py-3">
+
+        {/* Navigation Links */}
+        <nav className="flex-grow-1 py-2">
           <button className={`nav-item-btn ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => setActiveTab("dashboard")}>
-            <i className="icon icon-Menu fs-18"></i> Dashboard
-          </button>
-          <button className={`nav-item-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>
-            <i className="icon icon-Box fs-18"></i> Categories
+            <i className="icon icon-Menu fs-18"></i> Analytics Dashboard
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "products" ? "active" : ""}`} onClick={() => setActiveTab("products")}>
-            <i className="icon icon-ShoppingCart fs-18"></i> Products & Stock
+            <i className="icon icon-Box fs-18"></i> Products & Stock
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+          </button>
+          <button className={`nav-item-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>
+            <i className="icon icon-List fs-18"></i> Categories & Brands
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
-            <i className="icon icon-ShoppingBag fs-18"></i> Orders History
+            <i className="icon icon-ShoppingBag fs-18"></i> Order Management
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "customers" ? "active" : ""}`} onClick={() => setActiveTab("customers")}>
             <i className="icon icon-UserCircle fs-18"></i> Customers
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "banners" ? "active" : ""}`} onClick={() => setActiveTab("banners")}>
             <i className="icon icon-Image fs-18"></i> Home Banners
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "videos" ? "active" : ""}`} onClick={() => setActiveTab("videos")}>
             <i className="icon icon-LogoInstagram fs-18"></i> Instagram Videos
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
         </nav>
-        <div className="p-4 border-top border-secondary border-opacity-10 d-grid gap-12">
-          <Link to="/" className="btn btn-outline-light btn-sm text-start py-8">
-            ← Main Shop
+
+        {/* Bottom Actions */}
+        <div className="p-3 mt-auto">
+          <Link to="/" className="btn w-100 text-start mb-2 d-flex align-items-center gap-2" style={{ backgroundColor: '#1e293b', color: '#94a3b8', fontSize: '13px', padding: '10px 16px', border: 'none', borderRadius: '8px' }}>
+            <i className="icon icon-Storefront fs-16"></i> Switch to Customer Store
           </Link>
-          <button onClick={logout} className="btn btn-danger btn-sm text-start py-8">
-            Log Out Console
+          <button onClick={logout} className="btn w-100 text-start d-flex align-items-center gap-2" style={{ backgroundColor: 'transparent', color: '#ef4444', fontSize: '13px', padding: '10px 16px', border: 'none' }}>
+            <i className="icon icon-LogOut fs-16"></i> Sign Out
           </button>
         </div>
       </aside>
@@ -689,9 +775,9 @@ export default function AdminApp() {
                       {stats?.lowStockProducts && stats.lowStockProducts.length > 0 ? (
                         <div className="d-grid gap-12">
                           {stats.lowStockProducts.map((p) => (
-                            <div key={p._id} className="p-3 bg-dark bg-opacity-20 border border-danger border-opacity-20 rounded d-flex justify-content-between align-items-center">
+                            <div key={p._id} className="p-3 bg-danger bg-opacity-10 border border-danger border-opacity-20 rounded d-flex justify-content-between align-items-center">
                               <div>
-                                <p className="mb-0 text-body-s fw-semibold text-white">{p.name}</p>
+                                <p className="mb-0 text-body-s fw-semibold" style={{ color: '#0f172a' }}>{p.name}</p>
                                 <span className="small text-muted">{p.categoryId?.name || "Skin Care"}</span>
                               </div>
                               <span className="badge bg-danger text-white">{p.qty} items left</span>
@@ -860,7 +946,7 @@ export default function AdminApp() {
                           <td>₹{order.totalPrice.toFixed(2)}</td>
                           <td>
                             <select 
-                              className="form-select form-select-sm w-auto bg-dark border-0 text-white" 
+                              className="form-select form-select-sm w-auto" 
                               value={order.paymentStatus}
                               onChange={(e) => updateOrderStatus(order._id, { paymentStatus: e.target.value })}
                             >
@@ -871,7 +957,7 @@ export default function AdminApp() {
                           </td>
                           <td>
                             <select 
-                              className="form-select form-select-sm w-auto bg-dark border-0 text-white" 
+                              className="form-select form-select-sm w-auto" 
                               value={order.deliveryStatus}
                               onChange={(e) => updateOrderStatus(order._id, { deliveryStatus: e.target.value })}
                             >
@@ -888,8 +974,7 @@ export default function AdminApp() {
                           <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                           <td className="text-end">
                             <button 
-                              className="btn btn-sm btn-outline-info text-white"
-                              style={{ backgroundColor: "#003087", borderColor: "#003087" }}
+                              className="btn btn-sm btn-outline-primary"
                               onClick={() => {
                                 setEditingItem(order);
                                 setModalType("order-details");
@@ -1063,36 +1148,36 @@ export default function AdminApp() {
           }}
         >
           <div 
-            className="card p-4 text-white border-0 shadow-lg" 
+            className="card p-4 border-0 shadow-lg" 
             style={{ 
               maxWidth: "550px", 
               width: "90%", 
-              backgroundColor: "#1e293b", 
+              backgroundColor: "#ffffff", 
               borderRadius: "16px",
-              border: "1px solid rgba(255,255,255,0.1)"
+              border: "1px solid #f1f5f9"
             }}
           >
             <div className="d-flex justify-content-between mb-4">
-              <h4 className="font-instrument_serif text-capitalize">{editingItem ? "Edit" : "Create"} {modalType}</h4>
-              <button className="btn btn-close-popup text-white border-0 p-0 fs-20" onClick={() => setModalType("")}>×</button>
+              <h4 className="font-instrument_serif text-capitalize fw-bold" style={{ color: "#0f172a" }}>{editingItem ? "Edit" : "Create"} {modalType}</h4>
+              <button className="btn btn-close-popup border-0 p-0 fs-20" style={{ color: "#0f172a" }} onClick={() => setModalType("")}>×</button>
             </div>
 
             {/* Category Form */}
             {modalType === "category" && (
               <form onSubmit={saveCategory}>
                 <div className="mb-3">
-                  <label className="small block mb-8">Category Name</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
                   <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
                 <div className="mb-3">
-                  <label className="small block mb-8">Description</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
                   <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
                 </div>
                 <div className="mb-4">
-                  <label className="small block mb-8">Category Image File</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
                   <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-10" style={{ backgroundColor: "#003087" }}>
+                <button type="submit" className="btn btn-primary w-100 py-2">
                   Save Category
                 </button>
               </form>
@@ -1103,11 +1188,11 @@ export default function AdminApp() {
               <form onSubmit={saveProduct}>
                 <div className="row">
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">Product Name</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Name</label>
                     <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">Category</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category</label>
                     <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
                       <option value="">Select Category</option>
                       {categories.map((c) => (
@@ -1116,31 +1201,31 @@ export default function AdminApp() {
                     </select>
                   </div>
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">MRP Price (₹)</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>MRP Price (₹)</label>
                     <input type="number" className="form-control" value={mrpPrice} onChange={(e) => setMrpPrice(e.target.value)} required />
                   </div>
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">Sale Price (₹)</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Sale Price (₹)</label>
                     <input type="number" className="form-control" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} required />
                   </div>
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">Initial Stock Qty</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Initial Stock Qty</label>
                     <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required disabled={!!editingItem} />
                   </div>
                   <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-8">Benefit tag</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Benefit tag</label>
                     <input type="text" className="form-control" placeholder="e.g. Firming, Hydrating" value={benefit} onChange={(e) => setBenefit(e.target.value)} />
                   </div>
                   <div className="col-12 mb-3">
-                    <label className="small block mb-8">Description</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
                     <textarea className="form-control" rows="2" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
                   </div>
                   <div className="col-12 mb-4">
-                    <label className="small block mb-8">Product Images Upload (Multiple files)</label>
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Images Upload (Multiple files)</label>
                     <input type="file" className="form-control" multiple onChange={(e) => setImageFiles(e.target.files)} />
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-10" style={{ backgroundColor: "#003087" }}>
+                <button type="submit" className="btn btn-primary w-100 py-2">
                   Save Product
                 </button>
               </form>
@@ -1150,14 +1235,14 @@ export default function AdminApp() {
             {modalType === "stock" && (
               <form onSubmit={adjustStock}>
                 <div className="mb-3">
-                  <label className="small block mb-8">Current/New Total Quantity</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Current/New Total Quantity</label>
                   <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required />
                 </div>
                 <div className="mb-4">
-                  <label className="small block mb-8">Adjustment Reason</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Adjustment Reason</label>
                   <input type="text" className="form-control" placeholder="e.g. Stock replenished, damage clearance" value={description} onChange={(e) => setDescription(e.target.value)} required />
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-10" style={{ backgroundColor: "#003087" }}>
+                <button type="submit" className="btn btn-primary w-100 py-2">
                   Apply Inventory Update
                 </button>
               </form>
@@ -1167,14 +1252,14 @@ export default function AdminApp() {
             {modalType === "banner" && (
               <form onSubmit={saveBanner}>
                 <div className="mb-3">
-                  <label className="small block mb-8">Banner Headline Title</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Headline Title</label>
                   <input type="text" className="form-control" value={bannerTitle} onChange={(e) => setBannerTitle(e.target.value)} required />
                 </div>
                 <div className="mb-4">
-                  <label className="small block mb-8">Banner Background Image File</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Background Image File</label>
                   <input type="file" className="form-control" onChange={(e) => setBannerFile(e.target.files[0])} />
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-10" style={{ backgroundColor: "#003087" }}>
+                <button type="submit" className="btn btn-primary w-100 py-2">
                   Save Banner
                 </button>
               </form>
@@ -1184,14 +1269,14 @@ export default function AdminApp() {
             {modalType === "video" && (
               <form onSubmit={saveVideo}>
                 <div className="mb-3">
-                  <label className="small block mb-8">Spotlight Title</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Spotlight Title</label>
                   <input type="text" className="form-control" placeholder="e.g. Cleansing Routine" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} required />
                 </div>
                 <div className="mb-4">
-                  <label className="small block mb-8">Iframe/Video Embedded Source URL</label>
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Iframe/Video Embedded Source URL</label>
                   <input type="url" className="form-control" placeholder="e.g. https://www.youtube.com/embed/dQw4w9WgXcQ" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} required />
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-10" style={{ backgroundColor: "#003087" }}>
+                <button type="submit" className="btn btn-primary w-100 py-2">
                   Save Video
                 </button>
               </form>
@@ -1200,14 +1285,14 @@ export default function AdminApp() {
             {/* Order Details Modal */}
             {modalType === "order-details" && editingItem && (
               <div>
-                <div className="mb-3 text-white">
-                  <h6 className="text-muted block mb-4 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px" }}>Customer Details</h6>
+                <div className="mb-3" style={{ color: "#0f172a" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Customer Details</h6>
                   <p className="mb-1 text-body-s"><strong>Name:</strong> {editingItem.userId?.name || "N/A"}</p>
                   <p className="mb-1 text-body-s"><strong>Email:</strong> {editingItem.userId?.email || "N/A"}</p>
                   <p className="mb-0 text-body-s"><strong>Mobile:</strong> {editingItem.userId?.mobile || "N/A"}</p>
                 </div>
-                <div className="mb-3 text-white border-top border-light border-opacity-10 pt-3">
-                  <h6 className="text-muted block mb-4 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px" }}>Shipping Address</h6>
+                <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shipping Address</h6>
                   <p className="mb-0 text-body-s">
                     {editingItem.addressId?.street1}<br />
                     {editingItem.addressId?.street2 && <>{editingItem.addressId.street2}<br /></>}
@@ -1215,21 +1300,21 @@ export default function AdminApp() {
                     {editingItem.addressId?.landmark && <>Landmark: {editingItem.addressId.landmark}</>}
                   </p>
                 </div>
-                <div className="mb-3 text-white border-top border-light border-opacity-10 pt-3">
-                  <h6 className="text-muted block mb-4 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px" }}>Payment & Shipping Summary</h6>
+                <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Payment & Shipping Summary</h6>
                   <p className="mb-1 text-body-s"><strong>Total Amount:</strong> ₹{editingItem.totalPrice.toFixed(2)}</p>
                   <p className="mb-1 text-body-s"><strong>Payment Status:</strong> {editingItem.paymentStatus}</p>
                   <p className="mb-1 text-body-s"><strong>Delivery Status:</strong> {editingItem.deliveryStatus}</p>
                   <p className="mb-0 text-body-s"><strong>Transaction ID:</strong> {editingItem.transactionId || "None"}</p>
                 </div>
-                <div className="mb-4 text-white border-top border-light border-opacity-10 pt-3">
-                  <h6 className="text-muted block mb-8 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px" }}>Ordered Products</h6>
-                  <div className="d-grid gap-12" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Ordered Products</h6>
+                  <div className="d-grid gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
                     {editingItem.products?.map((item) => (
-                      <div key={item._id} className="d-flex align-items-center justify-content-between p-2 bg-dark bg-opacity-20 rounded">
+                      <div key={item._id} className="d-flex align-items-center justify-content-between p-2 rounded" style={{ backgroundColor: "#f8fafc" }}>
                         <div>
                           <p className="mb-1 text-body-s fw-semibold">{item.productId?.name || "Product"}</p>
-                          <span className="text-body-xs text-muted">Size: {item.size} x {item.quantity}</span>
+                          <span className="small" style={{ color: "#64748b" }}>Size: {item.size} x {item.quantity}</span>
                         </div>
                         <span className="text-body-s fw-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
