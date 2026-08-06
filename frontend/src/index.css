@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Admin Premium Styles (Overrides Bootstrap) */
+.table-premium {
+  color: #334155 !important;
+  background: #ffffff !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  width: 100%;
+}
+.table-premium th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 16px !important;
+}
+.table-premium td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 16px !important;
+  vertical-align: middle;
+  font-size: 14px;
+}
+.table-premium tr:hover td {
+  background-color: #f8fafc !important;
+}
+.form-control, .form-select {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  box-shadow: none !important;
+}
+.form-control:focus, .form-select:focus {
+  background: #ffffff !important;
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1) !important;
+}
+.modal-content {
+  border-radius: 16px !important;
+  border: none !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+.modal-header {
+  border-bottom: 1px solid #f1f5f9 !important;
+  background-color: #ffffff !important;
+  border-radius: 16px 16px 0 0 !important;
+  padding: 20px 24px !important;
+}
+.modal-body {
+  background-color: #ffffff !important;
+  padding: 24px !important;
+}
+.modal-footer {
+  border-top: 1px solid #f1f5f9 !important;
+  background-color: #f8fafc !important;
+  border-radius: 0 0 16px 16px !important;
+  padding: 16px 24px !important;
+}
+.btn-primary {
+  background-color: #9333ea !important;
+  border-color: #9333ea !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  padding: 8px 16px !important;
+  transition: all 0.2s !important;
+}
+.btn-primary:hover {
+  background-color: #7e22ce !important;
+  border-color: #7e22ce !important;
+}
+.btn-outline-info {
+  color: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  border-radius: 6px !important;
+}
+.btn-outline-info:hover {
+  background-color: #06b6d4 !important;
+  color: white !important;
+}
+.btn-outline-danger {
+  color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  border-radius: 6px !important;
+}
+.btn-outline-danger:hover {
+  background-color: #ef4444 !important;
+  color: white !important;
+}

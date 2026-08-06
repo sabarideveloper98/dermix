@@ -2,6 +2,39 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE as API_BASE_CONFIG } from "../config";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const profitData = [
+  { name: 'W1', value: 20000 },
+  { name: 'W2', value: 45000 },
+  { name: 'W3', value: 40000 },
+  { name: 'W4', value: 65000 },
+  { name: 'W5', value: 60000 },
+  { name: 'W6', value: 75000 },
+  { name: 'W7', value: 85000 },
+  { name: 'W8', value: 130000 },
+];
+
+const dailySalesData = [
+  { day: '1', sales: 20 },
+  { day: '2', sales: 22 },
+  { day: '3', sales: 10 },
+  { day: '4', sales: 28 },
+  { day: '5', sales: 15 },
+  { day: '6', sales: 21 },
+  { day: '7', sales: 30 },
+];
+
+const topSellingProductsData = [
+  { id: 1, name: "Hydrating Cleanser", category: "Skin Care", sales: 124, price: 499, stock: 45, image: "https://via.placeholder.com/40" },
+  { id: 2, name: "Vitamin C Serum", category: "Serums", sales: 98, price: 899, stock: 12, image: "https://via.placeholder.com/40" },
+  { id: 3, name: "Sunscreen SPF 50", category: "Sun Care", sales: 85, price: 650, stock: 30, image: "https://via.placeholder.com/40" },
+  { id: 4, name: "Night Repair Cream", category: "Skin Care", sales: 74, price: 799, stock: 8, image: "https://via.placeholder.com/40" },
+  { id: 5, name: "Exfoliating Scrub", category: "Body Care", sales: 62, price: 350, stock: 25, image: "https://via.placeholder.com/40" },
+  { id: 6, name: "Anti-Aging Retinol", category: "Serums", sales: 50, price: 1299, stock: 15, image: "https://via.placeholder.com/40" },
+  { id: 7, name: "Aloe Vera Gel", category: "Skin Care", sales: 42, price: 299, stock: 60, image: "https://via.placeholder.com/40" },
+  { id: 8, name: "Charcoal Face Mask", category: "Face Masks", sales: 38, price: 599, stock: 22, image: "https://via.placeholder.com/40" },
+];
 
 export default function AdminApp() {
   const { user, login, logout, authFetch } = useAuth();
@@ -30,6 +63,14 @@ export default function AdminApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState(null);
   const [modalType, setModalType] = useState(""); // "category", "product", "banner", "video", "stock"
+  const [topSellingPage, setTopSellingPage] = useState(1);
+  const [categoriesPage, setCategoriesPage] = useState(1);
+  const [productsPage, setProductsPage] = useState(1);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [customersPage, setCustomersPage] = useState(1);
+  const [bannersPage, setBannersPage] = useState(1);
+  const [videosPage, setVideosPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Temporary item inputs
   const [name, setName] = useState("");
@@ -158,8 +199,8 @@ export default function AdminApp() {
       formData.append("image", imageFiles[0]);
     }
 
-    const url = editingItem 
-      ? `${API_BASE}/categories/${editingItem._id}` 
+    const url = editingItem
+      ? `${API_BASE}/categories/${editingItem._id}`
       : `${API_BASE}/categories`;
     const method = editingItem ? "PUT" : "POST";
 
@@ -196,7 +237,7 @@ export default function AdminApp() {
     formData.append("salePrice", salePrice);
     formData.append("qty", qty);
     formData.append("categoryId", categoryId);
-    
+
     // Append remaining images state on edit
     if (editingItem) {
       if (imageFiles && imageFiles.length > 0) {
@@ -216,8 +257,8 @@ export default function AdminApp() {
       }
     }
 
-    const url = editingItem 
-      ? `${API_BASE}/products/${editingItem._id}` 
+    const url = editingItem
+      ? `${API_BASE}/products/${editingItem._id}`
       : `${API_BASE}/products`;
     const method = editingItem ? "PUT" : "POST";
 
@@ -305,8 +346,8 @@ export default function AdminApp() {
       formData.append("image", bannerFile);
     }
 
-    const url = editingItem 
-      ? `${API_BASE}/admin/banners/${editingItem._id}` 
+    const url = editingItem
+      ? `${API_BASE}/admin/banners/${editingItem._id}`
       : `${API_BASE}/admin/banners`;
     const method = editingItem ? "PUT" : "POST";
 
@@ -336,8 +377,8 @@ export default function AdminApp() {
   const saveVideo = async (e) => {
     e.preventDefault();
     const payload = { title: videoTitle, videoLink };
-    const url = editingItem 
-      ? `${API_BASE}/admin/instagram-videos/${editingItem._id}` 
+    const url = editingItem
+      ? `${API_BASE}/admin/instagram-videos/${editingItem._id}`
       : `${API_BASE}/admin/instagram-videos`;
     const method = editingItem ? "PUT" : "POST";
 
@@ -404,19 +445,19 @@ export default function AdminApp() {
   // Render Login View if not admin
   if (!user || user.role !== "admin") {
     return (
-      <div 
-        className="d-flex align-items-center justify-content-center min-vh-100" 
-        style={{ 
+      <div
+        className="d-flex align-items-center justify-content-center min-vh-100"
+        style={{
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           fontFamily: "'Inter', sans-serif"
         }}
       >
-        <div 
-          className="card p-5 border-0 shadow-lg" 
-          style={{ 
-            maxWidth: "450px", 
-            width: "100%", 
-            borderRadius: "16px", 
+        <div
+          className="card p-5 border-0 shadow-lg"
+          style={{
+            maxWidth: "450px",
+            width: "100%",
+            borderRadius: "16px",
             backgroundColor: "rgba(255,255,255,0.06)",
             backdropFilter: "blur(12px)",
             border: "1px solid rgba(255,255,255,0.1)"
@@ -430,31 +471,31 @@ export default function AdminApp() {
           <form onSubmit={handleAdminLogin}>
             <div className="mb-3">
               <label className="text-light small block mb-8 opacity-75">Admin Email</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 className="form-control bg-dark border-secondary text-white py-12"
                 style={{ borderRadius: "8px" }}
-                placeholder="admin@dermix.com" 
+                placeholder="admin@dermix.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required 
+                required
               />
             </div>
             <div className="mb-4">
               <label className="text-light small block mb-8 opacity-75">Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 className="form-control bg-dark border-secondary text-white py-12"
                 style={{ borderRadius: "8px" }}
-                placeholder="••••••••" 
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required 
+                required
               />
             </div>
-            <button 
-              type="submit" 
-              className="btn btn-primary w-100 py-12 fw-semibold" 
+            <button
+              type="submit"
+              className="btn btn-primary w-100 py-12 fw-semibold"
               style={{ borderRadius: "8px", backgroundColor: "#003087", borderColor: "#003087" }}
               disabled={authLoading}
             >
@@ -472,9 +513,9 @@ export default function AdminApp() {
   }
 
   return (
-    <div 
-      className="d-flex min-vh-100 text-dark" 
-      style={{ 
+    <div
+      className="d-flex min-vh-100 text-dark"
+      style={{
         background: "#0b0f19",
         fontFamily: "'Inter', sans-serif"
       }}
@@ -483,12 +524,12 @@ export default function AdminApp() {
       <style>{`
         .admin-sidebar {
           width: 280px;
-          background: #0b0f19;
-          border-right: 1px solid rgba(255,255,255,0.05);
+          background: #ffffff;
+          border-right: 1px solid #f1f5f9;
         }
         .admin-main {
           flex: 1;
-          background: #f8fafc;
+          background: #f4f6f8;
         }
         .nav-item-btn {
           width: calc(100% - 32px);
@@ -498,7 +539,7 @@ export default function AdminApp() {
           padding: 12px 16px;
           background: transparent;
           border: none;
-          color: #94a3b8;
+          color: #64748b;
           font-weight: 600;
           font-size: 14px;
           display: flex;
@@ -507,12 +548,12 @@ export default function AdminApp() {
           transition: all 0.2s ease;
         }
         .nav-item-btn:hover {
-          color: #f8fafc;
-          background: rgba(255,255,255,0.05);
+          color: #9333ea;
+          background: rgba(147, 51, 234, 0.05);
         }
         .nav-item-btn.active {
-          color: #fff;
-          background: #9333ea; /* Purple 600 */
+          color: #9333ea;
+          background: rgba(147, 51, 234, 0.1);
         }
         .nav-item-btn .chevron-icon {
           margin-left: auto;
@@ -618,38 +659,42 @@ export default function AdminApp() {
       `}</style>
 
       {/* Sidebar Navigation */}
-      <aside className="admin-sidebar d-flex flex-column">
-        
+      <aside className="admin-sidebar d-flex flex-column shadow-sm">
 
-        {/* Profile Card Section */}
-        <div className="px-3 mb-2">
-          <div className="rounded p-3 d-flex align-items-center gap-3" style={{ backgroundColor: '#1e293b' }}>
-            <div className="rounded d-flex align-items-center justify-content-center fw-bold text-white" style={{ width: 36, height: 36, backgroundColor: '#9333ea', fontSize: '14px' }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+        {/* Logo Section */}
+        <div className="d-flex align-items-center justify-content-between p-4 mb-2">
+          <div className="d-flex align-items-center gap-2 text-decoration-none">
+            <div className="d-flex align-items-center justify-content-center text-white rounded shadow-sm" style={{ width: 32, height: 32, backgroundColor: '#9333ea' }}>
+              <i className="icon icon-Droplet fs-18"></i>
             </div>
-            <div>
-              <div className="text-white fw-bold" style={{ fontSize: '13px' }}>{user?.name || 'Administrator'}</div>
-              <div style={{ color: '#9333ea', fontSize: '11px', fontWeight: '600' }}>Verified Shop Owner</div>
-            </div>
+            <span className="font-instrument_serif fs-4 fw-bold" style={{ color: '#0f172a', letterSpacing: '-0.5px' }}>Dermix</span>
           </div>
+          <i className="icon icon-Menu fs-20 cursor-pointer" style={{ color: '#94a3b8' }}></i>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-grow-1 py-2">
+        <nav className="flex-grow-1 py-2 overflow-auto" style={{ scrollbarWidth: 'none' }}>
+          <div className="px-4 mb-2 mt-1">
+            <span className="text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>- MAIN</span>
+          </div>
           <button className={`nav-item-btn ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => setActiveTab("dashboard")}>
-            <i className="icon icon-Menu fs-18"></i> Analytics Dashboard
+            <i className="icon icon-Menu fs-18"></i> Dashboard
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "products" ? "active" : ""}`} onClick={() => setActiveTab("products")}>
-            <i className="icon icon-Box fs-18"></i> Products & Stock
+            <i className="icon icon-Box fs-18"></i> Product
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>
-            <i className="icon icon-List fs-18"></i> Categories & Brands
+            <i className="icon icon-List fs-18"></i> Categories
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
+
+          <div className="px-4 mb-2 mt-4">
+            <span className="text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>- APPS</span>
+          </div>
           <button className={`nav-item-btn ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
-            <i className="icon icon-ShoppingBag fs-18"></i> Order Management
+            <i className="icon icon-ShoppingBag fs-18"></i> Orders
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "customers" ? "active" : ""}`} onClick={() => setActiveTab("customers")}>
@@ -661,17 +706,17 @@ export default function AdminApp() {
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "videos" ? "active" : ""}`} onClick={() => setActiveTab("videos")}>
-            <i className="icon icon-LogoInstagram fs-18"></i> Instagram Videos
+            <i className="icon icon-LogoInstagram fs-18"></i> Videos
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 mt-auto">
-          <Link to="/" className="btn w-100 text-start mb-2 d-flex align-items-center gap-2" style={{ backgroundColor: '#1e293b', color: '#94a3b8', fontSize: '13px', padding: '10px 16px', border: 'none', borderRadius: '8px' }}>
-            <i className="icon icon-Storefront fs-16"></i> Switch to Customer Store
+        <div className="p-3 mt-auto border-top" style={{ borderColor: '#f1f5f9' }}>
+          <Link to="/" className="btn w-100 text-start mb-2 d-flex align-items-center gap-2" style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '13px', padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: '600' }}>
+            <i className="icon icon-Storefront fs-16"></i> Switch to Store
           </Link>
-          <button onClick={logout} className="btn w-100 text-start d-flex align-items-center gap-2" style={{ backgroundColor: 'transparent', color: '#ef4444', fontSize: '13px', padding: '10px 16px', border: 'none' }}>
+          <button onClick={logout} className="btn w-100 text-start d-flex align-items-center gap-2" style={{ backgroundColor: '#fef2f2', color: '#ef4444', fontSize: '13px', padding: '10px 16px', border: '1px solid #fee2e2', borderRadius: '8px', fontWeight: '600' }}>
             <i className="icon icon-LogOut fs-16"></i> Sign Out
           </button>
         </div>
@@ -679,9 +724,39 @@ export default function AdminApp() {
 
       {/* Main Panel Content Area */}
       <main className="admin-main p-5 overflow-auto">
-        <header className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="font-instrument_serif text-capitalize">{activeTab} Manager</h2>
-          <span className="text-muted small">Logged in: {user.name} ({user.email})</span>
+        <header className="d-flex justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded-3">
+          <div className="d-flex align-items-center gap-3 w-50">
+            <div className="input-group" style={{ maxWidth: '350px' }}>
+              <span className="input-group-text bg-light border-0 text-muted px-3" style={{ borderRadius: '8px 0 0 8px' }}>
+                <i className="icon icon-Search fs-16"></i>
+              </span>
+              <input type="text" className="form-control bg-light border-0 shadow-none ps-0" placeholder="Search..." style={{ borderRadius: '0 8px 8px 0', fontSize: '14px' }} />
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center gap-4">
+            <div className="d-flex align-items-center gap-3 text-muted">
+              <i className="icon icon-Bell fs-20 cursor-pointer position-relative" style={{ color: '#64748b' }}>
+                <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-white rounded-circle">
+                  <span className="visually-hidden">New alerts</span>
+                </span>
+              </i>
+              <i className="icon icon-ChatCircle fs-20 cursor-pointer" style={{ color: '#64748b' }}></i>
+            </div>
+
+            <div className="d-flex align-items-center gap-3 border-start ps-4" style={{ borderColor: '#f1f5f9' }}>
+              <div className="d-flex flex-column text-end">
+                <span className="fw-bold" style={{ color: '#0f172a', fontSize: '14px', letterSpacing: '0.2px' }}>{user.name}</span>
+                <span className="text-muted" style={{ fontSize: '12px' }}>Admin Account</span>
+              </div>
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm"
+                style={{ width: '40px', height: '40px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#9333ea' }}
+              >
+                {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
+              </div>
+            </div>
+          </div>
         </header>
 
         {loadingData ? (
@@ -694,75 +769,192 @@ export default function AdminApp() {
             {/* 1. Dashboard Tab */}
             {activeTab === "dashboard" && (
               <div>
+                <div className="row g-4 mt-1" style={{ marginBottom: '48px' }}>
+                  <div className="col-6 col-md-4 col-lg-2">
+                    <div className="stat-card p-4 d-flex flex-column justify-content-center h-100" style={{ borderRadius: '12px' }}>
+                      <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>Products</span>
+                      <h4 className="text-dark fw-bold mt-2 mb-0" style={{ fontSize: '24px' }}>{stats?.totalProducts || 0}</h4>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-4 col-lg-3">
+                    <div className="stat-card p-4 d-flex flex-column justify-content-center h-100" style={{ borderRadius: '12px' }}>
+                      <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>Total Sales</span>
+                      <h4 className="text-dark fw-bold mt-2 mb-0" style={{ fontSize: '24px' }}>₹{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0 })}</h4>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-4 col-lg-2">
+                    <div className="stat-card p-4 d-flex flex-column justify-content-center h-100" style={{ borderRadius: '12px' }}>
+                      <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>Orders</span>
+                      <h4 className="text-dark fw-bold mt-2 mb-0" style={{ fontSize: '24px' }}>{totalOrders}</h4>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-6 col-lg-2">
+                    <div className="stat-card p-4 d-flex flex-column justify-content-center h-100" style={{ borderRadius: '12px' }}>
+                      <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>Customers</span>
+                      <h4 className="text-dark fw-bold mt-2 mb-0" style={{ fontSize: '24px' }}>{activeCustomers}</h4>
+                    </div>
+                  </div>
+                  <div className="col-12 col-md-6 col-lg-3">
+                    <div className="stat-card p-4 d-flex flex-column justify-content-center h-100" style={{ borderRadius: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                      <span className="small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px', color: '#166534' }}>Estimated Profit</span>
+                      <h4 className="fw-bold mt-2 mb-0" style={{ fontSize: '24px', color: '#15803d' }}>₹{(totalRevenue * 0.25).toLocaleString(undefined, { minimumFractionDigits: 0 })}</h4>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="row g-4 mb-4">
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">TOTAL REVENUE</span>
-                      <h4 className="font-instrument_serif text-success mt-2">₹{totalRevenue.toFixed(2)}</h4>
+                  {/* Total Revenue */}
+                  <div className="col-12 col-md-6">
+                    <div className="stat-card h-100 d-flex flex-column justify-content-between p-3" style={{ borderRadius: '12px' }}>
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '11px' }}>Total Revenue</span>
+                          <h2 className="text-dark fw-bold mt-1" style={{ fontSize: '28px' }}>₹{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+                        </div>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px', backgroundColor: '#f97316', color: 'white', fontSize: '20px' }}>
+                          <i className="icon icon-CurrencyDollar"></i>
+                        </div>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-end mt-3">
+                        <span className="text-muted small" style={{ fontSize: '12px' }}>Revenue increases this month</span>
+                        <span className="badge" style={{ backgroundColor: '#ecfdf5', color: '#10b981', padding: '4px 8px', fontSize: '11px' }}><i className="icon icon-TrendingUp me-1"></i> 3.15%</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">TOTAL ORDERS</span>
-                      <h4 className="font-instrument_serif text-white mt-2">{totalOrders}</h4>
+
+                  {/* Sales Overview */}
+                  <div className="col-12 col-md-6">
+                    <div className="stat-card h-100 d-flex flex-column justify-content-between p-3" style={{ backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '12px' }}>
+                      <h6 className="fw-bold mb-3 text-white">Sales Overview</h6>
+                      <div className="row g-2">
+                        <div className="col-4">
+                          <span className="small opacity-75" style={{ fontSize: '11px' }}>Total Sales</span>
+                          <h4 className="fw-bold mt-1 text-white m-0">{totalOrders}</h4>
+                        </div>
+                        <div className="col-4">
+                          <span className="small opacity-75" style={{ fontSize: '11px' }}>Monthly Sales</span>
+                          <h4 className="fw-bold mt-1 text-white m-0">{stats?.todayOrders * 30 || 120}</h4>
+                        </div>
+                        <div className="col-4">
+                          <span className="small opacity-75" style={{ fontSize: '11px' }}>Today's Sales</span>
+                          <h4 className="fw-bold mt-1 text-white m-0">{stats?.todayOrders || 0}</h4>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="progress" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                          <div className="progress-bar bg-white" style={{ width: '70%' }}></div>
+                        </div>
+                        <span className="small mt-2 d-block opacity-75">20% Increase in last month</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">TODAY'S ORDERS</span>
-                      <h4 className="font-instrument_serif text-warning mt-2">{stats?.todayOrders || 0}</h4>
+                </div>
+
+                <div className="row g-4 mb-4">
+                  {/* Profit Line Chart */}
+                  <div className="col-12 col-lg-6">
+                    <div className="stat-card h-100 p-4" style={{ borderRadius: '16px' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h5 className="text-dark fw-bold mb-0">Profit</h5>
+                        <select className="form-select form-select-sm w-auto border-0 text-muted shadow-none bg-transparent fw-semibold">
+                          <option>Last Month</option>
+                        </select>
+                      </div>
+                      <h3 className="text-dark fw-bold mb-4">₹{(totalRevenue * 0.4).toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
+                      <div style={{ height: '200px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={profitData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                            <Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={3} fill="url(#colorProfit)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">PENDING ORDERS</span>
-                      <h4 className="font-instrument_serif text-info mt-2">{stats?.pendingOrders || 0}</h4>
-                    </div>
-                  </div>
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">DELIVERED ORDERS</span>
-                      <h4 className="font-instrument_serif text-success mt-2">{stats?.deliveredOrders || 0}</h4>
-                    </div>
-                  </div>
-                  <div className="col-12 col-md-4 col-lg-2">
-                    <div className="stat-card h-100">
-                      <span className="text-muted small block text-uppercase">CANCELLED ORDERS</span>
-                      <h4 className="font-instrument_serif text-danger mt-2">{stats?.cancelledOrders || 0}</h4>
+
+                  {/* Average Daily Sales Bar Chart */}
+                  <div className="col-12 col-lg-6">
+                    <div className="stat-card h-100 p-4" style={{ borderRadius: '16px' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h5 className="text-dark fw-bold mb-0">Average Daily Sales</h5>
+                        <span className="badge" style={{ backgroundColor: '#ecfdf5', color: '#10b981', padding: '6px 10px', fontSize: '11px' }}><i className="icon icon-TrendingUp me-1"></i> 5.25%</span>
+                      </div>
+                      <h3 className="text-dark fw-bold mb-4">₹{((totalRevenue / 30) || 5000).toLocaleString(undefined, { maximumFractionDigits: 0 })}+</h3>
+                      <div style={{ height: '200px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dailySalesData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="day" hide />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                            <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                            <Bar dataKey="sales" fill="#2dd4bf" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="row g-4">
-                  {/* Revenue Chart Section */}
+                  {/* Top Selling Products List */}
                   <div className="col-12 col-lg-8">
-                    <div className="stat-card h-100">
-                      <h5 className="font-instrument_serif mb-4">Revenue Chart (Last 6 Months)</h5>
-                      <span className="text-muted small">Monthly performance metrics</span>
-                      <div className="d-flex align-items-end justify-content-between pt-5" style={{ height: "240px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: "90px" }}></div>
-                          <span className="small text-muted mt-2">March</span>
-                        </div>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: "130px" }}></div>
-                          <span className="small text-muted mt-2">April</span>
-                        </div>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: "160px" }}></div>
-                          <span className="small text-muted mt-2">May</span>
-                        </div>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: "120px" }}></div>
-                          <span className="small text-muted mt-2">June</span>
-                        </div>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: "200px" }}></div>
-                          <span className="small text-muted mt-2">July</span>
-                        </div>
-                        <div className="d-flex flex-column align-items-center">
-                          <div className="custom-chart-bar" style={{ height: `${Math.min(220, (totalRevenue / 100000) * 220)}px` }}></div>
-                          <span className="small text-muted mt-2">August</span>
+                    <div className="stat-card h-100 p-4" style={{ borderRadius: '16px' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h5 className="text-dark fw-bold mb-0">Top Selling Products</h5>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="table table-premium mb-0">
+                          <thead>
+                            <tr>
+                              <th>Product Name</th>
+                              <th>Category</th>
+                              <th>Price</th>
+                              <th>Sales</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {topSellingProductsData.slice((topSellingPage - 1) * 4, topSellingPage * 4).map((p) => (
+                              <tr key={p.id} className="align-middle">
+                                <td>
+                                  <div className="d-flex align-items-center gap-3">
+                                    <img src={p.image} alt={p.name} className="rounded object-fit-cover" width="40" height="40" style={{ backgroundColor: '#f8fafc' }} />
+                                    <span className="fw-semibold text-dark">{p.name}</span>
+                                  </div>
+                                </td>
+                                <td>{p.category}</td>
+                                <td>₹{p.price}</td>
+                                <td><span className="badge bg-primary bg-opacity-10 text-primary px-2 py-1">{p.sales} Sales</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Pagination Controls */}
+                      <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <span className="text-muted small">Showing {(topSellingPage - 1) * 4 + 1} to {Math.min(topSellingPage * 4, topSellingProductsData.length)} of {topSellingProductsData.length} entries</span>
+                        <div className="d-flex gap-2">
+                          <button
+                            className="btn btn-sm btn-outline-secondary px-3"
+                            disabled={topSellingPage === 1}
+                            onClick={() => setTopSellingPage(p => Math.max(1, p - 1))}
+                          >
+                            Prev
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-secondary px-3"
+                            disabled={topSellingPage >= Math.ceil(topSellingProductsData.length / 4)}
+                            onClick={() => setTopSellingPage(p => p + 1)}
+                          >
+                            Next
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -797,9 +989,9 @@ export default function AdminApp() {
             {activeTab === "categories" && (
               <div>
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <input 
-                    type="text" 
-                    className="form-control w-25" 
+                  <input
+                    type="text"
+                    className="form-control w-25"
                     placeholder="Search categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -819,31 +1011,57 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).map((cat) => (
-                        <tr key={cat._id} className="align-middle">
-                          <td>
-                            <img src={cat.image || "assets/images/collection/skincare.png"} alt={cat.name} width="50" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
-                          </td>
-                          <td>{cat.name}</td>
-                          <td>{cat.description}</td>
-                          <td>
-                            <button 
-                              className={`btn btn-sm ${cat.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
-                              onClick={() => toggleStatus("category", cat._id, cat.status)}
-                            >
-                              {cat.status}
-                            </button>
-                          </td>
-                          <td className="text-end">
-                            <button className="btn btn-sm btn-outline-info mr-2" onClick={() => {
-                              openModal("category", cat);
-                            }}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => deleteCategory(cat._id)}>Delete</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {categories
+                        .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .slice((categoriesPage - 1) * ITEMS_PER_PAGE, categoriesPage * ITEMS_PER_PAGE)
+                        .map((cat) => (
+                          <tr key={cat._id} className="align-middle">
+                            <td>
+                              <img src={cat.image || "assets/images/collection/skincare.png"} alt={cat.name} width="50" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
+                            </td>
+                            <td>{cat.name}</td>
+                            <td>{cat.description}</td>
+                            <td>
+                              <button
+                                className={`btn btn-sm ${cat.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
+                                onClick={() => toggleStatus("category", cat._id, cat.status)}
+                              >
+                                {cat.status}
+                              </button>
+                            </td>
+                            <td className="text-end">
+                              <button className="btn btn-sm btn-outline-info mr-2" onClick={() => {
+                                openModal("category", cat);
+                              }}>Edit</button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => deleteCategory(cat._id)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((categoriesPage - 1) * ITEMS_PER_PAGE + 1, categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).length)} to {Math.min(categoriesPage * ITEMS_PER_PAGE, categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).length)} of {categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={categoriesPage === 1}
+                      onClick={() => setCategoriesPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={categoriesPage >= Math.ceil(categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).length / ITEMS_PER_PAGE)}
+                      onClick={() => setCategoriesPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -852,9 +1070,9 @@ export default function AdminApp() {
             {activeTab === "products" && (
               <div>
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <input 
-                    type="text" 
-                    className="form-control w-25" 
+                  <input
+                    type="text"
+                    className="form-control w-25"
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -877,39 +1095,65 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((prod) => (
-                        <tr key={prod._id} className="align-middle">
-                          <td>
-                            <img src={prod.images[0] || "assets/images/products/serum_product.png"} alt={prod.name} width="50" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
-                          </td>
-                          <td>{prod.name}</td>
-                          <td>{prod.categoryId?.name || "Skin Care"}</td>
-                          <td>₹{prod.mrpPrice}</td>
-                          <td>₹{prod.salePrice}</td>
-                          <td>
-                            <span className={prod.qty < 10 ? 'text-danger fw-bold' : ''}>
-                              {prod.qty} units
-                            </span>
-                            <button className="btn btn-sm btn-link text-info p-0 ml-10" onClick={() => openModal("stock", prod)}>Adjust</button>
-                          </td>
-                          <td>
-                            <button 
-                              className={`btn btn-sm ${prod.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
-                              onClick={() => toggleStatus("product", prod._id, prod.status)}
-                            >
-                              {prod.status}
-                            </button>
-                          </td>
-                          <td className="text-end">
-                            <button className="btn btn-sm btn-outline-info mr-2" onClick={() => {
-                              openModal("product", prod);
-                            }}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => deleteProduct(prod._id)}>Delete</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {products
+                        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .slice((productsPage - 1) * ITEMS_PER_PAGE, productsPage * ITEMS_PER_PAGE)
+                        .map((prod) => (
+                          <tr key={prod._id} className="align-middle">
+                            <td>
+                              <img src={prod.images[0] || "assets/images/products/serum_product.png"} alt={prod.name} width="50" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
+                            </td>
+                            <td>{prod.name}</td>
+                            <td>{prod.categoryId?.name || "Skin Care"}</td>
+                            <td>₹{prod.mrpPrice}</td>
+                            <td>₹{prod.salePrice}</td>
+                            <td>
+                              <span className={prod.qty < 10 ? 'text-danger fw-bold' : ''}>
+                                {prod.qty} units
+                              </span>
+                              <button className="btn btn-sm btn-link text-info p-0 ml-10" onClick={() => openModal("stock", prod)}>Adjust</button>
+                            </td>
+                            <td>
+                              <button
+                                className={`btn btn-sm ${prod.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
+                                onClick={() => toggleStatus("product", prod._id, prod.status)}
+                              >
+                                {prod.status}
+                              </button>
+                            </td>
+                            <td className="text-end">
+                              <button className="btn btn-sm btn-outline-info mr-2" onClick={() => {
+                                openModal("product", prod);
+                              }}>Edit</button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => deleteProduct(prod._id)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((productsPage - 1) * ITEMS_PER_PAGE + 1, products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length)} to {Math.min(productsPage * ITEMS_PER_PAGE, products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length)} of {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={productsPage === 1}
+                      onClick={() => setProductsPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={productsPage >= Math.ceil(products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length / ITEMS_PER_PAGE)}
+                      onClick={() => setProductsPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -917,9 +1161,9 @@ export default function AdminApp() {
             {/* 4. Orders Tab */}
             {activeTab === "orders" && (
               <div>
-                <input 
-                  type="text" 
-                  className="form-control w-25 mb-3" 
+                <input
+                  type="text"
+                  className="form-control w-25 mb-3"
                   placeholder="Search order number..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -939,54 +1183,80 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())).map((order) => (
-                        <tr key={order._id} className="align-middle">
-                          <td>{order.orderNumber}</td>
-                          <td>{order.userId?.name} ({order.userId?.email})</td>
-                          <td>₹{order.totalPrice.toFixed(2)}</td>
-                          <td>
-                            <select 
-                              className="form-select form-select-sm w-auto" 
-                              value={order.paymentStatus}
-                              onChange={(e) => updateOrderStatus(order._id, { paymentStatus: e.target.value })}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Paid">Paid</option>
-                              <option value="Failed">Failed</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select 
-                              className="form-select form-select-sm w-auto" 
-                              value={order.deliveryStatus}
-                              onChange={(e) => updateOrderStatus(order._id, { deliveryStatus: e.target.value })}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Confirmed">Confirmed</option>
-                              <option value="Processing">Processing</option>
-                              <option value="Packed">Packed</option>
-                              <option value="Shipped">Shipped</option>
-                              <option value="Out For Delivery">Out For Delivery</option>
-                              <option value="Delivered">Delivered</option>
-                              <option value="Cancelled">Cancelled</option>
-                            </select>
-                          </td>
-                          <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                          <td className="text-end">
-                            <button 
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => {
-                                setEditingItem(order);
-                                setModalType("order-details");
-                              }}
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {orders
+                        .filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .slice((ordersPage - 1) * ITEMS_PER_PAGE, ordersPage * ITEMS_PER_PAGE)
+                        .map((order) => (
+                          <tr key={order._id} className="align-middle">
+                            <td>{order.orderNumber}</td>
+                            <td>{order.userId?.name} ({order.userId?.email})</td>
+                            <td>₹{order.totalPrice.toFixed(2)}</td>
+                            <td>
+                              <select
+                                className="form-select form-select-sm w-auto"
+                                value={order.paymentStatus}
+                                onChange={(e) => updateOrderStatus(order._id, { paymentStatus: e.target.value })}
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Failed">Failed</option>
+                              </select>
+                            </td>
+                            <td>
+                              <select
+                                className="form-select form-select-sm w-auto"
+                                value={order.deliveryStatus}
+                                onChange={(e) => updateOrderStatus(order._id, { deliveryStatus: e.target.value })}
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Packed">Packed</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Out For Delivery">Out For Delivery</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                              </select>
+                            </td>
+                            <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td className="text-end">
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => {
+                                  setEditingItem(order);
+                                  setModalType("order-details");
+                                }}
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((ordersPage - 1) * ITEMS_PER_PAGE + 1, orders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())).length)} to {Math.min(ordersPage * ITEMS_PER_PAGE, orders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())).length)} of {orders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())).length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={ordersPage === 1}
+                      onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={ordersPage >= Math.ceil(orders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())).length / ITEMS_PER_PAGE)}
+                      onClick={() => setOrdersPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -994,9 +1264,9 @@ export default function AdminApp() {
             {/* 5. Customers Tab */}
             {activeTab === "customers" && (
               <div>
-                <input 
-                  type="text" 
-                  className="form-control w-25 mb-3" 
+                <input
+                  type="text"
+                  className="form-control w-25 mb-3"
                   placeholder="Search customer email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -1015,29 +1285,55 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {customers.filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase())).map((cust) => (
-                        <tr key={cust._id} className="align-middle">
-                          <td>{cust.name}</td>
-                          <td>{cust.email}</td>
-                          <td>{cust.mobile}</td>
-                          <td>
-                            <span className={`badge ${cust.isVerified ? 'bg-success' : 'bg-warning'} text-white`}>
-                              {cust.isVerified ? 'Verified' : 'Pending'}
-                            </span>
-                          </td>
-                          <td>{new Date(cust.createdAt).toLocaleDateString()}</td>
-                          <td className="text-end">
-                            <button 
-                              className={`btn btn-sm ${cust.status === 'active' ? 'btn-outline-danger' : 'btn-danger'}`}
-                              onClick={() => toggleCustomer(cust._id, cust.status)}
-                            >
-                              {cust.status === 'active' ? 'Block Customer' : 'Unblock Customer'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {customers
+                        .filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .slice((customersPage - 1) * ITEMS_PER_PAGE, customersPage * ITEMS_PER_PAGE)
+                        .map((cust) => (
+                          <tr key={cust._id} className="align-middle">
+                            <td>{cust.name}</td>
+                            <td>{cust.email}</td>
+                            <td>{cust.mobile}</td>
+                            <td>
+                              <span className={`badge ${cust.isVerified ? 'bg-success' : 'bg-warning'} text-white`}>
+                                {cust.isVerified ? 'Verified' : 'Pending'}
+                              </span>
+                            </td>
+                            <td>{new Date(cust.createdAt).toLocaleDateString()}</td>
+                            <td className="text-end">
+                              <button
+                                className={`btn btn-sm ${cust.status === 'active' ? 'btn-outline-danger' : 'btn-danger'}`}
+                                onClick={() => toggleCustomer(cust._id, cust.status)}
+                              >
+                                {cust.status === 'active' ? 'Block Customer' : 'Unblock Customer'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((customersPage - 1) * ITEMS_PER_PAGE + 1, customers.filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase())).length)} to {Math.min(customersPage * ITEMS_PER_PAGE, customers.filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase())).length)} of {customers.filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase())).length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={customersPage === 1}
+                      onClick={() => setCustomersPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={customersPage >= Math.ceil(customers.filter(c => c.email.toLowerCase().includes(searchQuery.toLowerCase())).length / ITEMS_PER_PAGE)}
+                      onClick={() => setCustomersPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1061,28 +1357,53 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {banners.map((b) => (
-                        <tr key={b._id} className="align-middle">
-                          <td>
-                            <img src={b.image} alt={b.title} width="120" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
-                          </td>
-                          <td>{b.title}</td>
-                          <td>
-                            <button 
-                              className={`btn btn-sm ${b.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
-                              onClick={() => toggleStatus("banner", b._id, b.status)}
-                            >
-                              {b.status}
-                            </button>
-                          </td>
-                          <td className="text-end">
-                            <button className="btn btn-sm btn-outline-info mr-2" onClick={() => openModal("banner", b)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => deleteBanner(b._id)}>Delete</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {banners
+                        .slice((bannersPage - 1) * ITEMS_PER_PAGE, bannersPage * ITEMS_PER_PAGE)
+                        .map((b) => (
+                          <tr key={b._id} className="align-middle">
+                            <td>
+                              <img src={b.image} alt={b.title} width="120" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
+                            </td>
+                            <td>{b.title}</td>
+                            <td>
+                              <button
+                                className={`btn btn-sm ${b.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
+                                onClick={() => toggleStatus("banner", b._id, b.status)}
+                              >
+                                {b.status}
+                              </button>
+                            </td>
+                            <td className="text-end">
+                              <button className="btn btn-sm btn-outline-info mr-2" onClick={() => openModal("banner", b)}>Edit</button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => deleteBanner(b._id)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((bannersPage - 1) * ITEMS_PER_PAGE + 1, banners.length)} to {Math.min(bannersPage * ITEMS_PER_PAGE, banners.length)} of {banners.length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={bannersPage === 1}
+                      onClick={() => setBannersPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={bannersPage >= Math.ceil(banners.length / ITEMS_PER_PAGE)}
+                      onClick={() => setBannersPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1106,30 +1427,55 @@ export default function AdminApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {videos.map((vid) => (
-                        <tr key={vid._id} className="align-middle">
-                          <td>
-                            <div className="ratio ratio-16x9" style={{ width: "120px" }}>
-                              <iframe src={vid.videoLink} title={vid.title} style={{ border: 0 }}></iframe>
-                            </div>
-                          </td>
-                          <td>{vid.title}</td>
-                          <td>
-                            <button 
-                              className={`btn btn-sm ${vid.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
-                              onClick={() => toggleStatus("video", vid._id, vid.status)}
-                            >
-                              {vid.status}
-                            </button>
-                          </td>
-                          <td className="text-end">
-                            <button className="btn btn-sm btn-outline-info mr-2" onClick={() => openModal("video", vid)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => deleteVideo(vid._id)}>Delete</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {videos
+                        .slice((videosPage - 1) * ITEMS_PER_PAGE, videosPage * ITEMS_PER_PAGE)
+                        .map((vid) => (
+                          <tr key={vid._id} className="align-middle">
+                            <td>
+                              <div className="ratio ratio-16x9" style={{ width: "120px" }}>
+                                <iframe src={vid.videoLink} title={vid.title} style={{ border: 0 }}></iframe>
+                              </div>
+                            </td>
+                            <td>{vid.title}</td>
+                            <td>
+                              <button
+                                className={`btn btn-sm ${vid.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
+                                onClick={() => toggleStatus("video", vid._id, vid.status)}
+                              >
+                                {vid.status}
+                              </button>
+                            </td>
+                            <td className="text-end">
+                              <button className="btn btn-sm btn-outline-info mr-2" onClick={() => openModal("video", vid)}>Edit</button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => deleteVideo(vid._id)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((videosPage - 1) * ITEMS_PER_PAGE + 1, videos.length)} to {Math.min(videosPage * ITEMS_PER_PAGE, videos.length)} of {videos.length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={videosPage === 1}
+                      onClick={() => setVideosPage(p => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary px-3"
+                      disabled={videosPage >= Math.ceil(videos.length / ITEMS_PER_PAGE)}
+                      onClick={() => setVideosPage(p => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1139,20 +1485,20 @@ export default function AdminApp() {
 
       {/* --- CRUD MODALS / OVERLAYS (GLASSMORPHIC STYLING) --- */}
       {modalType && (
-        <div 
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
-          style={{ 
-            backgroundColor: "rgba(0,0,0,0.7)", 
-            backdropFilter: "blur(4px)", 
-            zIndex: 9999 
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(4px)",
+            zIndex: 9999
           }}
         >
-          <div 
-            className="card p-4 border-0 shadow-lg" 
-            style={{ 
-              maxWidth: "550px", 
-              width: "90%", 
-              backgroundColor: "#ffffff", 
+          <div
+            className="card p-4 border-0 shadow-lg"
+            style={{
+              maxWidth: "550px",
+              width: "90%",
+              backgroundColor: "#ffffff",
               borderRadius: "16px",
               border: "1px solid #f1f5f9"
             }}
