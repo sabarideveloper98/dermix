@@ -149,11 +149,7 @@ export default function CheckoutContent() {
       setValidationError("Please enter a valid email address");
       return;
     }
-    const mobileRegex = /^[6-9]\d{9}$/;
-    if (!mobileRegex.test(mobile)) {
-      setValidationError("Please enter a valid 10-digit mobile number");
-      return;
-    }
+
 
     // Validate Shipping Address Form
     if (!street1.trim()) {
