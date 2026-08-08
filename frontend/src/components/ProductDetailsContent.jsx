@@ -22,7 +22,7 @@ export default function ProductDetailsContent() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState("30ml");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const productId = searchParams.get("id") || localStorage.getItem("selectedProductId");
 
@@ -38,6 +38,10 @@ export default function ProductDetailsContent() {
         const data = await res.json();
         if (res.ok && data.success) {
           setProduct(data.product);
+          if (data.product.sizes && data.product.sizes.length > 0) {
+            const firstSize = data.product.sizes[0];
+            setSelectedSize(firstSize.size ? firstSize.size.name : firstSize.name);
+          }
         }
       } catch (err) {
         console.error("Error loading product details:", err);
@@ -92,8 +96,20 @@ export default function ProductDetailsContent() {
     );
   }
 
-  const discount = product.mrpPrice > product.salePrice
-    ? Math.round(((product.mrpPrice - product.salePrice) / product.mrpPrice) * 100)
+  // Calculate price based on selected size
+  let displayMrpPrice = product.mrpPrice;
+  let displaySalePrice = product.salePrice;
+
+  if (product.sizes && product.sizes.length > 0 && selectedSize) {
+    const sizeObj = product.sizes.find(s => (s.size ? s.size.name : s.name) === selectedSize);
+    if (sizeObj && sizeObj.salePrice) {
+      displayMrpPrice = sizeObj.mrpPrice || displayMrpPrice;
+      displaySalePrice = sizeObj.salePrice;
+    }
+  }
+
+  const discount = displayMrpPrice > displaySalePrice
+    ? Math.round(((displayMrpPrice - displaySalePrice) / displayMrpPrice) * 100)
     : 0;
 
   const productImages = product.images.length > 0 ? product.images : ["assets/images/products/serum_product.png"];
@@ -188,12 +204,12 @@ export default function ProductDetailsContent() {
                     <div className="product-infor-price">
                       <div className="mb-4 d-flex align-items-center gap-6">
                         <span className="price-on-sale text-body-l fw-normal text-primary">
-                          ₹{product.salePrice}
+                          ₹{displaySalePrice}
                         </span>
-                        {product.mrpPrice > product.salePrice && (
+                        {displayMrpPrice > displaySalePrice && (
                           <>
                             <span className="price-on-old text-body-l cl-text-6 text-decoration-line-through">
-                              ₹{product.mrpPrice}
+                              ₹{displayMrpPrice}
                             </span>
                             <span className="badge-sale text-body-xs">Save {discount}%</span>
                           </>
@@ -217,29 +233,35 @@ export default function ProductDetailsContent() {
                     </div>
                   </div>
 
-                  <div className="tf-product-variant">
-                    <div className="variant-picker-item variant-size">
-                      <div className="variant-picker-label">
-                        <div>
-                          <span className="fw-normal">Size: </span>
-                          <span className="variant-picker-label-value value-currentSize text-capitalize">
-                            {selectedSize}
-                          </span>
+                  {product.sizes && product.sizes.length > 0 && (
+                    <div className="tf-product-variant">
+                      <div className="variant-picker-item variant-size">
+                        <div className="variant-picker-label">
+                          <div>
+                            <span className="fw-normal">Size: </span>
+                            <span className="variant-picker-label-value value-currentSize text-capitalize">
+                              {selectedSize}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="variant-picker-values">
+                          {product.sizes.map((sizeObj) => {
+                            const name = sizeObj.size ? sizeObj.size.name : sizeObj.name;
+                            const id = sizeObj.size ? sizeObj.size._id : sizeObj._id;
+                            return (
+                              <span
+                                key={id}
+                                className={`size-btn text-body-s fw-normal ${selectedSize === name ? "active" : ""}`}
+                                onClick={() => setSelectedSize(name)}
+                              >
+                                {name}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
-                      <div className="variant-picker-values">
-                        {["30ml", "50ml", "75ml"].map((size) => (
-                          <span
-                            key={size}
-                            className={`size-btn text-body-s fw-normal ${selectedSize === size ? "active" : ""}`}
-                            onClick={() => setSelectedSize(size)}
-                          >
-                            {size}
-                          </span>
-                        ))}
-                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {product.qty > 0 && (
                     <div className="tf-product-total-quantity">
@@ -270,7 +292,7 @@ export default function ProductDetailsContent() {
 
                   <div className="tf-product-description mt-30">
                     <h6 className="title mb-8 font-instrument_serif text-body-l">Description</h6>
-                    <p className="cl-text-5 text-body-s">{product.description}</p>
+                    <div className="cl-text-5 text-body-s ck-content" dangerouslySetInnerHTML={{ __html: product.description }}></div>
                   </div>
                 </div>
               </div>

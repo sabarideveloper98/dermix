@@ -86,27 +86,27 @@ export default function ProductTabs() {
           className="tf-swiper overflow-visible"
         >
           {items.map((prod) => {
-            const discount = prod.mrpPrice > prod.salePrice 
-              ? Math.round(((prod.mrpPrice - prod.salePrice) / prod.mrpPrice) * 100) 
+            const discount = prod.mrpPrice > prod.salePrice
+              ? Math.round(((prod.mrpPrice - prod.salePrice) / prod.mrpPrice) * 100)
               : 0;
 
             return (
               <SwiperSlide key={prod._id}>
                 <div className="card-product card-s2 s2-type_2 wow fadeInUp">
                   <div className="card-product_wrapper square">
-                    <Link 
-                      to={`/ProductDetails?id=${prod._id}`} 
+                    <Link
+                      to={`/ProductDetails?id=${prod._id}`}
                       className="product-img"
                       onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                     >
-                      <img 
-                        className="img-product" 
-                        loading="lazy" 
-                        width="332" 
-                        height="332" 
-                        src={prod.images[0] || "assets/images/products/serum_product.png"} 
-                        alt={prod.name} 
-                      />    
+                      <img
+                        className="img-product"
+                        loading="lazy"
+                        width="332"
+                        height="332"
+                        src={prod.images[0] || "assets/images/products/serum_product.png"}
+                        alt={prod.name}
+                      />
                     </Link>
                     <ul className="product-badge_list">
                       {discount > 0 && (
@@ -126,11 +126,11 @@ export default function ProductTabs() {
                         )
                       )}
                     </ul>
-                    
+
                     {prod.qty > 0 && (
                       <div className="product-action_bot">
-                        <a 
-                          href="#shoppingCart" 
+                        <a
+                          href="#shoppingCart"
                           data-bs-toggle="offcanvas"
                           className="tf-btn hv-black btn-white type-2 w-100"
                           onClick={() => addToCart(prod, 1)}
@@ -141,13 +141,13 @@ export default function ProductTabs() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="card-product_info">
                     <span className="product-info__type text-body-xs fw-normal text-uppercase cl-text-5">
                       {prod.categoryId?.name || "Skin Care"}
                     </span>
-                    <Link 
-                      to={`/ProductDetails?id=${prod._id}`} 
+                    <Link
+                      to={`/ProductDetails?id=${prod._id}`}
                       className="name-product fw-normal link-underline"
                       onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                     >
@@ -183,13 +183,13 @@ export default function ProductTabs() {
         </Swiper>
 
         {/* Floating Custom Navigation Buttons */}
-        <button 
+        <button
           className="product-prev btn-nav-swiper-custom"
           aria-label="Previous slide"
         >
           <i className="icon icon-ArrowLeft"></i>
         </button>
-        <button 
+        <button
           className="product-next btn-nav-swiper-custom"
           aria-label="Next slide"
         >
@@ -274,7 +274,7 @@ export default function ProductTabs() {
             </li>
           </ul>
         </div>
-        
+
         {loading ? (
           <div className="text-center py-5">
             <p>Loading catalog...</p>

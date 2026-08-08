@@ -95,6 +95,17 @@ export default function ShoppingCart() {
                       const prod = item.productId;
                       if (!prod) return null;
 
+                      let itemMrpPrice = prod.mrpPrice;
+                      let itemSalePrice = prod.salePrice;
+
+                      if (prod.sizes && prod.sizes.length > 0) {
+                        const sizeObj = prod.sizes.find(s => (s.size ? s.size.name : s.name) === item.size);
+                        if (sizeObj && sizeObj.salePrice) {
+                          itemMrpPrice = sizeObj.mrpPrice || itemMrpPrice;
+                          itemSalePrice = sizeObj.salePrice;
+                        }
+                      }
+
                       return (
                         <div key={`${prod._id}-${item.size}`} className="tf-mini-cart-item file-delete">
                           <Link 
@@ -127,10 +138,10 @@ export default function ShoppingCart() {
                           <div className="tf-mini-cart-price">
                             <div className="price-wrap gap-6">
                               <span className="price-new fw-normal text-primary tf-mini-card-price">
-                                ₹{prod.salePrice}
+                                ₹{itemSalePrice}
                               </span>
-                              {prod.mrpPrice > prod.salePrice && (
-                                <span className="price-old fw-normal cl-text-6">₹{prod.mrpPrice}</span>
+                              {itemMrpPrice > itemSalePrice && (
+                                <span className="price-old fw-normal cl-text-6">₹{itemMrpPrice}</span>
                               )}
                             </div>
                             <div className="group-action">

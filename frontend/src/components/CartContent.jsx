@@ -47,22 +47,22 @@ export default function CartContent() {
                       return (
                         <div key={`${prod._id}-${item.size}`} className="tf-cart_item each-prd file-delete">
                           <div className="cart-col cart_product">
-                            <Link 
-                              to={`/ProductDetails?id=${prod._id}`} 
+                            <Link
+                              to={`/ProductDetails?id=${prod._id}`}
                               className="img-prd"
                               onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                             >
-                              <img 
-                                loading="lazy" 
-                                width="128" 
+                              <img
+                                loading="lazy"
+                                width="128"
                                 height="154"
-                                src={prod.images[0] || "assets/images/products/serum_product.png"} 
-                                alt={prod.name} 
+                                src={prod.images[0] || "assets/images/products/serum_product.png"}
+                                alt={prod.name}
                               />
                             </Link>
                             <div className="infor-prd">
-                              <Link 
-                                to={`/ProductDetails?id=${prod._id}`} 
+                              <Link
+                                to={`/ProductDetails?id=${prod._id}`}
                                 className="prd_name fw-normal link-underline"
                                 onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                               >
@@ -79,7 +79,7 @@ export default function CartContent() {
                                   <p className="price-old cl-text-6">₹{prod.mrpPrice}</p>
                                 )}
                               </div>
-                              <div 
+                              <div
                                 className="cart_remove tf-btn-line fw-normal remove"
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => removeFromCart(prod._id, item.size)}
@@ -90,20 +90,20 @@ export default function CartContent() {
                           </div>
                           <div className="cart-col cart_quantity" data-cart-title="Quantity">
                             <div className="wg-quantity">
-                              <button 
+                              <button
                                 className="btn-quantity minus-quantity"
                                 onClick={() => updateCartItem(prod._id, item.quantity - 1, item.size)}
                               >
                                 <i className="icon icon-Minus"></i>
                               </button>
-                              <input 
-                                className="quantity-product" 
-                                type="text" 
-                                name="number" 
+                              <input
+                                className="quantity-product"
+                                type="text"
+                                name="number"
                                 value={item.quantity}
                                 readOnly
                               />
-                              <button 
+                              <button
                                 className="btn-quantity plus-quantity"
                                 onClick={() => updateCartItem(prod._id, item.quantity + 1, item.size)}
                               >
@@ -144,10 +144,10 @@ export default function CartContent() {
                         <img width="48" height="32" src="assets/images/payment/visa.svg" alt="card" />
                       </li>
                       <li className="card-item">
-                        <img width="48" height="32" src="assets/images/payment/master.svg" alt="card"/>
+                        <img width="48" height="32" src="assets/images/payment/master.svg" alt="card" />
                       </li>
                       <li className="card-item">
-                        <img width="48" height="32" src="assets/images/payment/paypal.svg" alt="card"/>
+                        <img width="48" height="32" src="assets/images/payment/paypal.svg" alt="card" />
                       </li>
                     </ul>
                   </div>

@@ -65,7 +65,13 @@ export const CartProvider = ({ children }) => {
   const calculateGuestCart = (items) => {
     let total = 0;
     items.forEach((item) => {
-      const price = item.productId.salePrice || item.price || 0;
+      let price = item.productId.salePrice || item.price || 0;
+      if (item.productId.sizes && item.productId.sizes.length > 0) {
+        const sizeObj = item.productId.sizes.find(s => (s.size ? s.size.name : s.name) === item.size);
+        if (sizeObj && sizeObj.salePrice) {
+          price = sizeObj.salePrice;
+        }
+      }
       total += price * item.quantity;
     });
     setCart({ items, totalAmount: total });

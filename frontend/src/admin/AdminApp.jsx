@@ -3,6 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE as API_BASE_CONFIG } from "../config";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import {
+  ClassicEditor,
+  Essentials,
+  Bold,
+  Italic,
+  Font,
+  Paragraph,
+  List,
+  Heading,
+  Table,
+  Undo,
+  Link as CKLink,
+  Image,
+  ImageUpload
+} from 'ckeditor5';
+import 'ckeditor5/ckeditor5.css';
 
 const profitData = [
   { name: 'W1', value: 20000 },
@@ -57,9 +74,12 @@ export default function AdminApp() {
   const [customers, setCustomers] = useState([]);
   const [banners, setBanners] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [sizes, setSizes] = useState([]);
+  const [refunds, setRefunds] = useState([]);
+  const [refundSettings, setRefundSettings] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Form Modals / Inputs State
+  // Pagination & Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState(null);
   const [modalType, setModalType] = useState(""); // "category", "product", "banner", "video", "stock"
@@ -70,6 +90,8 @@ export default function AdminApp() {
   const [customersPage, setCustomersPage] = useState(1);
   const [bannersPage, setBannersPage] = useState(1);
   const [videosPage, setVideosPage] = useState(1);
+  const [sizesPage, setSizesPage] = useState(1);
+  const [refundsPage, setRefundsPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
   // Temporary item inputs
@@ -86,6 +108,18 @@ export default function AdminApp() {
   const [videoLink, setVideoLink] = useState("");
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerFile, setBannerFile] = useState(null);
+
+  // Refund / Cancel States
+  const [cancelReason, setCancelReason] = useState("");
+  const [refundAmountInput, setRefundAmountInput] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+
+  // Size specific inputs
+  const [sizeName, setSizeName] = useState("");
+  const [sizeDisplayOrder, setSizeDisplayOrder] = useState(0);
+
+  // Product sizes selection
+  const [selectedSizes, setSelectedSizes] = useState([]);
 
   const API_BASE = `${API_BASE_CONFIG}/api`;
 
@@ -121,10 +155,14 @@ export default function AdminApp() {
         const data = await res.json();
         if (res.ok && data.success) setProducts(data.products);
 
-        // Fetch categories to populate select fields
+        // Fetch categories and sizes to populate select fields
         const catRes = await fetch(`${API_BASE}/categories?admin=true`);
         const catData = await catRes.json();
         if (catRes.ok && catData.success) setCategories(catData.categories);
+
+        const sizeRes = await fetch(`${API_BASE}/sizes`);
+        const sizeData = await sizeRes.json();
+        if (sizeRes.ok && sizeData.success) setSizes(sizeData.sizes);
       } else if (tab === "orders") {
         const res = await authFetch(`${API_BASE}/admin/orders`);
         const data = await res.json();
@@ -141,6 +179,18 @@ export default function AdminApp() {
         const res = await fetch(`${API_BASE}/instagram-videos?admin=true`);
         const data = await res.json();
         if (res.ok && data.success) setVideos(data.videos);
+      } else if (tab === "sizes") {
+        const res = await fetch(`${API_BASE}/sizes`);
+        const data = await res.json();
+        if (res.ok && data.success) setSizes(data.sizes);
+      } else if (tab === "refunds") {
+        const res = await authFetch(`${API_BASE}/refunds`);
+        const data = await res.json();
+        if (res.ok && data.success) setRefunds(data.refunds);
+      } else if (tab === "refund-settings") {
+        const res = await authFetch(`${API_BASE}/refunds/settings`);
+        const data = await res.json();
+        if (res.ok && data.success) setRefundSettings(data.settings);
       }
     } catch (err) {
       console.error(`Error loading tab ${tab}:`, err);
@@ -150,6 +200,61 @@ export default function AdminApp() {
   };
 
   // Admin Login Submit
+  const handleCancelOrder = async (orderId) => {
+    if (!cancelReason.trim()) {
+      alert("Please provide a cancellation reason.");
+      return;
+    }
+    try {
+      const res = await authFetch(`${API_BASE}/refunds/order/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancellationReason: cancelReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Order cancelled successfully");
+        setCancelReason("");
+        setModalType("");
+        fetchTabContent("orders");
+      } else {
+        alert(data.message || "Failed to cancel order");
+      }
+    } catch (err) {
+      alert("Error cancelling order");
+    }
+  };
+
+  const handleProcessRefund = async (order) => {
+    if (!refundAmountInput || isNaN(refundAmountInput)) {
+      alert("Please enter a valid refund amount");
+      return;
+    }
+    try {
+      const res = await authFetch(`${API_BASE}/refunds/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order._id,
+          refundAmount: Number(refundAmountInput),
+          refundReason: refundReason || "Requested by admin",
+          refundCharge: refundSettings?.processingFee || 0,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Refund processed successfully!");
+        setModalType("");
+        fetchTabContent("orders");
+        if (activeTab === "refunds") fetchTabContent("refunds");
+      } else {
+        alert(data.message || "Failed to process refund");
+      }
+    } catch (err) {
+      alert("Error processing refund");
+    }
+  };
+
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setAuthError("");
@@ -175,11 +280,13 @@ export default function AdminApp() {
     else if (type === "product") endpoint = `${API_BASE}/products/${id}/status`;
     else if (type === "banner") endpoint = `${API_BASE}/admin/banners/${id}`;
     else if (type === "video") endpoint = `${API_BASE}/admin/instagram-videos/${id}`;
+    else if (type === "size") endpoint = `${API_BASE}/sizes/${id}`;
 
     try {
       const res = await authFetch(endpoint, {
         method: type === "banner" || type === "video" ? "PUT" : "PATCH",
         body: JSON.stringify({ status: newStatus }),
+        headers: type === "size" ? { "Content-Type": "application/json" } : undefined
       });
       if (res.ok) {
         fetchTabContent(activeTab);
@@ -237,6 +344,7 @@ export default function AdminApp() {
     formData.append("salePrice", salePrice);
     formData.append("qty", qty);
     formData.append("categoryId", categoryId);
+    formData.append("sizes", JSON.stringify(selectedSizes));
 
     // Append remaining images state on edit
     if (editingItem) {
@@ -407,6 +515,41 @@ export default function AdminApp() {
     }
   };
 
+  // Size CRUD
+  const saveSize = async (e) => {
+    e.preventDefault();
+    const payload = { name: sizeName, displayOrder: sizeDisplayOrder };
+    const url = editingItem
+      ? `${API_BASE}/sizes/${editingItem._id}`
+      : `${API_BASE}/sizes`;
+    const method = editingItem ? "PUT" : "POST";
+
+    try {
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setEditingItem(null);
+        setModalType("");
+        fetchTabContent("sizes");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteSize = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this size?")) return;
+    try {
+      const res = await authFetch(`${API_BASE}/sizes/${id}`, { method: "DELETE" });
+      if (res.ok) fetchTabContent("sizes");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Trigger modal preparation
   const openModal = (type, item = null) => {
     setEditingItem(item);
@@ -423,6 +566,12 @@ export default function AdminApp() {
       setSalePrice(item ? item.salePrice : "");
       setQty(item ? item.qty : "");
       setCategoryId(item ? item.categoryId?._id || item.categoryId || "" : "");
+      setSelectedSizes(item && item.sizes ? item.sizes.map(s => {
+        if (typeof s === 'string' || !s.size) {
+          return { size: s._id || s, mrpPrice: item.mrpPrice, salePrice: item.salePrice };
+        }
+        return { size: s.size._id || s.size, mrpPrice: s.mrpPrice, salePrice: s.salePrice };
+      }) : []);
       setImageFiles([]);
     } else if (type === "stock") {
       setQty(item ? item.qty : "");
@@ -433,6 +582,9 @@ export default function AdminApp() {
     } else if (type === "video") {
       setVideoTitle(item ? item.title : "");
       setVideoLink(item ? item.videoLink : "");
+    } else if (type === "size") {
+      setSizeName(item ? item.name : "");
+      setSizeDisplayOrder(item ? item.displayOrder : 0);
     }
   };
 
@@ -695,6 +847,22 @@ export default function AdminApp() {
           </div>
           <button className={`nav-item-btn ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
             <i className="icon icon-ShoppingBag fs-18"></i> Orders
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+          </button>
+
+          <div className="mt-4 mb-2 ps-3 text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>
+            Refund Management
+          </div>
+          <button className={`nav-item-btn ${activeTab === "refunds" ? "active" : ""}`} onClick={() => setActiveTab("refunds")}>
+            <i className="icon icon-CreditCard fs-18"></i> Refunds Dashboard
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+          </button>
+          <button className={`nav-item-btn ${activeTab === "refund-settings" ? "active" : ""}`} onClick={() => setActiveTab("refund-settings")}>
+            <i className="icon icon-Settings fs-18"></i> Refund Settings
+            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+          </button>
+          <button className={`nav-item-btn ${activeTab === "sizes" ? "active" : ""}`} onClick={() => setActiveTab("sizes")}>
+            <i className="icon icon-SlidersHorizontal fs-18"></i> Sizes
             <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
           </button>
           <button className={`nav-item-btn ${activeTab === "customers" ? "active" : ""}`} onClick={() => setActiveTab("customers")}>
@@ -1158,6 +1326,81 @@ export default function AdminApp() {
               </div>
             )}
 
+            {/* 3. Sizes Tab */}
+            {activeTab === "sizes" && (
+              <div>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <button className="btn btn-primary" onClick={() => openModal("size")}>+ Add Size</button>
+                </div>
+                <div className="table-premium">
+                  <table className="table mb-0">
+                    <thead>
+                      <tr>
+                        <th>Size Name</th>
+                        <th>Display Order</th>
+                        <th>Status</th>
+                        <th className="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sizes.slice((sizesPage - 1) * ITEMS_PER_PAGE, sizesPage * ITEMS_PER_PAGE).map((size) => (
+                        <tr key={size._id}>
+                          <td className="fw-bold">{size.name}</td>
+                          <td>{size.displayOrder}</td>
+                          <td>
+                            <span className={`badge ${size.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                              {size.status}
+                            </span>
+                          </td>
+                          <td className="text-end">
+                            <button className="btn btn-sm btn-light me-2" onClick={() => toggleStatus("size", size._id, size.status)}>
+                              <i className={`icon ${size.status === 'active' ? 'icon-EyeOff' : 'icon-Eye'} text-muted`}></i>
+                            </button>
+                            <button className="btn btn-sm btn-light me-2" onClick={() => openModal("size", size)}>
+                              <i className="icon icon-Edit text-primary"></i>
+                            </button>
+                            <button className="btn btn-sm btn-light" onClick={() => deleteSize(size._id)}>
+                              <i className="icon icon-Trash text-danger"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {sizes.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="text-center py-4 text-muted">No sizes found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Pagination for Sizes */}
+                  {sizes.length > ITEMS_PER_PAGE && (
+                    <div className="d-flex justify-content-between align-items-center p-3 border-top" style={{ backgroundColor: '#f8fafc' }}>
+                      <span className="text-muted small">
+                        Showing {(sizesPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(sizesPage * ITEMS_PER_PAGE, sizes.length)} of {sizes.length} entries
+                      </span>
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          disabled={sizesPage === 1}
+                          onClick={() => setSizesPage(p => p - 1)}
+                        >
+                          Previous
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          disabled={sizesPage >= Math.ceil(sizes.length / ITEMS_PER_PAGE)}
+                          onClick={() => setSizesPage(p => p + 1)}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* 4. Orders Tab */}
             {activeTab === "orders" && (
               <div>
@@ -1258,6 +1501,109 @@ export default function AdminApp() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Refunds Tab */}
+            {activeTab === "refunds" && (
+              <div>
+                <input
+                  type="text"
+                  className="form-control w-25 mb-3"
+                  placeholder="Search refund ID or order number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+
+                <div className="table-responsive">
+                  <table className="table table-premium mb-0">
+                    <thead>
+                      <tr>
+                        <th>Refund ID</th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Refund Amount</th>
+                        <th>Charges</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {refunds
+                        .filter(r => r.refund_id?.toLowerCase().includes(searchQuery.toLowerCase()) || r.order_id?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .slice((refundsPage - 1) * ITEMS_PER_PAGE, refundsPage * ITEMS_PER_PAGE)
+                        .map((refund) => (
+                          <tr key={refund._id} className="align-middle">
+                            <td>{refund.refund_id}</td>
+                            <td>{refund.order_id?.orderNumber}</td>
+                            <td>{refund.user_id?.name}</td>
+                            <td className="text-primary fw-bold">₹{refund.refund_amount?.toFixed(2)}</td>
+                            <td>₹{refund.refund_charge?.toFixed(2)}</td>
+                            <td>
+                              <span className={`badge bg-${refund.refund_status === 'Completed' ? 'success' : refund.refund_status === 'Failed' ? 'danger' : 'warning'}`}>
+                                {refund.refund_status}
+                              </span>
+                            </td>
+                            <td>{new Date(refund.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span className="text-muted small">
+                    Showing {Math.min((refundsPage - 1) * ITEMS_PER_PAGE + 1, refunds.length)} to {Math.min(refundsPage * ITEMS_PER_PAGE, refunds.length)} of {refunds.length} entries
+                  </span>
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage === 1} onClick={() => setRefundsPage(p => Math.max(1, p - 1))}>Prev</button>
+                    <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage >= Math.ceil(refunds.length / ITEMS_PER_PAGE)} onClick={() => setRefundsPage(p => p + 1)}>Next</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Refund Settings Tab */}
+            {activeTab === "refund-settings" && (
+              <div className="card p-4 border-0 shadow-sm" style={{ maxWidth: '600px' }}>
+                <h5 className="mb-4 font-instrument_serif">Refund Configuration</h5>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const res = await authFetch(`${API_BASE}/refunds/settings`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(refundSettings)
+                    });
+                    const data = await res.json();
+                    if (data.success) alert("Refund settings updated successfully!");
+                  } catch (err) {
+                    alert("Failed to update refund settings.");
+                  }
+                }}>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small">Default Refund Percentage (%)</label>
+                    <input type="number" className="form-control" value={refundSettings?.defaultPercentage || ''} onChange={e => setRefundSettings({ ...refundSettings, defaultPercentage: Number(e.target.value) })} />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small">Fixed Refund Deduction (₹)</label>
+                    <input type="number" className="form-control" value={refundSettings?.fixedDeduction || ''} onChange={e => setRefundSettings({ ...refundSettings, fixedDeduction: Number(e.target.value) })} />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small">Refund Processing Fee (₹)</label>
+                    <input type="number" className="form-control" value={refundSettings?.processingFee || ''} onChange={e => setRefundSettings({ ...refundSettings, processingFee: Number(e.target.value) })} />
+                  </div>
+                  <div className="mb-3 form-check form-switch">
+                    <input type="checkbox" className="form-check-input" checked={refundSettings?.fullRefundEnabled || false} onChange={e => setRefundSettings({ ...refundSettings, fullRefundEnabled: e.target.checked })} />
+                    <label className="form-check-label fw-bold small">Enable Full Refunds</label>
+                  </div>
+                  <div className="mb-4 form-check form-switch">
+                    <input type="checkbox" className="form-check-input" checked={refundSettings?.partialRefundEnabled || false} onChange={e => setRefundSettings({ ...refundSettings, partialRefundEnabled: e.target.checked })} />
+                    <label className="form-check-label fw-bold small">Enable Partial Refunds</label>
+                  </div>
+                  <button type="submit" className="btn btn-primary px-4">Save Settings</button>
+                </form>
               </div>
             )}
 
@@ -1500,7 +1846,9 @@ export default function AdminApp() {
               width: "90%",
               backgroundColor: "#ffffff",
               borderRadius: "16px",
-              border: "1px solid #f1f5f9"
+              border: "1px solid #f1f5f9",
+              maxHeight: "90vh",
+              overflowY: "auto"
             }}
           >
             <div className="d-flex justify-content-between mb-4">
@@ -1562,9 +1910,69 @@ export default function AdminApp() {
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Benefit tag</label>
                     <input type="text" className="form-control" placeholder="e.g. Firming, Hydrating" value={benefit} onChange={(e) => setBenefit(e.target.value)} />
                   </div>
+                  <div className="col-12 col-md-6 mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Sizes</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                      {sizes.map(s => {
+                        const isSelected = selectedSizes.some(obj => obj.size === s._id);
+                        const selectedObj = selectedSizes.find(obj => obj.size === s._id) || { mrpPrice: '', salePrice: '' };
+                        return (
+                          <div key={s._id} className="form-check mb-2">
+                            <input
+                              className="form-check-input mt-2"
+                              type="checkbox"
+                              id={`size-${s._id}`}
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedSizes([...selectedSizes, { size: s._id, mrpPrice: mrpPrice || 0, salePrice: salePrice || 0 }]);
+                                } else {
+                                  setSelectedSizes(selectedSizes.filter(obj => obj.size !== s._id));
+                                }
+                              }}
+                            />
+                            <label className="form-check-label d-flex align-items-center w-100" htmlFor={`size-${s._id}`}>
+                              <span style={{ minWidth: '80px' }}>{s.name}</span>
+                              {isSelected && (
+                                <div className="d-flex ms-auto gap-2 align-items-center flex-wrap">
+                                  <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
+                                    <span className="input-group-text px-1">MRP</span>
+                                    <input type="number" className="form-control px-1" value={selectedObj.mrpPrice} onChange={e => {
+                                      setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, mrpPrice: e.target.value } : obj));
+                                    }} />
+                                  </div>
+                                  <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
+                                    <span className="input-group-text px-1">Sale</span>
+                                    <input type="number" className="form-control px-1" value={selectedObj.salePrice} onChange={e => {
+                                      setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, salePrice: e.target.value } : obj));
+                                    }} />
+                                  </div>
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        )
+                      })}
+                      {sizes.length === 0 && <span className="text-muted small">No sizes available.</span>}
+                    </div>
+                  </div>
                   <div className="col-12 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
-                    <textarea className="form-control" rows="2" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
+                    <div className="border rounded" style={{ minHeight: '200px' }}>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={{
+                          licenseKey: 'GPL',
+                          plugins: [Essentials, Bold, Italic, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                          toolbar: ['heading', '|', 'bold', 'italic', 'fontColor', 'fontBackgroundColor', '|', 'bulletedList', 'numberedList', 'insertTable', 'link', 'undo', 'redo']
+                        }}
+                        data={description}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data);
+                        }}
+                      />
+                    </div>
                   </div>
                   <div className="col-12 mb-4">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Images Upload (Multiple files)</label>
@@ -1573,6 +1981,23 @@ export default function AdminApp() {
                 </div>
                 <button type="submit" className="btn btn-primary w-100 py-2">
                   Save Product
+                </button>
+              </form>
+            )}
+
+            {/* Size Form */}
+            {modalType === "size" && (
+              <form onSubmit={saveSize}>
+                <div className="mb-3">
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Size Name</label>
+                  <input type="text" className="form-control" placeholder="e.g. 50g, Medium" value={sizeName} onChange={(e) => setSizeName(e.target.value)} required />
+                </div>
+                <div className="mb-4">
+                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Display Order</label>
+                  <input type="number" className="form-control" value={sizeDisplayOrder} onChange={(e) => setSizeDisplayOrder(e.target.value)} />
+                </div>
+                <button type="submit" className="btn btn-primary w-100 py-2">
+                  Save Size
                 </button>
               </form>
             )}
@@ -1667,7 +2092,62 @@ export default function AdminApp() {
                     ))}
                   </div>
                 </div>
-                <button className="btn btn-secondary w-100 py-10" onClick={() => setModalType("")}>
+                <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Order Actions</h6>
+
+                  {['Pending', 'Processing', 'Confirmed'].includes(editingItem.deliveryStatus) && (
+                    <div className="mb-3 p-3 bg-light rounded border">
+                      <label className="form-label small fw-bold">Cancel Order</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm mb-2"
+                        placeholder="Cancellation Reason..."
+                        value={cancelReason}
+                        onChange={e => setCancelReason(e.target.value)}
+                      />
+                      <button className="btn btn-sm btn-danger w-100" onClick={() => handleCancelOrder(editingItem._id)}>
+                        Cancel Order
+                      </button>
+                    </div>
+                  )}
+
+                  {editingItem.transactionId && !['Refunded', 'Processing'].includes(editingItem.refundStatus) && (
+                    <div className="p-3 bg-light rounded border">
+                      <label className="form-label small fw-bold">Process Refund</label>
+                      <input
+                        type="number"
+                        className="form-control form-control-sm mb-2"
+                        placeholder="Refund Amount (₹)"
+                        value={refundAmountInput}
+                        onChange={e => setRefundAmountInput(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm mb-2"
+                        placeholder="Refund Reason"
+                        value={refundReason}
+                        onChange={e => setRefundReason(e.target.value)}
+                      />
+                      <button className="btn btn-sm btn-warning w-100" onClick={() => handleProcessRefund(editingItem)}>
+                        Process Refund
+                      </button>
+                    </div>
+                  )}
+
+                  {editingItem.refundStatus && editingItem.refundStatus !== 'None' && (
+                    <div className="mt-2 p-2 bg-light border rounded">
+                      <p className="mb-1 small"><strong>Refund Status:</strong> {editingItem.refundStatus}</p>
+                      <p className="mb-0 small"><strong>Refunded Amount:</strong> ₹{editingItem.refundAmount}</p>
+                    </div>
+                  )}
+                </div>
+
+                <button className="btn btn-secondary w-100 py-10 mt-2" onClick={() => {
+                  setModalType("");
+                  setCancelReason("");
+                  setRefundAmountInput("");
+                  setRefundReason("");
+                }}>
                   Close Overview
                 </button>
               </div>

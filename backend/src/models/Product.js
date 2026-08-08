@@ -34,6 +34,20 @@ const productSchema = new mongoose.Schema(
       type: [String], // Array of Cloudinary Image URLs
       default: [],
     },
+    sizes: [{
+      size: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Size',
+      },
+      mrpPrice: {
+        type: Number,
+        required: true,
+      },
+      salePrice: {
+        type: Number,
+        required: true,
+      }
+    }],
     qty: {
       type: Number,
       required: true,

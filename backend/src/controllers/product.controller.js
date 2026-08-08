@@ -56,6 +56,7 @@ export const getProducts = async (req, res) => {
     const totalProducts = await Product.countDocuments(filter);
     const products = await Product.find(filter)
       .populate('categoryId', 'name')
+      .populate('sizes.size')
       .sort(sortOptions)
       .skip(skip)
       .limit(Number(limit));
@@ -76,7 +77,7 @@ export const getProducts = async (req, res) => {
 // Get single product
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('categoryId', 'name');
+    const product = await Product.findById(req.params.id).populate('categoryId', 'name').populate('sizes.size');
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -89,7 +90,7 @@ export const getProductById = async (req, res) => {
 
 // Create Product (Admin)
 export const createProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes } = req.body;
 
   try {
     // Validate category exists
@@ -106,6 +107,16 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // parse sizes
+    let parsedSizes = [];
+    if (sizes) {
+      try {
+        parsedSizes = Array.isArray(sizes) ? sizes : JSON.parse(sizes);
+      } catch (err) {
+        console.error('Error parsing sizes:', err);
+      }
+    }
+
     const product = await Product.create({
       name,
       categoryId,
@@ -114,6 +125,7 @@ export const createProduct = async (req, res) => {
       benefit,
       description,
       images: imageUrls,
+      sizes: parsedSizes,
       qty: Number(qty) || 0,
       status: 'active',
     });
@@ -137,7 +149,7 @@ export const createProduct = async (req, res) => {
 
 // Update Product (Admin)
 export const updateProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, status } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes } = req.body;
 
   try {
     let product = await Product.findById(req.params.id);
@@ -152,6 +164,16 @@ export const updateProduct = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid category' });
       }
     }
+    
+    // parse sizes
+    let parsedSizes = undefined;
+    if (sizes !== undefined) {
+      try {
+        parsedSizes = Array.isArray(sizes) ? sizes : JSON.parse(sizes);
+      } catch (err) {
+        console.error('Error parsing sizes:', err);
+      }
+    }
 
     const updates = {
       name,
@@ -161,6 +183,7 @@ export const updateProduct = async (req, res) => {
       benefit,
       description,
       status,
+      sizes: parsedSizes
     };
 
     // Filter out undefined fields

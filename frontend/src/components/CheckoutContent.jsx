@@ -460,6 +460,14 @@ export default function CheckoutContent() {
                 const prod = item.productId;
                 if (!prod) return null;
 
+                let itemSalePrice = prod.salePrice;
+                if (prod.sizes && prod.sizes.length > 0) {
+                  const sizeObj = prod.sizes.find(s => (s.size ? s.size.name : s.name) === item.size);
+                  if (sizeObj && sizeObj.salePrice) {
+                    itemSalePrice = sizeObj.salePrice;
+                  }
+                }
+
                 return (
                   <li key={`${prod._id}-${item.size}`} className="order-item">
                     <Link to={`/ProductDetails?id=${prod._id}`} className="img-prd">
@@ -478,7 +486,7 @@ export default function CheckoutContent() {
                       </Link>
                       <p className="prd_size cl-text-5">Size: {item.size}</p>
                       <div className="price-wrap fw-normal gap-6 mb-8">
-                        <span className="price-new text-primary">₹{prod.salePrice}</span>
+                        <span className="price-new text-primary">₹{itemSalePrice}</span>
                       </div>
                       <div className="group-action d-flex align-items-center gap-12 mt-8">
                         <div className="wg-quantity style-2" style={{ scale: '0.8', transformOrigin: 'left center' }}>

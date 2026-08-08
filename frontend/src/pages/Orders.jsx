@@ -6,6 +6,7 @@ import TopBar from "../components/TopBar.jsx";
 import Footer from "../components/Footer.jsx";
 import ShoppingCart from "../components/ShoppingCart.jsx";
 import Search from "../components/Search.jsx";
+import { generateInvoice } from "../utils/generateInvoice";
 
 import { API_BASE as API_BASE_CONFIG } from "../config";
 
@@ -42,6 +43,10 @@ export default function Orders() {
 
     fetchOrders();
   }, [user]);
+
+  const handleDownloadInvoice = (order) => {
+    generateInvoice(order, user);
+  };
 
   const filteredOrders = orders.filter((order) => {
     const query = searchQuery.toLowerCase();
@@ -129,13 +134,26 @@ export default function Orders() {
                                 className="badge px-10 py-4 font-normal text-body-xs"
                                 style={{
                                   borderRadius: "4px",
-                                  backgroundColor: order.deliveryStatus === "Delivered" ? "#f6ffed" : "#fff7e6",
-                                  color: order.deliveryStatus === "Delivered" ? "#52c41a" : "#fa8c16",
-                                  border: `1px solid ${order.deliveryStatus === "Delivered" ? "#b7eb8f" : "#ffd591"}`
+                                  backgroundColor: order.deliveryStatus === "Delivered" ? "#f6ffed" : order.deliveryStatus === "Cancelled" ? "#fff1f0" : "#fff7e6",
+                                  color: order.deliveryStatus === "Delivered" ? "#52c41a" : order.deliveryStatus === "Cancelled" ? "#cf1322" : "#fa8c16",
+                                  border: `1px solid ${order.deliveryStatus === "Delivered" ? "#b7eb8f" : order.deliveryStatus === "Cancelled" ? "#ffa39e" : "#ffd591"}`
                                 }}
                               >
                                 {order.deliveryStatus}
                               </span>
+                              {order.refundStatus && order.refundStatus !== 'None' && (
+                                <span
+                                  className="badge px-10 py-4 font-normal text-body-xs ms-2"
+                                  style={{
+                                    borderRadius: "4px",
+                                    backgroundColor: order.refundStatus === "Refunded" ? "#e6fffb" : "#fff0f6",
+                                    color: order.refundStatus === "Refunded" ? "#08979c" : "#c41d7f",
+                                    border: `1px solid ${order.refundStatus === "Refunded" ? "#87e8de" : "#ffadd2"}`
+                                  }}
+                                >
+                                  {order.refundStatus}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -157,6 +175,12 @@ export default function Orders() {
                             >
                               Track Order →
                             </Link>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => handleDownloadInvoice(order)}
+                            >
+                              Invoice
+                            </button>
                           </div>
                         </div>
                       </div>

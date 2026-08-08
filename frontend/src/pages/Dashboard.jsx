@@ -6,6 +6,7 @@ import TopBar from "../components/TopBar.jsx";
 import Footer from "../components/Footer.jsx";
 import ShoppingCart from "../components/ShoppingCart.jsx";
 import Search from "../components/Search.jsx";
+import { generateInvoice } from "../utils/generateInvoice";
 
 import { API_BASE as API_BASE_CONFIG } from "../config";
 
@@ -49,6 +50,10 @@ export default function Dashboard() {
 
     fetchData();
   }, [user]);
+
+  const handleDownloadInvoice = (order) => {
+    generateInvoice(order, user);
+  };
 
   const totalSpent = orders
     .filter((o) => o.paymentStatus === "Paid")
@@ -139,7 +144,7 @@ export default function Dashboard() {
             <div className="col-12 col-lg-8">
               <div className="card p-4 border border-light" style={{ borderRadius: "12px", backgroundColor: "#fff" }}>
                 <h5 className="font-instrument_serif mb-24">Order History</h5>
-                
+
                 {orders.length === 0 ? (
                   <div className="text-center py-5">
                     <p className="cl-text-5 mb-16">You have not placed any orders yet.</p>
@@ -150,9 +155,9 @@ export default function Dashboard() {
                 ) : (
                   <div className="d-grid gap-24">
                     {orders.map((order) => (
-                      <div 
-                        key={order._id} 
-                        className="p-20 border border-light" 
+                      <div
+                        key={order._id}
+                        className="p-20 border border-light"
                         style={{ borderRadius: "8px", backgroundColor: "#fafafa" }}
                       >
                         <div className="d-flex flex-wrap justify-content-between align-items-center mb-16 gap-10">
@@ -168,9 +173,9 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="text-body-xs text-muted block mb-4">Payment</span>
-                            <span 
+                            <span
                               className={`badge px-10 py-4 font-normal text-body-xs`}
-                              style={{ 
+                              style={{
                                 borderRadius: "4px",
                                 backgroundColor: order.paymentStatus === "Paid" ? "#e6f7ff" : "#fff1f0",
                                 color: order.paymentStatus === "Paid" ? "#1890ff" : "#ff4d4f",
@@ -182,9 +187,9 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="text-body-xs text-muted block mb-4">Delivery Status</span>
-                            <span 
+                            <span
                               className={`badge px-10 py-4 font-normal text-body-xs`}
-                              style={{ 
+                              style={{
                                 borderRadius: "4px",
                                 backgroundColor: order.deliveryStatus === "Delivered" ? "#f6ffed" : "#fff7e6",
                                 color: order.deliveryStatus === "Delivered" ? "#52c41a" : "#fa8c16",
@@ -202,10 +207,10 @@ export default function Dashboard() {
                           {order.products.map((item) => (
                             <div key={item._id} className="d-flex align-items-center justify-content-between">
                               <div className="d-flex align-items-center gap-12">
-                                <img 
-                                  src={item.productId?.images[0] || "assets/images/products/serum_product.png"} 
+                                <img
+                                  src={item.productId?.images[0] || "assets/images/products/serum_product.png"}
                                   alt={item.productId?.name}
-                                  width="50" 
+                                  width="50"
                                   height="60"
                                   style={{ objectFit: "cover", borderRadius: "4px" }}
                                 />
@@ -227,8 +232,14 @@ export default function Dashboard() {
                           </span>
                         </div>
                         <div className="d-flex justify-content-end gap-12 mt-12 pt-12 border-top border-light-2">
-                          <Link 
-                            to={`/track-order/${order._id}`} 
+                          <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => handleDownloadInvoice(order)}
+                          >
+                            Invoice
+                          </button>
+                          <Link
+                            to={`/track-order/${order._id}`}
                             className="tf-btn-line fw-semibold text-body-s text-primary text-decoration-none"
                           >
                             Track Order →

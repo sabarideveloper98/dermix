@@ -6,13 +6,28 @@ const recalculateCart = async (cart) => {
   let totalAmount = 0;
   
   // Populate products to get fresh price
-  await cart.populate('items.productId');
+  await cart.populate({
+    path: 'items.productId',
+    populate: {
+      path: 'sizes.size'
+    }
+  });
 
   // Filter out any items where the product was deleted
   cart.items = cart.items.filter(item => item.productId !== null);
 
   for (const item of cart.items) {
-    totalAmount += item.productId.salePrice * item.quantity;
+    let itemPrice = item.productId.salePrice;
+    
+    if (item.productId.sizes && item.productId.sizes.length > 0) {
+      // Find matching size by name
+      const matchedSize = item.productId.sizes.find(s => s.size && s.size.name === item.size);
+      if (matchedSize && matchedSize.salePrice) {
+        itemPrice = matchedSize.salePrice;
+      }
+    }
+    
+    totalAmount += itemPrice * item.quantity;
   }
 
   cart.totalAmount = totalAmount;
@@ -27,7 +42,12 @@ export const getCart = async (req, res) => {
     if (!cart) {
       cart = await Cart.create({ userId: req.user._id, items: [], totalAmount: 0 });
     } else {
-      await cart.populate('items.productId');
+      await cart.populate({
+        path: 'items.productId',
+        populate: {
+          path: 'sizes.size'
+        }
+      });
     }
     res.status(200).json({ success: true, cart });
   } catch (error) {

@@ -77,7 +77,7 @@ export const createOrder = async (req, res) => {
     const orderProducts = [];
     let calculatedTotalPrice = 0;
     for (const item of cartItems) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId).populate('sizes.size');
       if (!product || product.status !== 'active') {
         return res.status(400).json({
           success: false,
@@ -92,13 +92,21 @@ export const createOrder = async (req, res) => {
         });
       }
 
+      let itemPrice = product.salePrice;
+      if (product.sizes && product.sizes.length > 0) {
+        const matchedSize = product.sizes.find(s => s.size && s.size.name === item.size);
+        if (matchedSize && matchedSize.salePrice) {
+          itemPrice = matchedSize.salePrice;
+        }
+      }
+
       orderProducts.push({
         productId: item.productId,
         quantity: item.quantity,
-        price: product.salePrice,
+        price: itemPrice,
         size: item.size,
       });
-      calculatedTotalPrice += product.salePrice * item.quantity;
+      calculatedTotalPrice += itemPrice * item.quantity;
     }
 
     const finalTotalPrice = req.user ? totalPrice : calculatedTotalPrice;

@@ -16,6 +16,8 @@ import addressRoutes from './routes/address.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import sizeRoutes from './routes/size.routes.js';
+import refundRoutes from './routes/refund.routes.js';
 
 // Controller imports for root public routes
 import { getBanners, getInstagramVideos } from './controllers/admin.controller.js';
@@ -72,6 +74,8 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/sizes', sizeRoutes);
+app.use('/api/refunds', refundRoutes);
 
 // Compatibility fallback endpoints matching requested API spec
 app.post(
