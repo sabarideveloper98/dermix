@@ -25,7 +25,7 @@ export default function Account() {
                     <div className="col-lg-4 col-xl-3 lg-d-none">
                         <div className="sidebar-account-wrap sidebar-content-wrap">
                             <div className="my-account-nav">
-                                <a href="account-page.html" className="link-account active">
+                                <Link to="/myaccount" className="link-account active">
                                     <i className="icon icon-Dashboard fs-20"></i>
                                     <span className="text fw-normal">
                                         Dashboard
@@ -34,8 +34,8 @@ export default function Account() {
                                         3
                                     </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-orders.html" className="link-account">
+                                </Link>
+                                <Link to="/myorders" className="link-account">
                                     <i className="icon icon-Box fs-20"></i>
                                     <span className="text fw-normal">
                                         My Orders
@@ -44,50 +44,20 @@ export default function Account() {
                                         12
                                     </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="wishlist.html" className="link-account">
-                                    <i className="icon icon-Hearth fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Wishlist
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        2
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-addresses.html" className="link-account">
-                                    <i className="icon icon-DotLocation fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Addresses
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        1
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-payment.html" className="link-account">
-                                    <i className="icon icon-Payment fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Payment Methods
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        5
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-setting.html" className="link-account">
+                                </Link>
+                                <Link to="/accountsettings" className="link-account">
                                     <i className="icon icon-Setting fs-20"></i>
                                     <span className="text fw-normal">
                                         Account Settings
                                     </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="login.html" className="link-account">
+                                </Link>
+                                <Link to="/login" className="link-account">
                                     <i className="icon icon-Logout fs-20"></i>
                                     <span className="text fw-normal">
                                         Log Out
                                     </span>
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
