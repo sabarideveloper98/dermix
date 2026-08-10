@@ -23,6 +23,11 @@ import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/Orders";
 import TrackOrder from "./pages/TrackOrder";
 
+import MyAccount from "./pages/MyAccount";
+import MyOrders from "./pages/MyOrders";
+import OrderDetails from "./pages/OrderDetails";
+import AccountSetting from "./pages/AccountSetting";
+
 // Admin Portal Shell
 import AdminApp from "./admin/AdminApp";
 
@@ -45,6 +50,11 @@ createRoot(document.getElementById("root")).render(
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/track-order/:orderId" element={<TrackOrder />} />
+
+            <Route path="/myaccount" element={<MyAccount />} />
+            <Route path="/myorders" element={<MyOrders />} />
+            <Route path="/orderdetails" element={<OrderDetails />} />
+            <Route path="/accountsettings" element={<AccountSetting />} />
             
             {/* Support both casings for product details link matching */}
             <Route path="/productdetails" element={<ProductDetails />} />
