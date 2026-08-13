@@ -12,7 +12,7 @@ export default function Header() {
     const getAccountLink = () => {
         if (!user) return "/login";
         if (user.role === "admin") return "/admin";
-        return "/dashboard";
+        return "/myaccount";
     };
 
     return (
@@ -49,7 +49,7 @@ export default function Header() {
                                         </Link>
                                     </li>
                                     <li className="menu-item">
-                                        <Link to={user ? "/dashboard" : "/login"} className="item-link">
+                                        <Link to={user ? "/myaccount" : "/login"} className="item-link">
                                             <span className="text">
                                                 Track Order
                                             </span>

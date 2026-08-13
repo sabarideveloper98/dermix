@@ -23,10 +23,12 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      if (user.role === "admin") {
-        navigate("/admin");
+      const redirectRoute = localStorage.getItem("redirectAfterLogin");
+      if (redirectRoute) {
+        localStorage.removeItem("redirectAfterLogin");
+        navigate(redirectRoute);
       } else {
-        navigate("/dashboard");
+        navigate("/myaccount");
       }
     }
   }, [user, navigate]);

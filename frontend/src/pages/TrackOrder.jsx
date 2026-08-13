@@ -92,7 +92,7 @@ export default function TrackOrder() {
             <div className="text-center py-5 text-danger">
               <h5 className="mb-16">Tracking Details Unavailable</h5>
               <p className="mb-24">{error}</p>
-              <Link to="/dashboard" className="tf-btn style-2 type-2 btn-light">Go to Dashboard</Link>
+              <Link to="/myaccount" className="tf-btn style-2 type-2 btn-light">Go to My Account</Link>
             </div>
           ) : (
             <div className="row gy-40">

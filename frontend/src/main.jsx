@@ -18,7 +18,7 @@ import Login from "./pages/Login";
 import ProductDetails from "./pages/ProductDetails";
 import Register from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
-import Dashboard from "./pages/Dashboard";
+// Removed old Dashboard
 import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/Orders";
 import TrackOrder from "./pages/TrackOrder";
@@ -27,6 +27,12 @@ import MyAccount from "./pages/MyAccount";
 import MyOrders from "./pages/MyOrders";
 import OrderDetails from "./pages/OrderDetails";
 import AccountSetting from "./pages/AccountSetting";
+
+
+// import MyAccount1 from "./pages/Account1";
+import MyOrders1 from "./pages/Orders1";
+import OrderDetails1 from "./pages/OrderDetailsCon1";
+import AccountSetting1 from "./pages/AccountSett1";
 
 // Admin Portal Shell
 import AdminApp from "./admin/AdminApp";
@@ -46,16 +52,24 @@ createRoot(document.getElementById("root")).render(
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-otp" element={<VerifyOtp />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/orders" element={<Orders />} />
+            {/* <Route path="/orders" element={<MyOrders />} /> */}
             <Route path="/track-order/:orderId" element={<TrackOrder />} />
 
             <Route path="/myaccount" element={<MyAccount />} />
             <Route path="/myorders" element={<MyOrders />} />
             <Route path="/orderdetails" element={<OrderDetails />} />
             <Route path="/accountsettings" element={<AccountSetting />} />
-            
+
+
+            <Route path="/myorders1" element={<MyOrders1 />} />
+            <Route path="/orderdetails1" element={<OrderDetails1 />} />
+            <Route path="/accountsettings1" element={<AccountSetting1 />} />
+
+
+
+
             {/* Support both casings for product details link matching */}
             <Route path="/productdetails" element={<ProductDetails />} />
             <Route path="/ProductDetails" element={<ProductDetails />} />

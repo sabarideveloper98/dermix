@@ -1,20 +1,75 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../config";
 
 export default function Account() {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const [orders, setOrders] = useState([]);
+    const [addresses, setAddresses] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!user) return;
+            try {
+                const token = localStorage.getItem('accessToken');
+                const [ordersRes, addrRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/orders`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE}/api/addresses`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                ]);
+                const ordersData = await ordersRes.json();
+                if (ordersData.success) {
+                    setOrders(ordersData.orders.slice(0, 3));
+                }
+                const addrData = await addrRes.json();
+                if (addrData.success) {
+                    setAddresses(addrData.addresses);
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [user]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "";
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+    };
+
+    if (!user) return null;
+
     return (
         <>
-            <section classNameName="tf-page-heading_account flat-spacing">
-                <div classNameName="container">
-                    <div classNameName="content">
-                        <div classNameName="account-image">
+            <section className="tf-page-heading_account flat-spacing">
+                <div className="container">
+                    <div className="content">
+                        <div className="account-image">
                             <img loading="lazy" width="96" height="96" src="assets/images/avatar/avt-10.jpg" alt="Image" />
                         </div>
-                        <div classNameName="account-infor">
-                            <h3 classNameName="info_name font-instrument_serif mb-8">
-                                Hello, Sarah Johnson!
+                        <div className="account-infor">
+                            <h3 className="info_name font-instrument_serif mb-8">
+                                Hello, {user.name}!
                             </h3>
-                            <p classNameName="info_more cl-text-5">
-                                sarah.johnson@email.com · Member since June 2023
+                            <p className="info_more cl-text-5">
+                                {user.email} · Member since {formatDate(user.createdAt || new Date())}
                             </p>
                         </div>
                     </div>
@@ -30,10 +85,7 @@ export default function Account() {
                                     <Link to="/myaccount" className="link-account active">
                                         <i className="icon icon-Dashboard fs-20"></i>
                                         <span className="text fw-normal">
-                                            Dashboard
-                                        </span>
-                                        <span className="order-number text-body-xs">
-                                            3
+                                            My Account
                                         </span>
                                         <i className="icon icon-ArrowCaretRight"></i>
                                     </Link>
@@ -41,9 +93,6 @@ export default function Account() {
                                         <i className="icon icon-Box fs-20"></i>
                                         <span className="text fw-normal">
                                             My Orders
-                                        </span>
-                                        <span className="order-number text-body-xs">
-                                            12
                                         </span>
                                         <i className="icon icon-ArrowCaretRight"></i>
                                     </Link>
@@ -54,12 +103,12 @@ export default function Account() {
                                         </span>
                                         <i className="icon icon-ArrowCaretRight"></i>
                                     </Link>
-                                    <Link to="/login" className="link-account">
+                                    <button onClick={handleLogout} className="link-account" style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}>
                                         <i className="icon icon-Logout fs-20"></i>
                                         <span className="text fw-normal">
                                             Log Out
                                         </span>
-                                    </Link>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -70,12 +119,12 @@ export default function Account() {
                                         <h6 className="font-instrument_serif">
                                             Personal Information
                                         </h6>
-                                        <a href="#modalEdit" data-bs-toggle="modal" className="tf-btn-line">
+                                        <Link to="/accountsettings" className="tf-btn-line">
                                             <span className="fw-normal">
                                                 EDIT
                                             </span>
                                             <i className="icon icon-Edit fs-20"></i>
-                                        </a>
+                                        </Link>
                                     </div>
                                     <div className="dash_content">
                                         <div className="tf-grid-layout gap-24">
@@ -84,7 +133,7 @@ export default function Account() {
                                                     Full Name
                                                 </p>
                                                 <p className="fw-normal">
-                                                    Sarah Johnson
+                                                    {user.name}
                                                 </p>
                                             </div>
                                             <div className="infor-item">
@@ -92,7 +141,7 @@ export default function Account() {
                                                     Phone Number
                                                 </p>
                                                 <p className="fw-normal">
-                                                    +1 (555) 123-4567
+                                                    {user.mobile}
                                                 </p>
                                             </div>
                                         </div>
@@ -102,15 +151,15 @@ export default function Account() {
                                                     Email
                                                 </p>
                                                 <p className="fw-normal">
-                                                    sarah.johnson@email.com
+                                                    {user.email}
                                                 </p>
                                             </div>
                                             <div className="infor-item">
                                                 <p className="text-body-s cl-text-5 mb-8">
-                                                    Date of Birth
+                                                    Status
                                                 </p>
-                                                <p className="fw-normal">
-                                                    June 15, 1995
+                                                <p className="fw-normal text-capitalize">
+                                                    {user.status || 'Active'}
                                                 </p>
                                             </div>
                                         </div>
@@ -121,71 +170,44 @@ export default function Account() {
                                         <h6 className="font-instrument_serif">
                                             Recent Orders
                                         </h6>
-                                        <a href="account-orders.html" className="tf-btn-line">
+                                        <Link to="/myorders" className="tf-btn-line">
                                             <span className="fw-normal">
                                                 VIEW ALL
                                             </span>
-                                        </a>
+                                        </Link>
                                     </div>
                                     <div className="dash_content">
-                                        <ul className="list-order">
-                                            <li className="item">
-                                                <div className="dash-order_info">
-                                                    <p className="order__code fw-normal mb-8">
-                                                        #GW-2024001
-                                                    </p>
-                                                    <p className="order__date text-body-s cl-text-5">
-                                                        Jan 15, 2024
-                                                    </p>
-                                                </div>
-                                                <div className="dash-order_status text-end">
-                                                    <p className="order__tag shipping text-body-s mb-8">
-                                                        Shipping
-                                                    </p>
-                                                    <p className="order__price fw-normal">
-                                                        $125.00
-                                                    </p>
-                                                </div>
-                                            </li>
-                                            <li className="br-line bg-line-5"></li>
-                                            <li className="item">
-                                                <div className="dash-order_info">
-                                                    <p className="order__code fw-normal mb-8">
-                                                        #GW-2024002
-                                                    </p>
-                                                    <p className="order__date text-body-s cl-text-5">
-                                                        Jan 10, 2024
-                                                    </p>
-                                                </div>
-                                                <div className="dash-order_status text-end">
-                                                    <p className="order__tag delivered text-body-s mb-8">
-                                                        Delivered
-                                                    </p>
-                                                    <p className="order__price fw-normal">
-                                                        $89.00
-                                                    </p>
-                                                </div>
-                                            </li>
-                                            <li className="br-line bg-line-5"></li>
-                                            <li className="item">
-                                                <div className="dash-order_info">
-                                                    <p className="order__code fw-normal mb-8">
-                                                        #GW-2024003
-                                                    </p>
-                                                    <p className="order__date text-body-s cl-text-5">
-                                                        Jan 05, 2024
-                                                    </p>
-                                                </div>
-                                                <div className="dash-order_status text-end">
-                                                    <p className="order__tag delivered text-body-s mb-8">
-                                                        Delivered
-                                                    </p>
-                                                    <p className="order__price fw-normal">
-                                                        $215.00
-                                                    </p>
-                                                </div>
-                                            </li>
-                                        </ul>
+                                        {loading ? (
+                                            <p>Loading orders...</p>
+                                        ) : orders.length === 0 ? (
+                                            <p>No recent orders found.</p>
+                                        ) : (
+                                            <ul className="list-order">
+                                                {orders.map((order, index) => (
+                                                    <div key={order._id}>
+                                                        <li className="item">
+                                                            <div className="dash-order_info">
+                                                                <p className="order__code fw-normal mb-8">
+                                                                    #{order.orderNumber}
+                                                                </p>
+                                                                <p className="order__date text-body-s cl-text-5">
+                                                                    {formatDate(order.createdAt)}
+                                                                </p>
+                                                            </div>
+                                                            <div className="dash-order_status text-end">
+                                                                <p className={`order__tag ${order.deliveryStatus?.toLowerCase() || 'pending'} text-body-s mb-8 text-capitalize`}>
+                                                                    {order.deliveryStatus || 'Pending'}
+                                                                </p>
+                                                                <p className="order__price fw-normal">
+                                                                    ₹{(order.totalPrice || 0).toFixed(2)}
+                                                                </p>
+                                                            </div>
+                                                        </li>
+                                                        {index < orders.length - 1 && <li className="br-line bg-line-5"></li>}
+                                                    </div>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="box-dashboard_item dashboard-address">
@@ -193,24 +215,30 @@ export default function Account() {
                                         <h6 className="font-instrument_serif">
                                             Default Address
                                         </h6>
-                                        <a href="#modalEdit" data-bs-toggle="modal" className="tf-btn-line">
+                                        <Link to="/accountsettings" className="tf-btn-line">
                                             <span className="fw-normal">
                                                 EDIT
                                             </span>
                                             <i className="icon icon-Edit fs-20"></i>
-                                        </a>
+                                        </Link>
                                     </div>
                                     <div className="dash_content">
-                                        <div className="address-item">
-                                            <i className="icon icon-DotLocation fs-20"></i>
-                                            <div className="address-info">
-                                                <p className="info_name fw-normal mb-8">Sarah Johnson</p>
-                                                <p className="info_more text-body-s cl-text-5">
-                                                    +1 (555) 123-4567 <br />
-                                                    123 Beauty Lane, Suite 100, Los Angeles, CA 90001
-                                                </p>
+                                        {loading ? (
+                                            <p>Loading addresses...</p>
+                                        ) : defaultAddress ? (
+                                            <div className="address-item">
+                                                <i className="icon icon-DotLocation fs-20"></i>
+                                                <div className="address-info">
+                                                    <p className="info_name fw-normal mb-8">{defaultAddress.fullName}</p>
+                                                    <p className="info_more text-body-s cl-text-5">
+                                                        {defaultAddress.phone} <br />
+                                                        {defaultAddress.street}, {defaultAddress.city}, {defaultAddress.state} {defaultAddress.pincode}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <p>No address found.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

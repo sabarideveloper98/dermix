@@ -1,22 +1,124 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../config";
+
 export default function AccountSett() {
+    const { user } = useAuth();
+    
+    // Personal Info State
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [mobile, setMobile] = useState("");
+    const [profileMessage, setProfileMessage] = useState("");
+    const [profileError, setProfileError] = useState("");
+    const [loadingProfile, setLoadingProfile] = useState(false);
+
+    // Password State
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordMessage, setPasswordMessage] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [loadingPassword, setLoadingPassword] = useState(false);
+
+    // Password Visibility State
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setName(user.name || "");
+            setEmail(user.email || "");
+            setMobile(user.mobile || "");
+        }
+    }, [user]);
+
+    const handleProfileSubmit = async (e) => {
+        e.preventDefault();
+        setProfileMessage("");
+        setProfileError("");
+        setLoadingProfile(true);
+
+        try {
+            const token = localStorage.getItem('accessToken');
+            const res = await fetch(`${API_BASE}/api/users/profile`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ name, email, mobile })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setProfileMessage("Profile updated successfully!");
+                // Note: user object in context requires a reload or context update function to reflect immediately across app
+            } else {
+                setProfileError(data.message || "Failed to update profile");
+            }
+        } catch (error) {
+            setProfileError("An error occurred");
+        } finally {
+            setLoadingProfile(false);
+        }
+    };
+
+    const handlePasswordSubmit = async (e) => {
+        e.preventDefault();
+        setPasswordMessage("");
+        setPasswordError("");
+        if (newPassword !== confirmPassword) {
+            setPasswordError("New passwords do not match");
+            return;
+        }
+        setLoadingPassword(true);
+
+        try {
+            const token = localStorage.getItem('accessToken');
+            const res = await fetch(`${API_BASE}/api/users/password`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setPasswordMessage("Password updated successfully!");
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+            } else {
+                setPasswordError(data.message || "Failed to update password");
+            }
+        } catch (error) {
+            setPasswordError("An error occurred");
+        } finally {
+            setLoadingPassword(false);
+        }
+    };
+
     return (
     <>
         {/* Page Title */}
-        <section classNameName="tf-page-heading_account flat-spacing">
-            <div classNameName="container">
-                <a href="account-page.html" classNameName="content d-inline-flex">
-                    <div classNameName="account-icon d-flex">
-                        <i classNameName="icon icon-ArrowLeft fs-24"></i>
+        <section className="tf-page-heading_account flat-spacing">
+            <div className="container">
+                <Link to="/myaccount" className="content d-inline-flex">
+                    <div className="account-icon d-flex">
+                        <i className="icon icon-ArrowLeft fs-24"></i>
                     </div>
-                    <div classNameName="account-infor">
-                        <h3 classNameName="info_name font-instrument_serif mb-8">
+                    <div className="account-infor">
+                        <h3 className="info_name font-instrument_serif mb-8">
                             Account Settings
                         </h3>
-                        <p classNameName="info_more cl-text-5">
+                        <p className="info_more cl-text-5">
                             Manage your account preferences
                         </p>
                     </div>
-                </a>
+                </Link>
             </div>
         </section>
         {/* Page Title */}
@@ -32,34 +134,32 @@ export default function AccountSett() {
                         </p>
                     </div>
                     <div className="col-lg-8">
-                        <form className="col-right">
+                        <form className="col-right" onSubmit={handleProfileSubmit}>
+                            {profileMessage && <p className="text-success mb-2">{profileMessage}</p>}
+                            {profileError && <p className="text-danger mb-2">{profileError}</p>}
                             <div className="form-content">
-                                <div className="tf-grid-layout gap-8 sm-col-2">
-                                    <fieldset className="tf-field">
-                                        <label for="f-nameInfor" className="text-body-xs">Firsr name</label>
-                                        <input type="text" id="f-nameInfor" className="style-4" value="Sarah"
-                                            placeholder="Enter Your First Name" required />
-                                    </fieldset>
-                                    <fieldset className="tf-field">
-                                        <label for="l-nameInfor" className="text-body-xs">Last name</label>
-                                        <input type="text" id="l-nameInfor" className="style-4" value="Johnson"
-                                            placeholder="Enter You Last Name" required />
-                                    </fieldset>
-                                </div>
                                 <fieldset className="tf-field">
-                                    <label for="phoneInfor1" className="text-body-xs">Your email</label>
-                                    <input type="email" id="phoneInfor1" className="style-4" value="sarah.johnson@email.com"
+                                    <label htmlFor="f-nameInfor" className="text-body-xs">Full Name</label>
+                                    <input type="text" id="f-nameInfor" className="style-4" value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Enter Your Full Name" required />
+                                </fieldset>
+                                <fieldset className="tf-field">
+                                    <label htmlFor="phoneInfor1" className="text-body-xs">Your Email</label>
+                                    <input type="email" id="phoneInfor1" className="style-4" value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         placeholder="Enter Your Email" required />
                                 </fieldset>
                                 <fieldset className="tf-field">
-                                    <label for="phoneInfor2" className="text-body-xs">Phone number</label>
-                                    <input type="text" id="phoneInfor2" className="style-4" value="+1 (555) 123-4567"
+                                    <label htmlFor="phoneInfor2" className="text-body-xs">Phone Number</label>
+                                    <input type="text" id="phoneInfor2" className="style-4" value={mobile}
+                                        onChange={(e) => setMobile(e.target.value)}
                                         placeholder="Enter Your Phone" required />
                                 </fieldset>
                             </div>
                             <div className="br-line bg-line-5"></div>
-                            <button type="submit" className="btn-action_submit tf-btn type-4 align-self-end">
-                                SAVE CHANGES
+                            <button type="submit" disabled={loadingProfile} className="btn-action_submit tf-btn type-4 align-self-end">
+                                {loadingProfile ? 'SAVING...' : 'SAVE CHANGES'}
                             </button>
                         </form>
                     </div>
@@ -74,36 +174,41 @@ export default function AccountSett() {
                         </p>
                     </div>
                     <div className="col-lg-8">
-                        <form className="col-right">
+                        <form className="col-right" onSubmit={handlePasswordSubmit}>
+                            {passwordMessage && <p className="text-success mb-2">{passwordMessage}</p>}
+                            {passwordError && <p className="text-danger mb-2">{passwordError}</p>}
                             <div className="form-content">
                                 <fieldset className="tf-field">
-                                    <label for="currentPass" className="text-body-xs">Current Password</label>
+                                    <label htmlFor="currentPass" className="text-body-xs">Current Password</label>
                                     <div className="password-wrapper w-100">
-                                        <input className="password-field style-4" type="password" id="currentPass"
+                                        <input className="password-field style-4" type={showCurrentPassword ? "text" : "password"} id="currentPass"
+                                            value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
                                             placeholder="Enter current password" required />
-                                        <span className="toggle-pass icon-EyeSlash cl-text-5"></span>
+                                        <span className={`toggle-pass ${showCurrentPassword ? 'icon-Eye' : 'icon-EyeSlash'} cl-text-5`} style={{ cursor: "pointer" }} onClick={() => setShowCurrentPassword(!showCurrentPassword)}></span>
                                     </div>
                                 </fieldset>
                                 <fieldset className="tf-field">
-                                    <label for="newPass" className="text-body-xs">New Password</label>
+                                    <label htmlFor="newPass" className="text-body-xs">New Password</label>
                                     <div className="password-wrapper w-100">
-                                        <input className="password-field style-4" type="password" id="newPass"
+                                        <input className="password-field style-4" type={showNewPassword ? "text" : "password"} id="newPass"
+                                            value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                                             placeholder="Enter new password" required/>
-                                        <span className="toggle-pass icon-EyeSlash cl-text-5"></span>
+                                        <span className={`toggle-pass ${showNewPassword ? 'icon-Eye' : 'icon-EyeSlash'} cl-text-5`} style={{ cursor: "pointer" }} onClick={() => setShowNewPassword(!showNewPassword)}></span>
                                     </div>
                                 </fieldset>
                                 <fieldset className="tf-field">
-                                    <label for="confirmPass" className="text-body-xs">Confirm New Password</label>
+                                    <label htmlFor="confirmPass" className="text-body-xs">Confirm New Password</label>
                                     <div className="password-wrapper w-100">
-                                        <input className="password-field style-4" type="password" id="confirmPass"
+                                        <input className="password-field style-4" type={showConfirmPassword ? "text" : "password"} id="confirmPass"
+                                            value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                                             placeholder="Confirm new password" required/>
-                                        <span className="toggle-pass icon-EyeSlash cl-text-5"></span>
+                                        <span className={`toggle-pass ${showConfirmPassword ? 'icon-Eye' : 'icon-EyeSlash'} cl-text-5`} style={{ cursor: "pointer" }} onClick={() => setShowConfirmPassword(!showConfirmPassword)}></span>
                                     </div>
                                 </fieldset>
                             </div>
                             <div className="br-line bg-line-5"></div>
-                            <button type="submit" className="btn-action_submit tf-btn type-4 align-self-end">
-                                Update password
+                            <button type="submit" disabled={loadingPassword} className="btn-action_submit tf-btn type-4 align-self-end">
+                                {loadingPassword ? 'UPDATING...' : 'Update password'}
                             </button>
                         </form>
                     </div>
@@ -124,7 +229,7 @@ export default function AccountSett() {
                                 *Once you delete your account, there is no going back. All your data, orders, and
                                 preferences will be permanently removed.
                             </p>
-                            <button type="submit" className="btn-delete_account tf-btn type-4 align-self-start">
+                            <button type="button" className="btn-delete_account tf-btn type-4 align-self-start">
                                 Delete my account
                             </button>
                         </div>
@@ -132,7 +237,6 @@ export default function AccountSett() {
                 </div>
             </div>
         </div>
-        
         
     </>
     )

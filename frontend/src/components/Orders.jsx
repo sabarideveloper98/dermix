@@ -1,10 +1,55 @@
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../config";
+
 export default function Orders() {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            if (!user) return;
+            try {
+                const token = localStorage.getItem('accessToken');
+                const res = await fetch(`${API_BASE}/api/orders`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setOrders(data.orders);
+                }
+            } catch (error) {
+                console.error("Error fetching orders:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchOrders();
+    }, [user]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "";
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+    };
+
+    if (!user) return null;
+
     return (
-    <>
+        <>
         {/* Page Title */}
         <section className="tf-page-heading_account flat-spacing">
             <div className="container">
-                <a href="account-page.html" className="content d-inline-flex">
+                <Link to="/myaccount" className="content d-inline-flex">
                     <div className="account-icon d-flex">
                         <i className="icon icon-ArrowLeft fs-24"></i>
                     </div>
@@ -16,11 +61,10 @@ export default function Orders() {
                             View and track your order history
                         </p>
                     </div>
-                </a>
+                </Link>
             </div>
         </section>
         {/* Page Title */}
-
 
          {/* Account  */}
          <div className="flat-spacing-2">
@@ -29,302 +73,100 @@ export default function Orders() {
                     <div className="col-lg-4 col-xl-3 d-none">
                         <div className="sidebar-account-wrap sidebar-content-wrap">
                             <div className="my-account-nav">
-                                <a href="account-page.html" className="link-account active">
+                                <Link to="/myaccount" className="link-account">
                                     <i className="icon icon-Dashboard fs-20"></i>
                                     <span className="text fw-normal">
-                                        Dashboard
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        3
+                                        My Account
                                     </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-orders.html" className="link-account">
+                                </Link>
+                                <Link to="/myorders" className="link-account active">
                                     <i className="icon icon-Box fs-20"></i>
                                     <span className="text fw-normal">
                                         My Orders
                                     </span>
-                                    <span className="order-number text-body-xs">
-                                        12
-                                    </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="wishlist.html" className="link-account">
-                                    <i className="icon icon-Hearth fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Wishlist
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        2
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-addresses.html" className="link-account">
-                                    <i className="icon icon-DotLocation fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Addresses
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        1
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-payment.html" className="link-account">
-                                    <i className="icon icon-Payment fs-20"></i>
-                                    <span className="text fw-normal">
-                                        Payment Methods
-                                    </span>
-                                    <span className="order-number text-body-xs">
-                                        5
-                                    </span>
-                                    <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="account-payment.html" className="link-account">
+                                </Link>
+                                <Link to="/accountsettings" className="link-account">
                                     <i className="icon icon-Setting fs-20"></i>
                                     <span className="text fw-normal">
                                         Account Settings
                                     </span>
                                     <i className="icon icon-ArrowCaretRight"></i>
-                                </a>
-                                <a href="login.html" className="link-account">
+                                </Link>
+                                <button onClick={handleLogout} className="link-account" style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}>
                                     <i className="icon icon-Logout fs-20"></i>
                                     <span className="text fw-normal">
                                         Log Out
                                     </span>
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div className="col-12">
                         <div className="my-account-order tf-grid-layout md-col-2 gap-24">
-                            <div className="account-order_item">
-                                <div className="order-heading">
-                                    <div className="left">
-                                        <i className="icon icon-Box fs-20"></i>
-                                        <div className="order_info">
-                                            <p className="order__code fw-normal mb-6">
-                                                #GW-2024001
-                                            </p>
-                                            <p className="order__date text-body-s cl-text-5">
-                                                Jan 15, 2024
-                                            </p>
+                            {loading ? (
+                                <p>Loading orders...</p>
+                            ) : orders.length === 0 ? (
+                                <p>No orders found.</p>
+                            ) : (
+                                orders.map(order => (
+                                    <div className="account-order_item" key={order._id}>
+                                        <div className="order-heading">
+                                            <div className="left">
+                                                <i className="icon icon-Box fs-20"></i>
+                                                <div className="order_info">
+                                                    <p className="order__code fw-normal mb-6">
+                                                        #{order.orderNumber}
+                                                    </p>
+                                                    <p className="order__date text-body-s cl-text-5">
+                                                        {formatDate(order.createdAt)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="right">
+                                                <p className={`order__tag ${order.deliveryStatus?.toLowerCase() || 'pending'} text-body-s text-capitalize`}>
+                                                    {order.deliveryStatus || 'Pending'}
+                                                </p>
+                                                <p className="order__price text-body-l fw-normal">
+                                                    ₹{(order.totalPrice || 0).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="order-content">
+                                            <ul className="list-prd">
+                                                {(order.products || []).map((item, idx) => (
+                                                    <li className="prd-item" key={idx}>
+                                                        <div className="prd_image">
+                                                            <img loading="lazy" width="74" height="88"
+                                                                src={item.productId?.images?.[0] || "/assets/images/product/product-13.jpg"} alt={item.productId?.name || "Product"} />
+                                                        </div>
+                                                        <div className="prd_infor">
+                                                            <div className="infor-wr">
+                                                                <Link to={`/product/${item.productId?._id}`}
+                                                                    className="info__name fw-normal link-underline mb-6">
+                                                                    {item.productId?.name || "Product"}
+                                                                </Link>
+                                                                <p className="info__qty text-body-s cl-text-5">
+                                                                    Qty: {item.quantity}
+                                                                </p>
+                                                            </div>
+                                                            <p className="info__price fw-normal">
+                                                                ₹{(item.price || 0).toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <span className="br-line bg-line-5 mt-auto"></span>
+                                            <Link to={`/orderdetails?id=${order._id}`} className="tf-btn type-4 align-self-end">
+                                                <i className="icon icon-EyeOpen"></i>
+                                                VIEW DETAILS
+                                            </Link>
                                         </div>
                                     </div>
-                                    <div className="right">
-                                        <p className="order__tag shipping text-body-s">
-                                            Shipping
-                                        </p>
-                                        <p className="order__price text-body-l fw-normal">
-                                            $125.00
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="order-content">
-                                    <ul className="list-prd">
-                                        <li className="prd-item">
-                                            <div className="prd_image">
-                                                <img loading="lazy" width="74" height="88"
-                                                    src="assets/images/product/product-13.jpg" alt="Image" />
-                                            </div>
-                                            <div className="prd_infor">
-                                                <div className="infor-wr">
-                                                    <a href="product-detail.html"
-                                                        className="info__name fw-normal link-underline mb-6">
-                                                        Radiance Serum
-                                                    </a>
-                                                    <p className="info__qty text-body-s cl-text-5">
-                                                        Qty: 1
-                                                    </p>
-                                                </div>
-                                                <p className="info__price fw-normal">
-                                                    $85.00
-                                                </p>
-                                            </div>
-                                        </li>
-                                        <li className="prd-item">
-                                            <div className="prd_image">
-                                                <img loading="lazy" width="74" height="88"
-                                                    src="assets/images/product/product-13.jpg" alt="Image" />
-                                            </div>
-                                            <div className="prd_infor">
-                                                <div className="infor-wr">
-                                                    <a href="product-detail.html"
-                                                        className="info__name fw-normal link-underline mb-6">
-                                                        Hydrating Cream
-                                                    </a>
-                                                    <p className="info__qty text-body-s cl-text-5">
-                                                        Qty: 1
-                                                    </p>
-                                                </div>
-                                                <p className="info__price fw-normal">
-                                                    $40.00
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <span className="br-line bg-line-5 mt-auto"></span>
-                                    <a href="account-order-detail.html" className="tf-btn type-4 align-self-end">
-                                        <i className="icon icon-EyeOpen"></i>
-                                        VIEW DETAILS
-                                    </a>
-                                </div>
-                            </div>
-                            <div className="account-order_item">
-                                <div className="order-heading">
-                                    <div className="left">
-                                        <i className="icon icon-Box fs-20"></i>
-                                        <div className="order_info">
-                                            <p className="order__code fw-normal mb-6">
-                                                #GW-2024002
-                                            </p>
-                                            <p className="order__date text-body-s cl-text-5">
-                                                Jan 10, 2024
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="right">
-                                        <p className="order__tag delivered text-body-s">
-                                            Delivered
-                                        </p>
-                                        <p className="order__price text-body-l fw-normal">
-                                            $89.00
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="order-content">
-                                    <ul className="list-prd">
-                                        <li className="prd-item">
-                                            <div className="prd_image">
-                                                <img loading="lazy" width="74" height="88"
-                                                    src="assets/images/product/product-13.jpg" alt="Image" />
-                                            </div>
-                                            <div className="prd_infor">
-                                                <div className="infor-wr">
-                                                    <a href="product-detail.html"
-                                                        className="info__name fw-normal link-underline mb-6">
-                                                        Vitamin C Brightening Toner
-                                                    </a>
-                                                    <p className="info__qty text-body-s cl-text-5">
-                                                        Qty: 1
-                                                    </p>
-                                                </div>
-                                                <p className="info__price fw-normal">
-                                                    $89.00
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <span className="br-line bg-line-5 mt-auto"></span>
-                                    <a href="account-order-detail.html" className="tf-btn type-4 align-self-end">
-                                        <i className="icon icon-EyeOpen"></i>
-                                        VIEW DETAILS
-                                    </a>
-                                </div>
-                            </div>
-                            <div className="account-order_item">
-                                <div className="order-heading">
-                                    <div className="left">
-                                        <i className="icon icon-Box fs-20"></i>
-                                        <div className="order_info">
-                                            <p className="order__code fw-normal mb-6">
-                                                #GW-2024003
-                                            </p>
-                                            <p className="order__date text-body-s cl-text-5">
-                                                Jan 05, 2024
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="right">
-                                        <p className="order__tag delivered text-body-s">
-                                            Delivered
-                                        </p>
-                                        <p className="order__price text-body-l fw-normal">
-                                            $125.00
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="order-content">
-                                    <ul className="list-prd">
-                                        <li className="prd-item">
-                                            <div className="prd_image">
-                                                <img loading="lazy" width="74" height="88"
-                                                    src="assets/images/product/product-13.jpg" alt="Image" />
-                                            </div>
-                                            <div className="prd_infor">
-                                                <div className="infor-wr">
-                                                    <a href="product-detail.html"
-                                                        className="info__name fw-normal link-underline mb-6">
-                                                        Complete Skincare Set
-                                                    </a>
-                                                    <p className="info__qty text-body-s cl-text-5">
-                                                        Qty: 1
-                                                    </p>
-                                                </div>
-                                                <p className="info__price fw-normal">
-                                                    $125.00
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <span className="br-line bg-line-5 mt-auto"></span>
-                                    <a href="account-order-detail.html" className="tf-btn type-4 align-self-end">
-                                        <i className="icon icon-EyeOpen"></i>
-                                        VIEW DETAILS
-                                    </a>
-                                </div>
-                            </div>
-                            <div className="account-order_item">
-                                <div className="order-heading">
-                                    <div className="left">
-                                        <i className="icon icon-Box fs-20"></i>
-                                        <div className="order_info">
-                                            <p className="order__code fw-normal mb-6">
-                                                #GW-2023050
-                                            </p>
-                                            <p className="order__date text-body-s cl-text-5">
-                                                Dec 20, 2023
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="right">
-                                        <p className="order__tag cancelled text-body-s">
-                                            Cancelled
-                                        </p>
-                                        <p className="order__price text-body-l fw-normal">
-                                            $65.00
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="order-content">
-                                    <ul className="list-prd">
-                                        <li className="prd-item">
-                                            <div className="prd_image">
-                                                <img loading="lazy" width="74" height="88"
-                                                    src="assets/images/product/product-13.jpg" alt="Image" />
-                                            </div>
-                                            <div className="prd_infor">
-                                                <div className="infor-wr">
-                                                    <a href="product-detail.html"
-                                                        className="info__name fw-normal link-underline mb-6">
-                                                        Night Repair Mask
-                                                    </a>
-                                                    <p className="info__qty text-body-s cl-text-5">
-                                                        Qty: 1
-                                                    </p>
-                                                </div>
-                                                <p className="info__price fw-normal">
-                                                    $65.00
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <span className="br-line bg-line-5 mt-auto"></span>
-                                    <a href="account-order-detail.html" className="tf-btn type-4 align-self-end">
-                                        <i className="icon icon-EyeOpen"></i>
-                                        VIEW DETAILS
-                                    </a>
-                                </div>
-                            </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

@@ -141,7 +141,7 @@ export default function Search() {
                                   {product.name}
                                 </a>
                                 <div className="price-wrap">
-                                  <span className="price-new fw-normal">${product.price}</span>
+                                  <span className="price-new fw-normal">₹{product.price}</span>
                                 </div>
                               </div>
                             </div>

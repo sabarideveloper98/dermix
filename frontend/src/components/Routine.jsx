@@ -34,8 +34,8 @@ export default function Routine() {
                             Hydra Shine Lip Gloss
                           </a>
                           <div className="price-wrap gap-6 fw-normal">
-                            <span className="price-new text-primary">$32.00</span>
-                            <span className="price-old cl-text-6">$40.00</span>
+                            <span className="price-new text-primary">₹32.00</span>
+                            <span className="price-old cl-text-6">₹40.00</span>
                           </div>
                         </div>
                         <a href="#shoppingCart" data-bs-toggle="offcanvas" className="tf-btn type-3 style-2">
@@ -72,8 +72,8 @@ export default function Routine() {
                             Hydra Shine Lip Gloss
                           </a>
                           <div className="price-wrap gap-6 fw-normal">
-                            <span className="price-new text-primary">$32.00</span>
-                            <span className="price-old cl-text-6">$40.00</span>
+                            <span className="price-new text-primary">₹32.00</span>
+                            <span className="price-old cl-text-6">₹40.00</span>
                           </div>
                         </div>
                         <a href="#shoppingCart" data-bs-toggle="offcanvas" className="tf-btn type-3 style-2">
@@ -110,8 +110,8 @@ export default function Routine() {
                             Hydra Shine Lip Gloss
                           </a>
                           <div className="price-wrap gap-6 fw-normal">
-                            <span className="price-new text-primary">$32.00</span>
-                            <span className="price-old cl-text-6">$40.00</span>
+                            <span className="price-new text-primary">₹32.00</span>
+                            <span className="price-old cl-text-6">₹40.00</span>
                           </div>
                         </div>
                         <a href="#shoppingCart" data-bs-toggle="offcanvas" className="tf-btn type-3 style-2">

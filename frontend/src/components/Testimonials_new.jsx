@@ -78,7 +78,7 @@ export default function Testimonials_new() {
                                                             Radiance Boost Vitamin C Serum
                                                         </a>
                                                         <p className="infor__price cl-text-5">
-                                                            $8.00
+                                                            ₹8.00
                                                         </p>
                                                     </div>
                                                     <a href="#shoppingCart" data-bs-toggle="offcanvas"
@@ -153,7 +153,7 @@ export default function Testimonials_new() {
                                                             Radiance Boost Vitamin C Serum
                                                         </a>
                                                         <p className="infor__price cl-text-5">
-                                                            $8.00
+                                                            ₹8.00
                                                         </p>
                                                     </div>
                                                     <a href="#shoppingCart" data-bs-toggle="offcanvas"
@@ -228,7 +228,7 @@ export default function Testimonials_new() {
                                                             Radiance Boost Vitamin C Serum
                                                         </a>
                                                         <p className="infor__price cl-text-5">
-                                                            $8.00
+                                                            ₹8.00
                                                         </p>
                                                     </div>
                                                     <a href="#shoppingCart" data-bs-toggle="offcanvas"
