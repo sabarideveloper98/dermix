@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../config";
+import { generateInvoice } from "../utils/generateInvoice";
 
 export default function Orders() {
     const { user, logout } = useAuth();
@@ -40,6 +41,10 @@ export default function Orders() {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric'
         });
+    };
+
+    const handleDownloadInvoice = (order) => {
+        generateInvoice(order, user);
     };
 
     if (!user) return null;
@@ -159,10 +164,16 @@ export default function Orders() {
                                                 ))}
                                             </ul>
                                             <span className="br-line bg-line-5 mt-auto"></span>
-                                            <Link to={`/orderdetails?id=${order._id}`} className="tf-btn type-4 align-self-end">
-                                                <i className="icon icon-EyeOpen"></i>
-                                                VIEW DETAILS
-                                            </Link>
+                                            <div className="d-flex gap-16 justify-content-end mt-auto">
+                                                <button onClick={() => handleDownloadInvoice(order)} className="tf-btn type-2 style-2 align-self-end">
+                                                    <i className="icon icon-Download"></i>
+                                                    INVOICE
+                                                </button>
+                                                <Link to={`/orderdetails?id=${order._id}`} className="tf-btn type-4 align-self-end">
+                                                    <i className="icon icon-EyeOpen"></i>
+                                                    VIEW DETAILS
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
