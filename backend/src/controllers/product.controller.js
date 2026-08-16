@@ -90,7 +90,7 @@ export const getProductById = async (req, res) => {
 
 // Create Product (Admin)
 export const createProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes, isShippingPaid } = req.body;
 
   try {
     // Validate category exists
@@ -128,6 +128,7 @@ export const createProduct = async (req, res) => {
       sizes: parsedSizes,
       qty: Number(qty) || 0,
       status: 'active',
+      isShippingPaid: isShippingPaid === 'true' || isShippingPaid === true,
     });
 
     // Create Initial Stock History
@@ -149,7 +150,7 @@ export const createProduct = async (req, res) => {
 
 // Update Product (Admin)
 export const updateProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes, isShippingPaid } = req.body;
 
   try {
     let product = await Product.findById(req.params.id);
@@ -183,7 +184,8 @@ export const updateProduct = async (req, res) => {
       benefit,
       description,
       status,
-      sizes: parsedSizes
+      sizes: parsedSizes,
+      isShippingPaid: isShippingPaid !== undefined ? (isShippingPaid === 'true' || isShippingPaid === true) : undefined
     };
 
     // Filter out undefined fields

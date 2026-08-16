@@ -17,7 +17,7 @@ const orderItemSchema = new mongoose.Schema({
   },
   size: {
     type: String,
-    default: '30ml',
+    default: 'Standard',
   },
 });
 
@@ -69,6 +69,18 @@ const orderSchema = new mongoose.Schema(
     refundAmount: {
       type: Number,
       default: 0,
+    },
+    shiprocketOrderId: {
+      type: String,
+      default: '',
+    },
+    shiprocketShipmentId: {
+      type: String,
+      default: '',
+    },
+    shiprocketAwbCode: {
+      type: String,
+      default: '',
     },
   },
   {

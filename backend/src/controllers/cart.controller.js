@@ -58,7 +58,7 @@ export const getCart = async (req, res) => {
 
 // Add to Cart
 export const addToCart = async (req, res) => {
-  const { productId, quantity, size = '30ml' } = req.body;
+  const { productId, quantity, size = 'Standard' } = req.body;
   const qtyToAdd = Number(quantity) || 1;
 
   try {
@@ -108,7 +108,7 @@ export const addToCart = async (req, res) => {
 
 // Update Cart Item Quantity
 export const updateCartItem = async (req, res) => {
-  const { productId, quantity, size = '30ml' } = req.body;
+  const { productId, quantity, size = 'Standard' } = req.body;
   const newQty = Number(quantity);
 
   if (newQty < 1) {
@@ -153,7 +153,7 @@ export const updateCartItem = async (req, res) => {
 
 // Remove from Cart
 export const removeFromCart = async (req, res) => {
-  const { productId, size = '30ml' } = req.body;
+  const { productId, size = 'Standard' } = req.body;
 
   try {
     let cart = await Cart.findOne({ userId: req.user._id });

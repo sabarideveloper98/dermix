@@ -101,6 +101,7 @@ export default function AdminApp() {
   const [mrpPrice, setMrpPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [qty, setQty] = useState("");
+  const [isShippingPaid, setIsShippingPaid] = useState(false);
   const [categoryId, setCategoryId] = useState("");
   const [images, setImages] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
@@ -343,6 +344,7 @@ export default function AdminApp() {
     formData.append("mrpPrice", mrpPrice);
     formData.append("salePrice", salePrice);
     formData.append("qty", qty);
+    formData.append("isShippingPaid", isShippingPaid);
     formData.append("categoryId", categoryId);
     formData.append("sizes", JSON.stringify(selectedSizes));
 
@@ -565,6 +567,7 @@ export default function AdminApp() {
       setMrpPrice(item ? item.mrpPrice : "");
       setSalePrice(item ? item.salePrice : "");
       setQty(item ? item.qty : "");
+      setIsShippingPaid(item ? item.isShippingPaid : false);
       setCategoryId(item ? item.categoryId?._id || item.categoryId || "" : "");
       setSelectedSizes(item && item.sizes ? item.sizes.map(s => {
         if (typeof s === 'string' || !s.size) {
@@ -1909,6 +1912,21 @@ export default function AdminApp() {
                   <div className="col-12 col-md-6 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Benefit tag</label>
                     <input type="text" className="form-control" placeholder="e.g. Firming, Hydrating" value={benefit} onChange={(e) => setBenefit(e.target.value)} />
+                  </div>
+                  <div className="col-12 col-md-6 mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Shipping</label>
+                    <div className="form-check form-switch mt-1">
+                      <input 
+                        className="form-check-input" 
+                        type="checkbox" 
+                        id="shippingPaidSwitch" 
+                        checked={isShippingPaid} 
+                        onChange={(e) => setIsShippingPaid(e.target.checked)} 
+                      />
+                      <label className="form-check-label" htmlFor="shippingPaidSwitch">
+                        {isShippingPaid ? "Paid Shipping" : "Free Shipping"}
+                      </label>
+                    </div>
                   </div>
                   <div className="col-12 col-md-6 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Sizes</label>

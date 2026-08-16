@@ -30,6 +30,9 @@ export default function CheckoutContent() {
   const [landmark, setLandmark] = useState("");
   const [addressError, setAddressError] = useState("");
 
+  const [shippingCost, setShippingCost] = useState(0);
+  const [calculatingShipping, setCalculatingShipping] = useState(false);
+
   const API_BASE = `${API_BASE_CONFIG}/api`;
 
   // Redirect to login if not authenticated
@@ -48,6 +51,42 @@ export default function CheckoutContent() {
       setMobile(user.mobile || "");
     }
   }, [user]);
+
+  // Calculate Shipping when pincode or cart changes
+  useEffect(() => {
+    const calculateShipping = async () => {
+      if (!pincode || pincode.length !== 6 || !cart || !cart.items || cart.items.length === 0) {
+        setShippingCost(0);
+        return;
+      }
+      
+      setCalculatingShipping(true);
+      try {
+        const response = await fetch(`${API_BASE}/orders/shiprocket/shipping-rate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pincode,
+            products: cart.items
+          })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setShippingCost(data.shippingRate || 0);
+        } else {
+          setShippingCost(0);
+        }
+      } catch (error) {
+        console.error("Error calculating shipping:", error);
+        setShippingCost(0);
+      } finally {
+        setCalculatingShipping(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(calculateShipping, 800);
+    return () => clearTimeout(debounceTimer);
+  }, [pincode, cart, API_BASE]);
 
   // Load Razorpay Script and user addresses
   useEffect(() => {
@@ -71,7 +110,7 @@ export default function CheckoutContent() {
       const data = await res.json();
       if (res.ok && data.success) {
         setAddresses(data.addresses);
-        if (data.addresses.length > 0) {
+        if (data.addresses.length > 0 && !selectedAddressId) {
           handleAddressSelect(data.addresses[0]);
         }
       }
@@ -103,7 +142,7 @@ export default function CheckoutContent() {
   };
 
   const handleAddAddress = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setAddressError("");
     setLoading(true);
 
@@ -129,9 +168,42 @@ export default function CheckoutContent() {
         setAddressError(data.message || "Failed to save address");
       }
     } catch (err) {
-      setAddressError("Server error saving address");
+      console.error("Error saving address:", err);
+      setAddressError("An error occurred while saving the address.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (e, addressId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this address?")) return;
+    
+    try {
+      const res = await authFetch(`${API_BASE}/addresses/${addressId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedAddresses = addresses.filter(a => a._id !== addressId);
+        setAddresses(updatedAddresses);
+        if (selectedAddressId === addressId) {
+          if (updatedAddresses.length > 0) {
+            handleAddressSelect(updatedAddresses[0]);
+          } else {
+            setSelectedAddressId("");
+            setStreet1("");
+            setStreet2("");
+            setDistrict("");
+            setState("");
+            setPincode("");
+            setLandmark("");
+            setShowNewAddressForm(true);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting address:", err);
     }
   };
 
@@ -180,7 +252,11 @@ export default function CheckoutContent() {
     try {
       let payload = {};
       if (user) {
-        payload = { addressId: selectedAddressId };
+        payload = { 
+          addressId: selectedAddressId,
+          amount: cart.totalAmount + shippingCost,
+          items: cart.items 
+        };
       } else {
         payload = {
           name,
@@ -345,6 +421,16 @@ export default function CheckoutContent() {
                               </p>
                               {addr.landmark && <p className="mb-0 text-body-xs italic text-muted">Landmark: {addr.landmark}</p>}
                             </div>
+                          </div>
+                          <div className="mt-3 text-end">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={(e) => handleDeleteAddress(e, addr._id)}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
+                            >
+                              <i className="icon icon-Trash"></i> Remove
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -537,14 +623,14 @@ export default function CheckoutContent() {
               </li>
               <li className="fw-normal">
                 <span>Shipping</span>
-                <span>FREE</span>
+                <span>{calculatingShipping ? "Calculating..." : (shippingCost > 0 ? `₹${shippingCost.toFixed(2)}` : "FREE")}</span>
               </li>
               <li>
                 <p className="d-grid">
                   <span className="fw-normal mb-8 text-body-l">Total</span>
                 </p>
                 <span className="fw-normal" style={{ fontSize: '20px', color: '#003087', fontWeight: 'bold' }}>
-                  ₹{cart.totalAmount.toFixed(2)}
+                  ₹{(cart.totalAmount + shippingCost).toFixed(2)}
                 </span>
               </li>
             </ul>

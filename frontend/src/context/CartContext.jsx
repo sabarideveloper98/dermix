@@ -78,12 +78,21 @@ export const CartProvider = ({ children }) => {
   };
 
   // Add Item to Cart
-  const addToCart = async (product, quantity = 1, size = '30ml') => {
+  const addToCart = async (product, quantity = 1, size = null) => {
+    let finalSize = size;
+    if (!finalSize) {
+      if (product.sizes && product.sizes.length > 0) {
+        finalSize = product.sizes[0].name || (product.sizes[0].size ? product.sizes[0].size.name : 'Standard');
+      } else {
+        finalSize = 'Standard';
+      }
+    }
+
     if (user) {
       try {
         const res = await authFetch(`${API_BASE}/cart/add`, {
           method: 'POST',
-          body: JSON.stringify({ productId: product._id, quantity, size }),
+          body: JSON.stringify({ productId: product._id, quantity, size: finalSize }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -98,7 +107,7 @@ export const CartProvider = ({ children }) => {
       // Guest
       const guestItems = JSON.parse(localStorage.getItem('guestCart') || '[]');
       const index = guestItems.findIndex(
-        (item) => item.productId._id === product._id && item.size === size
+        (item) => item.productId._id === product._id && item.size === finalSize
       );
 
       if (index > -1) {
@@ -113,7 +122,11 @@ export const CartProvider = ({ children }) => {
           alert(`Cannot add. Only ${product.qty} left in stock.`);
           return;
         }
-        guestItems.push({ productId: product, quantity, size });
+        guestItems.push({
+          productId: product,
+          quantity,
+          size: finalSize,
+        });
       }
 
       localStorage.setItem('guestCart', JSON.stringify(guestItems));
@@ -122,13 +135,12 @@ export const CartProvider = ({ children }) => {
   };
 
   // Update Item Quantity
-  const updateCartItem = async (productId, quantity, size = '30ml') => {
+  const updateCartItem = async (productId, quantity, size = null) => {
     if (quantity < 1) return;
 
     if (user) {
       try {
         const res = await authFetch(`${API_BASE}/cart/update`, {
-          method: 'POST', // Backend map PUT or POST, our routes.js has PUT /api/cart/update
           method: 'PUT',
           body: JSON.stringify({ productId, quantity, size }),
         });
@@ -161,7 +173,7 @@ export const CartProvider = ({ children }) => {
   };
 
   // Remove Item from Cart
-  const removeFromCart = async (productId, size = '30ml') => {
+  const removeFromCart = async (productId, size = null) => {
     if (user) {
       try {
         const res = await authFetch(`${API_BASE}/cart/remove`, {

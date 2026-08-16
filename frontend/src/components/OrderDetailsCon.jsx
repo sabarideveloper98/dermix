@@ -7,6 +7,8 @@ export default function OrderDetailsCon() {
     const orderId = searchParams.get('id');
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [tracking, setTracking] = useState(null);
+    const [loadingTracking, setLoadingTracking] = useState(false);
 
     useEffect(() => {
         const fetchOrderDetails = async () => {
@@ -19,9 +21,20 @@ export default function OrderDetailsCon() {
                 const data = await res.json();
                 if (data.success) {
                     setOrder(data.order);
+
+                    setLoadingTracking(true);
+                    const trackRes = await fetch(`${API_BASE}/api/orders/${orderId}/shiprocket-tracking`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const trackData = await trackRes.json();
+                    if (trackData.success && trackData.tracking) {
+                        setTracking(trackData.tracking);
+                    }
+                    setLoadingTracking(false);
                 }
             } catch (error) {
                 console.error("Error fetching order details:", error);
+                setLoadingTracking(false);
             } finally {
                 setLoading(false);
             }
@@ -73,126 +86,57 @@ export default function OrderDetailsCon() {
                                     <div className="order-heading">
                                         <div>
                                             <h6 className="font-instrument_serif mb-8">Tracking Timeline</h6>
-                                            <p className="text-body-s cl-text-5">Tracking Number: {order.trackingNumber || 'Pending'}</p>
+                                            <p className="text-body-s cl-text-5">Tracking Number: {order.shiprocketAwbCode || 'Pending'}</p>
                                         </div>
                                         <p className={`order__tag ${order.deliveryStatus?.toLowerCase() || 'pending'} text-body-s text-capitalize`}>
                                             {order.deliveryStatus || 'Pending'}
                                         </p>
                                     </div>
                                     <div className="order-content">
-                                        <div className="timeline-wrap">
-                                            <div className="timeline-item step-done">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-Box"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            Order Placed
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Your order has been placed successfully
-                                                        </p>
+                                        {(() => {
+                                            if (loadingTracking) {
+                                                return <p>Loading tracking information...</p>;
+                                            }
+
+                                            if (!tracking || !tracking.tracking_data || tracking.tracking_data.error || !tracking.tracking_data.shipment_track_activities || tracking.tracking_data.shipment_track_activities.length === 0) {
+                                                return (
+                                                    <div className="timeline-wrap">
+                                                        <div className="timeline-item step-done">
+                                                            <span className="step-line"></span>
+                                                            <span className="ic-wrap"><i className="icon icon-Box"></i></span>
+                                                            <div className="tl-content">
+                                                                <div className="info_left">
+                                                                    <p className="tl_title fw-normal mb-6">Order Placed</p>
+                                                                    <p className="tl_desc text-body-s cl-text-5">Your order has been placed successfully</p>
+                                                                </div>
+                                                                <p className="tl-date text-body-s cl-text-5">{formatDate(order.createdAt)}</p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <p className="tl-date text-body-s cl-text-5">
-                                                        Jan 15, 2025 at 10:30 AM
-                                                    </p>
+                                                );
+                                            }
+
+                                            const activities = tracking.tracking_data.shipment_track_activities;
+                                            return (
+                                                <div className="timeline-wrap">
+                                                    {activities.map((act, index) => (
+                                                        <div key={index} className="timeline-item step-done">
+                                                            <span className="step-line"></span>
+                                                            <span className="ic-wrap">
+                                                                <i className="icon icon-DotLocation"></i>
+                                                            </span>
+                                                            <div className="tl-content">
+                                                                <div className="info_left">
+                                                                    <p className="tl_title fw-normal mb-6">{act.status}</p>
+                                                                    <p className="tl_desc text-body-s cl-text-5">{act.activity} {act.location ? `- ${act.location}` : ''}</p>
+                                                                </div>
+                                                                <p className="tl-date text-body-s cl-text-5">{act.date}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                            <div className="timeline-item step-done">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-Timer"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            Processing
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Your order is being prepared for shipment
-                                                        </p>
-                                                    </div>
-                                                    <p className="tl-date text-body-s cl-text-5">
-                                                        Jan 15, 2025 at 02:45 PM
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="timeline-item step-done">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-Truck"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            Shipped
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Your order has been shipped via Express Delivery
-                                                        </p>
-                                                    </div>
-                                                    <p className="tl-date text-body-s cl-text-5">
-                                                        Jan 16, 2025 at 09:15 AM
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="timeline-item step-done">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-DotLocation"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            In Transit
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Package is on the way to your location
-                                                        </p>
-                                                    </div>
-                                                    <p className="tl-date text-body-s cl-text-5">
-                                                        Jan 17, 2025 at 11:30 AM
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="timeline-item">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-Truck"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            Out for Delivery
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Package will be delivered today
-                                                        </p>
-                                                    </div>
-                                                    <p className="tl-date text-body-s cl-text-5">
-                                                        Jan 18, 2025
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="timeline-item">
-                                                <span className="step-line"></span>
-                                                <span className="ic-wrap">
-                                                    <i className="icon icon-CircleCheck"></i>
-                                                </span>
-                                                <div className="tl-content">
-                                                    <div className="info_left">
-                                                        <p className="tl_title fw-normal mb-6">
-                                                            Delivered
-                                                        </p>
-                                                        <p className="tl_desc text-body-s cl-text-5">
-                                                            Package delivered to recipient
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 <div className="account-order_item type-2">

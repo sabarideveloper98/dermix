@@ -3,6 +3,8 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import Address from '../models/Address.js';
 import User from '../models/User.js';
+import StockHistory from '../models/StockHistory.js';
+import { getShiprocketTracking, createShiprocketOrder, getShippingRate } from '../services/shiprocket.service.js';
 import mongoose from 'mongoose';
 
 // Place Order
@@ -73,9 +75,11 @@ export const createOrder = async (req, res) => {
       cartItems = items;
     }
 
-    // 3. Verify stock availability for all items
-    const orderProducts = [];
     let calculatedTotalPrice = 0;
+    let paidShippingWeight = 0;
+
+    // 3. Verify stock, prepare order products array, and calculate weight for shipping
+    const orderProducts = [];
     for (const item of cartItems) {
       const product = await Product.findById(item.productId).populate('sizes.size');
       if (!product || product.status !== 'active') {
@@ -90,6 +94,10 @@ export const createOrder = async (req, res) => {
           success: false,
           message: `Insufficient stock for ${product.name}. Only ${product.qty} units available.`,
         });
+      }
+
+      if (product.isShippingPaid) {
+        paidShippingWeight += 0.5 * item.quantity;
       }
 
       let itemPrice = product.salePrice;
@@ -109,7 +117,17 @@ export const createOrder = async (req, res) => {
       calculatedTotalPrice += itemPrice * item.quantity;
     }
 
-    const finalTotalPrice = req.user ? totalPrice : calculatedTotalPrice;
+    // Add shipping cost if there are paid shipping items
+    let shippingCost = 0;
+    const address = await Address.findById(finalAddressId);
+    if (paidShippingWeight > 0 && address && address.pincode) {
+      // Calculate shipping cost as Prepaid (0) by default since the immediate next step is Razorpay checkout
+      shippingCost = await getShippingRate(address.pincode, paidShippingWeight, 0);
+    }
+
+    // `req.user` check uses the total from the frontend if authenticated, but we should always add shipping cost.
+    // In our robust backend, we should use our calculated total. Let's use calculated total + shipping.
+    const finalTotalPrice = calculatedTotalPrice + shippingCost;
 
     // 4. Generate unique order number in format: DERMIX-YYYYMMDD-XXXX
     const now = new Date();
@@ -129,6 +147,61 @@ export const createOrder = async (req, res) => {
       paymentStatus: 'Pending',
       deliveryStatus: 'Pending',
     });
+
+    // 5.5 Push Order to Shiprocket as COD
+    try {
+      const address = await Address.findById(finalAddressId);
+      const currentUser = await User.findById(userId) || req.user;
+
+      const shiprocketItems = orderProducts.map(async (item) => {
+        const prod = await Product.findById(item.productId);
+        return {
+          name: prod.name,
+          sku: prod.sku || prod._id.toString().substring(0, 8),
+          units: item.quantity,
+          selling_price: item.price,
+          discount: 0,
+          tax: 0,
+          hsn: 441122
+        };
+      });
+
+      const resolvedItems = await Promise.all(shiprocketItems);
+
+      const shiprocketPayload = {
+        order_id: order.orderNumber,
+        order_date: now.toISOString().split('T')[0],
+        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
+        billing_customer_name: address.firstName || currentUser?.name?.split(' ')[0] || "Customer",
+        billing_last_name: address.lastName || (currentUser?.name?.split(' ')[1] || ''),
+        billing_address: address.street1,
+        billing_address_2: address.street2 || "",
+        billing_city: address.district,
+        billing_pincode: address.pincode,
+        billing_state: address.state,
+        billing_country: "India",
+        billing_email: currentUser?.email || "customer@example.com",
+        billing_phone: currentUser?.mobile || "9999999999",
+        shipping_is_billing: true,
+        order_items: resolvedItems,
+        payment_method: "COD",
+        sub_total: finalTotalPrice,
+        length: 10,
+        breadth: 10,
+        height: 10,
+        weight: 0.5
+      };
+
+      const srResponse = await createShiprocketOrder(shiprocketPayload);
+      if (srResponse && srResponse.order_id) {
+        order.shiprocketOrderId = srResponse.order_id.toString();
+        order.shiprocketShipmentId = srResponse.shipment_id ? srResponse.shipment_id.toString() : '';
+        order.shiprocketAwbCode = srResponse.awb_code ? srResponse.awb_code.toString() : '';
+        await order.save();
+      }
+    } catch (srError) {
+      console.error("Failed to push COD order to Shiprocket:", srError);
+    }
 
     // 6. Clear user's cart in database
     const existingCart = await Cart.findOne({ userId });
@@ -181,6 +254,59 @@ export const getOrderById = async (req, res) => {
   } catch (error) {
     console.error('Get order by ID error:', error);
     res.status(500).json({ success: false, message: 'Server error fetching order details' });
+  }
+};
+
+// Get Shiprocket Tracking
+export const getOrderTracking = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
+    }
+
+    if (!order.shiprocketShipmentId) {
+      return res.status(200).json({ success: true, tracking: null, message: 'No Shiprocket shipment found for this order' });
+    }
+
+    const trackingData = await getShiprocketTracking(order.shiprocketShipmentId);
+    res.status(200).json({ success: true, tracking: trackingData });
+  } catch (error) {
+    console.error('Get order tracking error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching tracking data' });
+  }
+};
+
+// Calculate Shipping Rate
+export const calculateShippingRate = async (req, res) => {
+  try {
+    const { pincode, products } = req.body;
+    if (!pincode) return res.status(400).json({ success: false, message: 'Pincode is required' });
+
+    let paidShippingWeight = 0;
+    
+    // Calculate total weight of paid-shipping products
+    for (const item of products) {
+      const product = await Product.findById(item.productId);
+      if (product && product.isShippingPaid) {
+        paidShippingWeight += 0.5 * (item.quantity || 1); // 0.5kg per item
+      }
+    }
+
+    if (paidShippingWeight === 0) {
+      return res.status(200).json({ success: true, shippingRate: 0 });
+    }
+
+    const rate = await getShippingRate(pincode, paidShippingWeight, 0); // 0 for Prepaid estimation
+    res.status(200).json({ success: true, shippingRate: rate });
+  } catch (error) {
+    console.error('Calculate shipping error:', error);
+    res.status(500).json({ success: false, message: 'Server error calculating shipping' });
   }
 };
 

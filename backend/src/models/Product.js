@@ -59,6 +59,10 @@ const productSchema = new mongoose.Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    isShippingPaid: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

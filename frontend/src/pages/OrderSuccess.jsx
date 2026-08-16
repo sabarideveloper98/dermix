@@ -56,7 +56,7 @@ export default function OrderSuccess() {
             <Link to="/" className="tf-btn style-2 type-2 btn-light">
               Continue Shopping
             </Link>
-            <Link to="/orders" className="tf-btn type-2 style-2">
+            <Link to="/myorders" className="tf-btn type-2 style-2">
               My Orders
             </Link>
           </div>

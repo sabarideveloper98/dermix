@@ -13,7 +13,7 @@ const cartItemSchema = new mongoose.Schema({
   },
   size: {
     type: String,
-    default: '30ml',
+    default: 'Standard',
   },
 });
 
