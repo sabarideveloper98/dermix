@@ -1525,7 +1525,9 @@ export default function AdminApp() {
                         <th>Refund ID</th>
                         <th>Order ID</th>
                         <th>Customer</th>
+                        <th>Order Amount</th>
                         <th>Refund Amount</th>
+                        <th>Balance Amount</th>
                         <th>Reason</th>
                         <th>Status</th>
                         <th>Date</th>
@@ -1541,7 +1543,9 @@ export default function AdminApp() {
                             <td>{refund._id.substring(0,8)}...</td>
                             <td>{refund.orderId?.orderNumber}</td>
                             <td>{refund.customerId?.name}</td>
+                            <td className="fw-bold">₹{refund.orderId?.totalPrice?.toFixed(2) || '0.00'}</td>
                             <td className="text-primary fw-bold">{refund.refundAmount !== undefined ? `₹${refund.refundAmount.toFixed(2)}` : 'TBD'}</td>
+                            <td className="text-secondary fw-bold">₹{((refund.orderId?.totalPrice || 0) - (refund.refundAmount || 0)).toFixed(2)}</td>
                             <td>{refund.reason}</td>
                             <td>
                               <span className={`badge bg-${refund.status === 'Approved' || refund.status === 'Refunded' ? 'success' : refund.status === 'Rejected' ? 'danger' : 'warning'}`}>
@@ -2187,7 +2191,9 @@ export default function AdminApp() {
                   <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
                   <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
                   <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
-                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Calculated Refund Amount:</strong> ₹{editingItem.refundAmount.toFixed(2)}</p>}
+                  <p className="mb-1 text-body-s"><strong>Exact Order Amount:</strong> ₹{editingItem.orderId?.totalPrice?.toFixed(2) || '0.00'}</p>
+                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Applied Refund Amount:</strong> ₹{editingItem.refundAmount.toFixed(2)}</p>}
+                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Balance Amount:</strong> ₹{((editingItem.orderId?.totalPrice || 0) - (editingItem.refundAmount || 0)).toFixed(2)}</p>}
                 </div>
 
                 <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>

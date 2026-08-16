@@ -68,8 +68,8 @@ export const getAdminRefunds = async (req, res) => {
   try {
     const refunds = await Refund.find()
       .populate('customerId', 'name email phone')
-      .populate('orderId', 'orderNumber totalPrice createdAt')
-      .populate('productId', 'name images')
+      .populate('orderId', 'orderNumber totalPrice createdAt products paymentMethod transactionId')
+      .populate('productId', 'name images price')
       .sort({ requestedAt: -1 });
     res.status(200).json({ success: true, refunds });
   } catch (error) {
@@ -83,7 +83,7 @@ export const getRefundDetails = async (req, res) => {
   try {
     const refund = await Refund.findById(id)
       .populate('customerId', 'name email phone')
-      .populate('orderId', 'orderNumber totalPrice createdAt')
+      .populate('orderId', 'orderNumber totalPrice createdAt products paymentMethod transactionId')
       .populate('productId', 'name images price');
     if (!refund) return res.status(404).json({ success: false, message: 'Refund not found' });
     res.status(200).json({ success: true, refund });
@@ -132,8 +132,8 @@ export const updateRefundStatus = async (req, res) => {
       }
       refund.refundAmount = finalRefund > 0 ? finalRefund : 0;
 
-      // Initiate Razorpay Refund if online payment
-      if (refund.orderId.paymentMethod === 'online' && refund.orderId.transactionId) {
+      // Initiate Razorpay Refund if transactionId exists (meaning it was paid via Razorpay)
+      if (refund.orderId.transactionId) {
         try {
           const razorpayRefund = await razorpay.payments.refund(refund.orderId.transactionId, {
             amount: Math.round(refund.refundAmount * 100),
