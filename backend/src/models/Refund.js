@@ -2,50 +2,66 @@ import mongoose from 'mongoose';
 
 const refundSchema = new mongoose.Schema(
   {
-    refund_id: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    order_id: {
+    orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Order',
       required: true,
     },
-    user_id: {
+    customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    payment_id: {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true,
+    },
+    reason: {
       type: String,
       required: true,
+      enum: ['Damaged Product', 'Wrong Product', 'Missing Item', 'Quality Issue', 'Other'],
     },
-    refund_amount: {
-      type: Number,
-      required: true,
+    comments: {
+      type: String,
     },
-    refund_charge: {
+    images: [
+      {
+        type: String, // URLs from cloudinary
+      },
+    ],
+    refundChargeType: {
+      type: String,
+      enum: ['Percentage', 'Fixed Amount'],
+    },
+    refundChargeValue: {
       type: Number,
       default: 0,
     },
-    refund_reason: {
+    refundAmount: {
+      type: Number, // Final refund amount after deduction
+    },
+    status: {
+      type: String,
+      enum: ['Requested', 'Under Review', 'Approved', 'Refund Processing', 'Refunded', 'Rejected'],
+      default: 'Requested',
+    },
+    adminNotes: {
       type: String,
     },
-    refund_status: {
-      type: String,
-      enum: ['Pending', 'Processing', 'Refunded', 'Failed'],
-      default: 'Pending',
+    requestedAt: {
+      type: Date,
+      default: Date.now,
     },
-    refund_reference: {
-      type: String,
+    approvedAt: {
+      type: Date,
     },
-    admin_notes: {
-      type: String,
+    refundedAt: {
+      type: Date,
     },
   },
   {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    timestamps: true,
   }
 );
 

@@ -2,29 +2,18 @@ import mongoose from 'mongoose';
 
 const refundSettingsSchema = new mongoose.Schema(
   {
-    defaultPercentage: {
-      type: Number,
-      default: 100, // 100%
-    },
-    fixedDeduction: {
-      type: Number,
-      default: 0,
-    },
-    processingFee: {
-      type: Number,
-      default: 50,
-    },
-    fullRefundEnabled: {
-      type: Boolean,
-      default: true,
-    },
-    partialRefundEnabled: {
-      type: Boolean,
-      default: true,
-    },
-    autoRefundEnabled: {
+    isEnabled: {
       type: Boolean,
       default: false,
+    },
+    refundChargeType: {
+      type: String,
+      enum: ['Percentage', 'Fixed Amount'],
+      default: 'Percentage',
+    },
+    refundChargeValue: {
+      type: Number,
+      default: 0,
     },
   },
   {

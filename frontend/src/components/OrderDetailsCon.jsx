@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { API_BASE } from "../config";
+import RefundModal from "./RefundModal";
+import { toast } from 'react-toastify';
 
 export default function OrderDetailsCon() {
     const [searchParams] = useSearchParams();
@@ -9,6 +11,7 @@ export default function OrderDetailsCon() {
     const [loading, setLoading] = useState(true);
     const [tracking, setTracking] = useState(null);
     const [loadingTracking, setLoadingTracking] = useState(false);
+    const [showRefundModal, setShowRefundModal] = useState(false);
 
     useEffect(() => {
         const fetchOrderDetails = async () => {
@@ -222,17 +225,32 @@ export default function OrderDetailsCon() {
                                     <Link to="/contact" className="tf-btn type-2 style-2 w-100">
                                         Contact support
                                     </Link>
-                                    <Link to="#" className="tf-btn-line">
+                                    <button 
+                                        type="button" 
+                                        className="tf-btn-line bg-transparent border-0 p-0" 
+                                        onClick={() => setShowRefundModal(true)}
+                                    >
                                         <span className="fw-normal text-uppercase">
                                             Request return
                                         </span>
-                                    </Link>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {showRefundModal && (
+                <RefundModal 
+                    order={order} 
+                    onClose={() => setShowRefundModal(false)} 
+                    onSuccess={(msg) => {
+                        toast.success(msg);
+                        setShowRefundModal(false);
+                    }} 
+                />
+            )}
         </>
     )
 }

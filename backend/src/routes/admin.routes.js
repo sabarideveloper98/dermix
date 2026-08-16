@@ -13,6 +13,13 @@ import {
   deleteInstagramVideo,
   getAdminOrders,
 } from '../controllers/admin.controller.js';
+import {
+  getAdminRefunds,
+  getRefundDetails,
+  updateRefundStatus,
+  getRefundSettings,
+  updateRefundSettings
+} from '../controllers/refund.controller.js';
 import { protect, admin } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/upload.middleware.js';
 
@@ -39,5 +46,12 @@ router.get('/instagram-videos', protect, admin, getInstagramVideos);
 router.post('/instagram-videos', protect, admin, addInstagramVideo);
 router.put('/instagram-videos/:id', protect, admin, updateInstagramVideo);
 router.delete('/instagram-videos/:id', protect, admin, deleteInstagramVideo);
+
+// Refund Management (Admin)
+router.get('/refunds', protect, admin, getAdminRefunds);
+router.get('/refunds/:id', protect, admin, getRefundDetails);
+router.put('/refunds/:id/status', protect, admin, updateRefundStatus);
+router.get('/refund-settings', protect, admin, getRefundSettings);
+router.put('/refund-settings', protect, admin, updateRefundSettings);
 
 export default router;

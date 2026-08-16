@@ -1,21 +1,14 @@
 import express from 'express';
 import { 
-  getRefundSettings, 
-  updateRefundSettings, 
-  cancelOrder, 
-  processRefund, 
-  getRefundStats, 
-  getAllRefunds 
+  requestRefund,
+  getMyRefundRequests
 } from '../controllers/refund.controller.js';
-import { protect, admin } from '../middlewares/auth.middleware.js';
+import { protect } from '../middlewares/auth.middleware.js';
+import upload from '../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
-router.get('/settings', protect, admin, getRefundSettings);
-router.put('/settings', protect, admin, updateRefundSettings);
-router.put('/order/:id/cancel', protect, admin, cancelOrder);
-router.post('/process', protect, admin, processRefund);
-router.get('/stats', protect, admin, getRefundStats);
-router.get('/', protect, admin, getAllRefunds);
+router.post('/request', protect, upload.array('images', 5), requestRefund);
+router.get('/my-requests', protect, getMyRefundRequests);
 
 export default router;

@@ -185,11 +185,11 @@ export default function AdminApp() {
         const data = await res.json();
         if (res.ok && data.success) setSizes(data.sizes);
       } else if (tab === "refunds") {
-        const res = await authFetch(`${API_BASE}/refunds`);
+        const res = await authFetch(`${API_BASE}/admin/refunds`);
         const data = await res.json();
         if (res.ok && data.success) setRefunds(data.refunds);
       } else if (tab === "refund-settings") {
-        const res = await authFetch(`${API_BASE}/refunds/settings`);
+        const res = await authFetch(`${API_BASE}/admin/refund-settings`);
         const data = await res.json();
         if (res.ok && data.success) setRefundSettings(data.settings);
       }
@@ -1526,28 +1526,40 @@ export default function AdminApp() {
                         <th>Order ID</th>
                         <th>Customer</th>
                         <th>Refund Amount</th>
-                        <th>Charges</th>
+                        <th>Reason</th>
                         <th>Status</th>
                         <th>Date</th>
+                        <th className="text-end">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {refunds
-                        .filter(r => r.refund_id?.toLowerCase().includes(searchQuery.toLowerCase()) || r.order_id?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .filter(r => r._id?.toLowerCase().includes(searchQuery.toLowerCase()) || r.orderId?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
                         .slice((refundsPage - 1) * ITEMS_PER_PAGE, refundsPage * ITEMS_PER_PAGE)
                         .map((refund) => (
                           <tr key={refund._id} className="align-middle">
-                            <td>{refund.refund_id}</td>
-                            <td>{refund.order_id?.orderNumber}</td>
-                            <td>{refund.user_id?.name}</td>
-                            <td className="text-primary fw-bold">₹{refund.refund_amount?.toFixed(2)}</td>
-                            <td>₹{refund.refund_charge?.toFixed(2)}</td>
+                            <td>{refund._id.substring(0,8)}...</td>
+                            <td>{refund.orderId?.orderNumber}</td>
+                            <td>{refund.customerId?.name}</td>
+                            <td className="text-primary fw-bold">{refund.refundAmount !== undefined ? `₹${refund.refundAmount.toFixed(2)}` : 'TBD'}</td>
+                            <td>{refund.reason}</td>
                             <td>
-                              <span className={`badge bg-${refund.refund_status === 'Completed' ? 'success' : refund.refund_status === 'Failed' ? 'danger' : 'warning'}`}>
-                                {refund.refund_status}
+                              <span className={`badge bg-${refund.status === 'Approved' || refund.status === 'Refunded' ? 'success' : refund.status === 'Rejected' ? 'danger' : 'warning'}`}>
+                                {refund.status}
                               </span>
                             </td>
-                            <td>{new Date(refund.created_at).toLocaleDateString()}</td>
+                            <td>{new Date(refund.requestedAt).toLocaleDateString()}</td>
+                            <td className="text-end">
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => {
+                                  setEditingItem(refund);
+                                  setModalType("refund-details");
+                                }}
+                              >
+                                Review
+                              </button>
+                            </td>
                           </tr>
                         ))}
                     </tbody>
@@ -1574,7 +1586,7 @@ export default function AdminApp() {
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   try {
-                    const res = await authFetch(`${API_BASE}/refunds/settings`, {
+                    const res = await authFetch(`${API_BASE}/admin/refund-settings`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(refundSettings)
@@ -1585,25 +1597,20 @@ export default function AdminApp() {
                     alert("Failed to update refund settings.");
                   }
                 }}>
-                  <div className="mb-3">
-                    <label className="form-label fw-bold small">Default Refund Percentage (%)</label>
-                    <input type="number" className="form-control" value={refundSettings?.defaultPercentage || ''} onChange={e => setRefundSettings({ ...refundSettings, defaultPercentage: Number(e.target.value) })} />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-bold small">Fixed Refund Deduction (₹)</label>
-                    <input type="number" className="form-control" value={refundSettings?.fixedDeduction || ''} onChange={e => setRefundSettings({ ...refundSettings, fixedDeduction: Number(e.target.value) })} />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-bold small">Refund Processing Fee (₹)</label>
-                    <input type="number" className="form-control" value={refundSettings?.processingFee || ''} onChange={e => setRefundSettings({ ...refundSettings, processingFee: Number(e.target.value) })} />
-                  </div>
                   <div className="mb-3 form-check form-switch">
-                    <input type="checkbox" className="form-check-input" checked={refundSettings?.fullRefundEnabled || false} onChange={e => setRefundSettings({ ...refundSettings, fullRefundEnabled: e.target.checked })} />
-                    <label className="form-check-label fw-bold small">Enable Full Refunds</label>
+                    <input type="checkbox" className="form-check-input" checked={refundSettings?.isEnabled || false} onChange={e => setRefundSettings({ ...refundSettings, isEnabled: e.target.checked })} />
+                    <label className="form-check-label fw-bold small">Enable Automatic Refund Deductions</label>
                   </div>
-                  <div className="mb-4 form-check form-switch">
-                    <input type="checkbox" className="form-check-input" checked={refundSettings?.partialRefundEnabled || false} onChange={e => setRefundSettings({ ...refundSettings, partialRefundEnabled: e.target.checked })} />
-                    <label className="form-check-label fw-bold small">Enable Partial Refunds</label>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small">Deduction Type</label>
+                    <select className="form-select" value={refundSettings?.refundChargeType || 'Percentage'} onChange={e => setRefundSettings({ ...refundSettings, refundChargeType: e.target.value })}>
+                      <option value="Percentage">Percentage (%)</option>
+                      <option value="Fixed Amount">Fixed Amount (₹)</option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label fw-bold small">Deduction Value</label>
+                    <input type="number" className="form-control" value={refundSettings?.refundChargeValue || 0} onChange={e => setRefundSettings({ ...refundSettings, refundChargeValue: Number(e.target.value) })} />
                   </div>
                   <button type="submit" className="btn btn-primary px-4">Save Settings</button>
                 </form>
@@ -2165,6 +2172,120 @@ export default function AdminApp() {
                   setCancelReason("");
                   setRefundAmountInput("");
                   setRefundReason("");
+                }}>
+                  Close Overview
+                </button>
+              </div>
+            )}
+
+            {/* Refund Details Modal */}
+            {modalType === "refund-details" && editingItem && (
+              <div>
+                <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
+                  <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
+                  <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
+                  <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
+                  <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
+                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Calculated Refund Amount:</strong> ₹{editingItem.refundAmount.toFixed(2)}</p>}
+                </div>
+
+                <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Product & Reason</h6>
+                  <div className="d-flex align-items-center gap-3 mb-2 p-2 bg-light rounded">
+                    {editingItem.productId?.images?.[0] && <img src={editingItem.productId.images[0]} alt="product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />}
+                    <div>
+                      <p className="mb-0 fw-semibold text-body-s">{editingItem.productId?.name}</p>
+                    </div>
+                  </div>
+                  <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
+                  <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
+                  
+                  {editingItem.images?.length > 0 && (
+                    <div className="mt-2">
+                      <strong className="text-body-s">Customer Uploaded Images:</strong>
+                      <div className="d-flex flex-wrap gap-2 mt-2">
+                        {editingItem.images.map((img, idx) => (
+                          <a href={img} target="_blank" rel="noreferrer" key={idx}>
+                            <img src={img} alt="Refund Evidence" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-4 pt-2" style={{ color: "#0f172a" }}>
+                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Admin Actions</h6>
+                  <label className="form-label small fw-bold">Admin Notes (Optional)</label>
+                  <textarea
+                    className="form-control form-control-sm mb-3"
+                    rows="2"
+                    placeholder="Enter notes for this decision..."
+                    value={cancelReason} // reusing state for notes
+                    onChange={e => setCancelReason(e.target.value)}
+                  ></textarea>
+
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-sm btn-success flex-fill" onClick={async () => {
+                      try {
+                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'Approved', adminNotes: cancelReason })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert("Refund approved successfully!");
+                          setModalType("");
+                          fetchTabContent("refunds");
+                        }
+                      } catch (err) {
+                        alert("Error approving refund.");
+                      }
+                    }}>Approve</button>
+                    
+                    <button className="btn btn-sm btn-danger flex-fill" onClick={async () => {
+                      try {
+                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'Rejected', adminNotes: cancelReason })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert("Refund rejected.");
+                          setModalType("");
+                          fetchTabContent("refunds");
+                        }
+                      } catch (err) {
+                        alert("Error rejecting refund.");
+                      }
+                    }}>Reject</button>
+
+                    <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
+                      try {
+                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'Refunded', adminNotes: cancelReason })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert("Marked as refunded!");
+                          setModalType("");
+                          fetchTabContent("refunds");
+                        }
+                      } catch (err) {
+                        alert("Error updating status.");
+                      }
+                    }}>Mark Refunded</button>
+                  </div>
+                </div>
+
+                <button className="btn btn-secondary w-100 py-10" onClick={() => {
+                  setModalType("");
+                  setCancelReason("");
                 }}>
                   Close Overview
                 </button>
