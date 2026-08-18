@@ -3,9 +3,9 @@ import * as MarqueeModule from "react-fast-marquee";
 const Marquee = MarqueeModule.default.default;
 
 export default function InfiniteText() {
-  return (
-    <Marquee speed={60}>
-       <div className="infiniteSlide infiniteSlide-wrapper" data-clone="3">
+    return (
+        <Marquee speed={60}>
+            <div className="infiniteSlide infiniteSlide-wrapper" data-clone="3">
                 <div className="infiniteSlide-item">
                     <p className="text h1 font-instrument_serif">
                         Pure Ingredients Only
@@ -36,6 +36,6 @@ export default function InfiniteText() {
                     </p>
                 </div>
             </div>
-    </Marquee>
-  );
+        </Marquee>
+    );
 }
