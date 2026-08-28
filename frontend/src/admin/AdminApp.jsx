@@ -1653,17 +1653,7 @@ export default function AdminApp() {
                                 </td>
                                 <td>{refund.refundedAt ? new Date(refund.refundedAt).toLocaleDateString() : 'N/A'}</td>
                                 <td className="text-end">
-                                  {refund.status === 'Refunded' ? (
-                                    <span className="text-success fw-semibold small me-3">Refund Completed</span>
-                                  ) : refund.status === 'Failed' ? (
-                                    <button className="btn btn-sm btn-warning me-2" onClick={() => handleMakeRefund(refund)}>
-                                      Retry Refund
-                                    </button>
-                                  ) : (
-                                    <button className="btn btn-sm btn-primary me-2" onClick={() => handleMakeRefund(refund)}>
-                                      Make Refund
-                                    </button>
-                                  )}
+
                                   <button
                                     className="btn btn-sm btn-outline-secondary"
                                     onClick={() => {
@@ -2356,48 +2346,6 @@ export default function AdminApp() {
                     ></textarea>
 
                     <div className="d-flex gap-2">
-                      <button className="btn btn-sm btn-success flex-fill" onClick={async () => {
-                        if (orderAmount < 50) {
-                          alert("Refund cannot be processed because the order amount is less than the refund charge.");
-                          return;
-                        }
-                        try {
-                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'Approved', adminNotes: cancelReason })
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            alert("Refund approved successfully!");
-                            setModalType("");
-                            fetchTabContent("refunds");
-                          } else {
-                            alert(data.message || "Error approving refund.");
-                          }
-                        } catch (err) {
-                          alert("Error approving refund.");
-                        }
-                      }}>Approve</button>
-                      
-                      <button className="btn btn-sm btn-danger flex-fill" onClick={async () => {
-                        try {
-                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'Rejected', adminNotes: cancelReason })
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            alert("Refund rejected.");
-                            setModalType("");
-                            fetchTabContent("refunds");
-                          }
-                        } catch (err) {
-                          alert("Error rejecting refund.");
-                        }
-                      }}>Reject</button>
-
                       <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
                         if (orderAmount < 50) {
                           alert("Refund cannot be processed because the order amount is less than the refund charge.");
