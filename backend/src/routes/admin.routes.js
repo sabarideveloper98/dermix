@@ -18,7 +18,8 @@ import {
   getRefundDetails,
   updateRefundStatus,
   getRefundSettings,
-  updateRefundSettings
+  updateRefundSettings,
+  processRazorpayRefund
 } from '../controllers/refund.controller.js';
 import { protect, admin } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/upload.middleware.js';
@@ -51,6 +52,7 @@ router.delete('/instagram-videos/:id', protect, admin, deleteInstagramVideo);
 router.get('/refunds', protect, admin, getAdminRefunds);
 router.get('/refunds/:id', protect, admin, getRefundDetails);
 router.put('/refunds/:id/status', protect, admin, updateRefundStatus);
+router.post('/refunds/:orderId/process', protect, admin, processRazorpayRefund);
 router.get('/refund-settings', protect, admin, getRefundSettings);
 router.put('/refund-settings', protect, admin, updateRefundSettings);
 

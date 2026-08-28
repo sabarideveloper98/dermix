@@ -240,6 +240,20 @@ export default function Orders() {
                     <span className="text-body-s text-muted font-bold">Total Paid</span>
                     <span className="text-body-m fw-bold text-primary">₹{selectedOrder.totalPrice.toFixed(2)}</span>
                   </div>
+
+                  {selectedOrder.refundStatus && selectedOrder.refundStatus !== 'None' && (
+                    <div className="mt-16 pt-16 border-top border-light-2" style={{ fontSize: "13px", color: "#333" }}>
+                      <span className="text-body-xs text-muted block mb-8 fw-semibold">Refund Details</span>
+                      <p className="mb-4"><strong>Refund Status:</strong> <span className="text-info fw-bold">{selectedOrder.refundStatus}</span></p>
+                      {selectedOrder.refundStatus === 'Refunded' && (
+                        <>
+                          <p className="mb-4"><strong>Refund Amount Received:</strong> ₹{(selectedOrder.refundAmount || 0).toFixed(2)}</p>
+                          <p className="mb-4"><strong>Refund Charge Deducted:</strong> ₹{(selectedOrder.refundCharge || 0).toFixed(2)}</p>
+                          <p className="mb-0"><strong>Refund Date:</strong> {selectedOrder.refundDate ? new Date(selectedOrder.refundDate).toLocaleDateString() : 'N/A'}</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="card p-4 border border-light text-center py-5" style={{ borderRadius: "12px", backgroundColor: "#fcfcfc", borderStyle: "dashed" }}>

@@ -70,6 +70,17 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    refundCharge: {
+      type: Number,
+      default: 0,
+    },
+    refundDate: {
+      type: Date,
+    },
+    refundId: {
+      type: String,
+      default: '',
+    },
     shiprocketOrderId: {
       type: String,
       default: '',

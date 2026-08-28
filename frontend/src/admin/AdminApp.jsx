@@ -1,6 +1,22 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import {
+  FiGrid,
+  FiBox,
+  FiLayers,
+  FiShoppingBag,
+  FiRotateCcw,
+  FiSettings,
+  FiSliders,
+  FiUsers,
+  FiImage,
+  FiVideo,
+  FiLogOut,
+  FiChevronRight,
+  FiHome
+} from "react-icons/fi";
 import { API_BASE as API_BASE_CONFIG } from "../config";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
@@ -63,6 +79,7 @@ export default function AdminApp() {
   // Auth local state for login
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -253,6 +270,40 @@ export default function AdminApp() {
       }
     } catch (err) {
       alert("Error processing refund");
+    }
+  };
+
+  const handleMakeRefund = async (refund) => {
+    const orderAmount = refund.orderId?.totalPrice || 0;
+    const refundCharge = 50;
+    const refundAmount = Math.max(0, orderAmount - refundCharge);
+
+    if (orderAmount < 50) {
+      alert("Refund cannot be processed because the order amount is less than the refund charge.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to refund this order?\n\nOrder Amount: ₹${orderAmount.toFixed(2)}\nRefund Charge: ₹${refundCharge.toFixed(2)}\nRefund Amount: ₹${refundAmount.toFixed(2)}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await authFetch(`${API_BASE}/admin/refunds/${refund.orderId?._id}/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("Refund processed successfully!");
+        fetchTabContent("refunds");
+      } else {
+        alert(data.message || "Failed to process refund.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error processing refund.");
     }
   };
 
@@ -638,15 +689,25 @@ export default function AdminApp() {
             </div>
             <div className="mb-4">
               <label className="text-light small block mb-8 opacity-75">Password</label>
-              <input
-                type="password"
-                className="form-control bg-dark border-secondary text-white py-12"
-                style={{ borderRadius: "8px" }}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="position-relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-control bg-dark border-secondary text-white py-12 pe-5"
+                  style={{ borderRadius: "8px" }}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="position-absolute top-50 translate-middle-y end-0 pe-3 bg-transparent border-0 text-secondary"
+                  style={{ zIndex: 10, cursor: 'pointer', outline: 'none' }}
+                >
+                  {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"
@@ -833,62 +894,62 @@ export default function AdminApp() {
             <span className="text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>- MAIN</span>
           </div>
           <button className={`nav-item-btn ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => setActiveTab("dashboard")}>
-            <i className="icon icon-Menu fs-18"></i> Dashboard
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiGrid size={18} /> Dashboard
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "products" ? "active" : ""}`} onClick={() => setActiveTab("products")}>
-            <i className="icon icon-Box fs-18"></i> Product
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiBox size={18} /> Product
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>
-            <i className="icon icon-List fs-18"></i> Categories
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiLayers size={18} /> Categories
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
 
           <div className="px-4 mb-2 mt-4">
             <span className="text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>- APPS</span>
           </div>
           <button className={`nav-item-btn ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
-            <i className="icon icon-ShoppingBag fs-18"></i> Orders
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiShoppingBag size={18} /> Orders
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
 
           <div className="mt-4 mb-2 ps-3 text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>
             Refund Management
           </div>
           <button className={`nav-item-btn ${activeTab === "refunds" ? "active" : ""}`} onClick={() => setActiveTab("refunds")}>
-            <i className="icon icon-CreditCard fs-18"></i> Refunds Dashboard
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiRotateCcw size={18} /> Refunds Dashboard
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "refund-settings" ? "active" : ""}`} onClick={() => setActiveTab("refund-settings")}>
-            <i className="icon icon-Settings fs-18"></i> Refund Settings
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiSettings size={18} /> Refund Settings
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "sizes" ? "active" : ""}`} onClick={() => setActiveTab("sizes")}>
-            <i className="icon icon-SlidersHorizontal fs-18"></i> Sizes
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiSliders size={18} /> Sizes
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "customers" ? "active" : ""}`} onClick={() => setActiveTab("customers")}>
-            <i className="icon icon-UserCircle fs-18"></i> Customers
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiUsers size={18} /> Customers
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "banners" ? "active" : ""}`} onClick={() => setActiveTab("banners")}>
-            <i className="icon icon-Image fs-18"></i> Home Banners
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiImage size={18} /> Home Banners
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
           <button className={`nav-item-btn ${activeTab === "videos" ? "active" : ""}`} onClick={() => setActiveTab("videos")}>
-            <i className="icon icon-LogoInstagram fs-18"></i> Videos
-            <i className="icon icon-ChevronRight fs-16 chevron-icon"></i>
+            <FiVideo size={18} /> Videos
+            <FiChevronRight size={16} className="chevron-icon" />
           </button>
         </nav>
 
         {/* Bottom Actions */}
         <div className="p-3 mt-auto border-top" style={{ borderColor: '#f1f5f9' }}>
           <Link to="/" className="btn w-100 text-start mb-2 d-flex align-items-center gap-2" style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '13px', padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: '600' }}>
-            <i className="icon icon-Storefront fs-16"></i> Switch to Store
+            <FiHome size={16} /> Switch to Store
           </Link>
           <button onClick={logout} className="btn w-100 text-start d-flex align-items-center gap-2" style={{ backgroundColor: '#fef2f2', color: '#ef4444', fontSize: '13px', padding: '10px 16px', border: '1px solid #fee2e2', borderRadius: '8px', fontWeight: '600' }}>
-            <i className="icon icon-LogOut fs-16"></i> Sign Out
+            <FiLogOut size={16} /> Sign Out
           </button>
         </div>
       </aside>
@@ -1508,80 +1569,131 @@ export default function AdminApp() {
             )}
 
             {/* Refunds Tab */}
-            {activeTab === "refunds" && (
-              <div>
-                <input
-                  type="text"
-                  className="form-control w-25 mb-3"
-                  placeholder="Search refund ID or order number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            {activeTab === "refunds" && (() => {
+              const approvedRefunds = refunds.filter(r => r.status === 'Approved' || r.status === 'Refunded');
+              const totalRefundChargesCollected = approvedRefunds.length * 50;
+              const totalRefundAmountPaid = approvedRefunds.reduce((sum, r) => {
+                const orderAmount = r.orderId?.totalPrice || 0;
+                const calculatedRefund = Math.max(0, orderAmount - 50);
+                return sum + calculatedRefund;
+              }, 0);
 
-                <div className="table-responsive">
-                  <table className="table table-premium mb-0">
-                    <thead>
-                      <tr>
-                        <th>Refund ID</th>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Order Amount</th>
-                        <th>Refund Amount</th>
-                        <th>Balance Amount</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th className="text-end">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {refunds
-                        .filter(r => r._id?.toLowerCase().includes(searchQuery.toLowerCase()) || r.orderId?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .slice((refundsPage - 1) * ITEMS_PER_PAGE, refundsPage * ITEMS_PER_PAGE)
-                        .map((refund) => (
-                          <tr key={refund._id} className="align-middle">
-                            <td>{refund._id.substring(0,8)}...</td>
-                            <td>{refund.orderId?.orderNumber}</td>
-                            <td>{refund.customerId?.name}</td>
-                            <td className="fw-bold">₹{refund.orderId?.totalPrice?.toFixed(2) || '0.00'}</td>
-                            <td className="text-primary fw-bold">{refund.refundAmount !== undefined ? `₹${refund.refundAmount.toFixed(2)}` : 'TBD'}</td>
-                            <td className="text-secondary fw-bold">₹{((refund.orderId?.totalPrice || 0) - (refund.refundAmount || 0)).toFixed(2)}</td>
-                            <td>{refund.reason}</td>
-                            <td>
-                              <span className={`badge bg-${refund.status === 'Approved' || refund.status === 'Refunded' ? 'success' : refund.status === 'Rejected' ? 'danger' : 'warning'}`}>
-                                {refund.status}
-                              </span>
-                            </td>
-                            <td>{new Date(refund.requestedAt).toLocaleDateString()}</td>
-                            <td className="text-end">
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => {
-                                  setEditingItem(refund);
-                                  setModalType("refund-details");
-                                }}
-                              >
-                                Review
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+              return (
+                <div>
+                  {/* Admin Refund Reports / Summary cards */}
+                  <div className="row g-4 mb-4">
+                    <div className="col-md-3">
+                      <div className="stat-card p-4 rounded bg-white shadow-sm border">
+                        <span className="text-muted small fw-bold block mb-1">TOTAL ORDERS</span>
+                        <h4>{orders?.length || 0}</h4>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="stat-card p-4 rounded bg-white shadow-sm border">
+                        <span className="text-muted small fw-bold block mb-1">TOTAL REFUND REQUESTS</span>
+                        <h4>{refunds.length}</h4>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="stat-card p-4 rounded bg-white shadow-sm border">
+                        <span className="text-muted small fw-bold block mb-1">TOTAL REFUND CHARGES COLLECTED</span>
+                        <h4 className="text-success">₹{totalRefundChargesCollected.toFixed(2)}</h4>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="stat-card p-4 rounded bg-white shadow-sm border">
+                        <span className="text-muted small fw-bold block mb-1">TOTAL REFUND AMOUNT PAID</span>
+                        <h4 className="text-primary">₹{totalRefundAmountPaid.toFixed(2)}</h4>
+                      </div>
+                    </div>
+                  </div>
 
-                {/* Pagination */}
-                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                  <span className="text-muted small">
-                    Showing {Math.min((refundsPage - 1) * ITEMS_PER_PAGE + 1, refunds.length)} to {Math.min(refundsPage * ITEMS_PER_PAGE, refunds.length)} of {refunds.length} entries
-                  </span>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage === 1} onClick={() => setRefundsPage(p => Math.max(1, p - 1))}>Prev</button>
-                    <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage >= Math.ceil(refunds.length / ITEMS_PER_PAGE)} onClick={() => setRefundsPage(p => p + 1)}>Next</button>
+                  <input
+                    type="text"
+                    className="form-control w-25 mb-3"
+                    placeholder="Search refund ID or order number..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+
+                  <div className="table-responsive">
+                    <table className="table table-premium mb-0">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer</th>
+                          <th>Order Amount</th>
+                          <th>Refund Charge</th>
+                          <th>Refund Amount</th>
+                          <th>Refund Status</th>
+                          <th>Refund Date</th>
+                          <th className="text-end">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {refunds
+                          .filter(r => r._id?.toLowerCase().includes(searchQuery.toLowerCase()) || r.orderId?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice((refundsPage - 1) * ITEMS_PER_PAGE, refundsPage * ITEMS_PER_PAGE)
+                          .map((refund) => {
+                            const orderAmount = refund.orderId?.totalPrice || 0;
+                            const refundCharge = 50;
+                            const refundAmount = Math.max(0, orderAmount - refundCharge);
+
+                            return (
+                              <tr key={refund._id} className="align-middle">
+                                <td>{refund.orderId?.orderNumber || 'N/A'}</td>
+                                <td>{refund.customerId?.name || 'N/A'}</td>
+                                <td className="fw-bold">₹{orderAmount.toFixed(2)}</td>
+                                <td className="text-secondary fw-semibold">₹{refundCharge.toFixed(2)}</td>
+                                <td className="text-primary fw-bold">₹{refundAmount.toFixed(2)}</td>
+                                <td>
+                                  <span className={`badge bg-${refund.status === 'Approved' || refund.status === 'Refunded' ? 'success' : refund.status === 'Rejected' ? 'danger' : 'warning'}`}>
+                                    {refund.status}
+                                  </span>
+                                </td>
+                                <td>{refund.refundedAt ? new Date(refund.refundedAt).toLocaleDateString() : 'N/A'}</td>
+                                <td className="text-end">
+                                  {refund.status === 'Refunded' ? (
+                                    <span className="text-success fw-semibold small me-3">Refund Completed</span>
+                                  ) : refund.status === 'Failed' ? (
+                                    <button className="btn btn-sm btn-warning me-2" onClick={() => handleMakeRefund(refund)}>
+                                      Retry Refund
+                                    </button>
+                                  ) : (
+                                    <button className="btn btn-sm btn-primary me-2" onClick={() => handleMakeRefund(refund)}>
+                                      Make Refund
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => {
+                                      setEditingItem(refund);
+                                      setModalType("refund-details");
+                                    }}
+                                  >
+                                    Review
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                    <span className="text-muted small">
+                      Showing {Math.min((refundsPage - 1) * ITEMS_PER_PAGE + 1, refunds.length)} to {Math.min(refundsPage * ITEMS_PER_PAGE, refunds.length)} of {refunds.length} entries
+                    </span>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage === 1} onClick={() => setRefundsPage(p => Math.max(1, p - 1))}>Prev</button>
+                      <button className="btn btn-sm btn-outline-secondary px-3" disabled={refundsPage >= Math.ceil(refunds.length / ITEMS_PER_PAGE)} onClick={() => setRefundsPage(p => p + 1)}>Next</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Refund Settings Tab */}
             {activeTab === "refund-settings" && (
@@ -1927,12 +2039,12 @@ export default function AdminApp() {
                   <div className="col-12 col-md-6 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Shipping</label>
                     <div className="form-check form-switch mt-1">
-                      <input 
-                        className="form-check-input" 
-                        type="checkbox" 
-                        id="shippingPaidSwitch" 
-                        checked={isShippingPaid} 
-                        onChange={(e) => setIsShippingPaid(e.target.checked)} 
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="shippingPaidSwitch"
+                        checked={isShippingPaid}
+                        onChange={(e) => setIsShippingPaid(e.target.checked)}
                       />
                       <label className="form-check-label" htmlFor="shippingPaidSwitch">
                         {isShippingPaid ? "Paid Shipping" : "Free Shipping"}
@@ -2183,120 +2295,144 @@ export default function AdminApp() {
             )}
 
             {/* Refund Details Modal */}
-            {modalType === "refund-details" && editingItem && (
-              <div>
-                <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
-                  <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
-                  <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
-                  <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
-                  <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
-                  <p className="mb-1 text-body-s"><strong>Exact Order Amount:</strong> ₹{editingItem.orderId?.totalPrice?.toFixed(2) || '0.00'}</p>
-                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Applied Refund Amount:</strong> ₹{editingItem.refundAmount.toFixed(2)}</p>}
-                  {editingItem.refundAmount !== undefined && <p className="mb-1 text-body-s"><strong>Balance Amount:</strong> ₹{((editingItem.orderId?.totalPrice || 0) - (editingItem.refundAmount || 0)).toFixed(2)}</p>}
-                </div>
+            {modalType === "refund-details" && editingItem && (() => {
+              const orderAmount = editingItem.orderId?.totalPrice || 0;
+              const refundCharge = 50;
+              const refundAmount = Math.max(0, orderAmount - refundCharge);
 
-                <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Product & Reason</h6>
-                  <div className="d-flex align-items-center gap-3 mb-2 p-2 bg-light rounded">
-                    {editingItem.productId?.images?.[0] && <img src={editingItem.productId.images[0]} alt="product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />}
-                    <div>
-                      <p className="mb-0 fw-semibold text-body-s">{editingItem.productId?.name}</p>
-                    </div>
+              return (
+                <div>
+                  <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
+                    <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
+                    <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
+                    <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
+                    <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
+                    <p className="mb-1 text-body-s"><strong>Original Order Amount:</strong> ₹{orderAmount.toFixed(2)}</p>
+                    <p className="mb-1 text-body-s"><strong>Refund Processing Charge:</strong> ₹{refundCharge.toFixed(2)}</p>
+                    <p className="mb-1 text-body-s"><strong>Refund Amount Sent To Customer:</strong> ₹{refundAmount.toFixed(2)}</p>
+                    {editingItem.status === 'Refunded' && (
+                      <>
+                        <p className="mb-1 text-body-s"><strong>Refund Date:</strong> {editingItem.refundedAt ? new Date(editingItem.refundedAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
+                        <p className="mb-1 text-body-s"><strong>Razorpay Refund ID:</strong> {editingItem.refundId || editingItem.orderId?.refundId || 'N/A'}</p>
+                      </>
+                    )}
                   </div>
-                  <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
-                  <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
-                  
-                  {editingItem.images?.length > 0 && (
-                    <div className="mt-2">
-                      <strong className="text-body-s">Customer Uploaded Images:</strong>
-                      <div className="d-flex flex-wrap gap-2 mt-2">
-                        {editingItem.images.map((img, idx) => (
-                          <a href={img} target="_blank" rel="noreferrer" key={idx}>
-                            <img src={img} alt="Refund Evidence" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
-                          </a>
-                        ))}
+
+                  <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Product & Reason</h6>
+                    <div className="d-flex align-items-center gap-3 mb-2 p-2 bg-light rounded">
+                      {editingItem.productId?.images?.[0] && <img src={editingItem.productId.images[0]} alt="product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />}
+                      <div>
+                        <p className="mb-0 fw-semibold text-body-s">{editingItem.productId?.name}</p>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                <div className="mb-4 pt-2" style={{ color: "#0f172a" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Admin Actions</h6>
-                  <label className="form-label small fw-bold">Admin Notes (Optional)</label>
-                  <textarea
-                    className="form-control form-control-sm mb-3"
-                    rows="2"
-                    placeholder="Enter notes for this decision..."
-                    value={cancelReason} // reusing state for notes
-                    onChange={e => setCancelReason(e.target.value)}
-                  ></textarea>
-
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-sm btn-success flex-fill" onClick={async () => {
-                      try {
-                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ status: 'Approved', adminNotes: cancelReason })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert("Refund approved successfully!");
-                          setModalType("");
-                          fetchTabContent("refunds");
-                        }
-                      } catch (err) {
-                        alert("Error approving refund.");
-                      }
-                    }}>Approve</button>
+                    <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
+                    <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
                     
-                    <button className="btn btn-sm btn-danger flex-fill" onClick={async () => {
-                      try {
-                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ status: 'Rejected', adminNotes: cancelReason })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert("Refund rejected.");
-                          setModalType("");
-                          fetchTabContent("refunds");
-                        }
-                      } catch (err) {
-                        alert("Error rejecting refund.");
-                      }
-                    }}>Reject</button>
-
-                    <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
-                      try {
-                        const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ status: 'Refunded', adminNotes: cancelReason })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert("Marked as refunded!");
-                          setModalType("");
-                          fetchTabContent("refunds");
-                        }
-                      } catch (err) {
-                        alert("Error updating status.");
-                      }
-                    }}>Mark Refunded</button>
+                    {editingItem.images?.length > 0 && (
+                      <div className="mt-2">
+                        <strong className="text-body-s">Customer Uploaded Images:</strong>
+                        <div className="d-flex flex-wrap gap-2 mt-2">
+                          {editingItem.images.map((img, idx) => (
+                            <a href={img} target="_blank" rel="noreferrer" key={idx}>
+                              <img src={img} alt="Refund Evidence" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                <button className="btn btn-secondary w-100 py-10" onClick={() => {
-                  setModalType("");
-                  setCancelReason("");
-                }}>
-                  Close Overview
-                </button>
-              </div>
-            )}
+                  <div className="mb-4 pt-2" style={{ color: "#0f172a" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Admin Actions</h6>
+                    <label className="form-label small fw-bold">Admin Notes (Optional)</label>
+                    <textarea
+                      className="form-control form-control-sm mb-3"
+                      rows="2"
+                      placeholder="Enter notes for this decision..."
+                      value={cancelReason} // reusing state for notes
+                      onChange={e => setCancelReason(e.target.value)}
+                    ></textarea>
+
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-success flex-fill" onClick={async () => {
+                        if (orderAmount < 50) {
+                          alert("Refund cannot be processed because the order amount is less than the refund charge.");
+                          return;
+                        }
+                        try {
+                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'Approved', adminNotes: cancelReason })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert("Refund approved successfully!");
+                            setModalType("");
+                            fetchTabContent("refunds");
+                          } else {
+                            alert(data.message || "Error approving refund.");
+                          }
+                        } catch (err) {
+                          alert("Error approving refund.");
+                        }
+                      }}>Approve</button>
+                      
+                      <button className="btn btn-sm btn-danger flex-fill" onClick={async () => {
+                        try {
+                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'Rejected', adminNotes: cancelReason })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert("Refund rejected.");
+                            setModalType("");
+                            fetchTabContent("refunds");
+                          }
+                        } catch (err) {
+                          alert("Error rejecting refund.");
+                        }
+                      }}>Reject</button>
+
+                      <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
+                        if (orderAmount < 50) {
+                          alert("Refund cannot be processed because the order amount is less than the refund charge.");
+                          return;
+                        }
+                        try {
+                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'Refunded', adminNotes: cancelReason })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert("Marked as refunded!");
+                            setModalType("");
+                            fetchTabContent("refunds");
+                          } else {
+                            alert(data.message || "Error updating status.");
+                          }
+                        } catch (err) {
+                          alert("Error updating status.");
+                        }
+                      }}>Mark Refunded</button>
+                    </div>
+                  </div>
+
+                  <button className="btn btn-secondary w-100 py-10" onClick={() => {
+                    setModalType("");
+                    setCancelReason("");
+                  }}>
+                    Close Overview
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
