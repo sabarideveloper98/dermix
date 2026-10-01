@@ -26,7 +26,7 @@ export default function Home() {
       <MarqueeTop />
       <Philosophy />
       <ProductTabs />
-      <Collection />
+      {/* <Collection /> */}
       <Ingredients />
       <FAQ />
       <Gallery />
