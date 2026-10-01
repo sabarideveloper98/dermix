@@ -108,45 +108,72 @@ export const updateRefundStatus = async (req, res) => {
     const refund = await Refund.findById(id).populate('orderId').populate('productId');
     if (!refund) return res.status(404).json({ success: false, message: 'Refund not found' });
 
-    if (refund.status === 'Refunded' && status !== 'Refunded') {
-      return res.status(400).json({ success: false, message: 'Refund already processed' });
+    const order = await Order.findById(refund.orderId?._id);
+    if (!order) return res.status(404).json({ success: false, message: 'Associated order not found' });
+
+    // Validation Checks
+    if (order.paymentStatus !== 'Paid') {
+      return res.status(400).json({ success: false, message: 'Refunds can only be processed for paid/captured orders.' });
     }
+
+    if (order.refundStatus === 'Refunded' || refund.status === 'Refunded') {
+      return res.status(400).json({ success: false, message: 'Refund has already been processed.' });
+    }
+
+    if (!order.transactionId) {
+      return res.status(400).json({ success: false, message: 'No payment transaction ID found for this order.' });
+    }
+
+    const orderAmount = order.totalPrice || 0;
+    if (orderAmount < 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refund cannot be processed because the order amount is less than the refund charge.'
+      });
+    }
+
+    const refundCharge = 50;
+    const refundAmount = Math.max(0, orderAmount - refundCharge);
 
     refund.status = status;
     if (adminNotes !== undefined) refund.adminNotes = adminNotes;
 
-    if (status === 'Approved') {
-      const orderAmount = refund.orderId?.totalPrice || 0;
-      if (orderAmount < 50) {
-        return res.status(400).json({
-          success: false,
-          message: 'Refund cannot be processed because the order amount is less than the refund charge.'
+    // Trigger Razorpay Refund for Approved / Refunded statuses
+    if (status === 'Approved' || status === 'Refunded') {
+      console.log(`[Razorpay Refund Request] PaymentID: ${order.transactionId}, OrderID: ${order._id}, Amount: ₹${refundAmount}`);
+
+      let razorpayRefund;
+      try {
+        razorpayRefund = await razorpay.payments.refund(order.transactionId, {
+          amount: Math.round(refundAmount * 100),
+          notes: {
+            orderId: order._id.toString(),
+            refundCharge: 50
+          }
         });
+        console.log('[Razorpay Refund Success] Response:', razorpayRefund);
+      } catch (rpErr) {
+        console.error('[Razorpay Refund Error] Response:', rpErr);
+        return res.status(500).json({ success: false, message: 'Razorpay refund failed', error: rpErr.message });
       }
 
-      refund.approvedAt = new Date();
+      // Update Order fields
+      order.refundStatus = "Refunded";
+      order.refundAmount = refundAmount;
+      order.refundCharge = refundCharge;
+      order.refundDate = new Date();
+      order.refundId = razorpayRefund.id;
+      order.razorpayRefundId = razorpayRefund.id;
+      order.refundCreatedAt = razorpayRefund.created_at ? new Date(razorpayRefund.created_at * 1000) : new Date();
+      await order.save();
+
+      // Update Refund fields
+      refund.status = 'Refunded';
+      refund.refundAmount = refundAmount;
       refund.refundChargeType = 'Fixed Amount';
-      refund.refundChargeValue = 50;
-      refund.refundAmount = Math.max(0, orderAmount - 50);
-
-      // Initiate Razorpay Refund if transactionId exists (meaning it was paid via Razorpay)
-      if (refund.orderId.transactionId) {
-        try {
-          const razorpayRefund = await razorpay.payments.refund(refund.orderId.transactionId, {
-            amount: Math.round(refund.refundAmount * 100),
-            notes: {
-              refund_id: refund._id.toString(),
-              order_id: refund.orderId._id.toString()
-            }
-          });
-          refund.status = 'Refunded';
-          refund.refundedAt = new Date();
-        } catch (rpErr) {
-          console.error("Razorpay refund failed:", rpErr);
-          return res.status(500).json({ success: false, message: 'Razorpay refund failed', error: rpErr.message });
-        }
-      }
-    } else if (status === 'Refunded') {
+      refund.refundChargeValue = refundCharge;
+      refund.refundId = razorpayRefund.id;
+      refund.approvedAt = new Date();
       refund.refundedAt = new Date();
     }
 

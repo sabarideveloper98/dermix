@@ -209,6 +209,9 @@ export const verifyPayment = async (req, res) => {
       paymentStatus: 'Paid',
       deliveryStatus: 'Pending',
       transactionId: razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
     });
 
     // 8. Create database Payment record

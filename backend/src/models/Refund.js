@@ -41,6 +41,10 @@ const refundSchema = new mongoose.Schema(
     refundAmount: {
       type: Number, // Final refund amount after deduction
     },
+    refundId: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: ['Requested', 'Under Review', 'Approved', 'Refund Processing', 'Refunded', 'Rejected'],

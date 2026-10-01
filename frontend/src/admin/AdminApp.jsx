@@ -1623,9 +1623,9 @@ export default function AdminApp() {
                           <th>Order ID</th>
                           <th>Customer</th>
                           <th>Order Amount</th>
-                          <th>Refund Charge</th>
                           <th>Refund Amount</th>
                           <th>Refund Status</th>
+                          <th>Razorpay Refund ID</th>
                           <th>Refund Date</th>
                           <th className="text-end">Action</th>
                         </tr>
@@ -1644,16 +1644,15 @@ export default function AdminApp() {
                                 <td>{refund.orderId?.orderNumber || 'N/A'}</td>
                                 <td>{refund.customerId?.name || 'N/A'}</td>
                                 <td className="fw-bold">₹{orderAmount.toFixed(2)}</td>
-                                <td className="text-secondary fw-semibold">₹{refundCharge.toFixed(2)}</td>
                                 <td className="text-primary fw-bold">₹{refundAmount.toFixed(2)}</td>
                                 <td>
                                   <span className={`badge bg-${refund.status === 'Approved' || refund.status === 'Refunded' ? 'success' : refund.status === 'Rejected' ? 'danger' : 'warning'}`}>
                                     {refund.status}
                                   </span>
                                 </td>
+                                <td className="text-secondary fw-semibold">{refund.refundId || refund.orderId?.refundId || 'N/A'}</td>
                                 <td>{refund.refundedAt ? new Date(refund.refundedAt).toLocaleDateString() : 'N/A'}</td>
                                 <td className="text-end">
-
                                   <button
                                     className="btn btn-sm btn-outline-secondary"
                                     onClick={() => {

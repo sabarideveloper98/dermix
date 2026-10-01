@@ -3,7 +3,7 @@ const getApiBase = () => {
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
     return `${window.location.protocol}//${hostname}:5001`;
   }
-  return 'http://localhost:5001';
+  return 'https://api.dermfix.in';
 };
 
 export const API_BASE = getApiBase();
