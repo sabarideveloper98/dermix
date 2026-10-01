@@ -3,6 +3,7 @@ import harish from "../assets/images/team/harish.png";
 import founder3 from "../assets/images/team/harish.png";
 import gokul from "../assets/images/team/gokul.png";
 import antony from "../assets/images/team/antony.png";
+import harishNEw from "../assets/images/team/harish-new.png";
 
 const founders = [
   {
@@ -23,7 +24,7 @@ const founders = [
     name: "HARISH S.",
     role: "Chief Operating Officer | Co-Founder",
     degree: "B.Pharm.",
-    image: harish,
+    image: harishNEw,
     quote: [
       "Behind every DermFix product is a promise I make personally.",
       "I believe no formulation should reach your hands unless I would confidently recommend it to my own family.",
@@ -55,13 +56,13 @@ const founders = [
     ]
   },
 
-  {
-    name: "GOKULBHARATHI D.",
-    role: "Research Director | Co-Founder",
-    degree: "M.Pharm",
-    image: founder3,
-    quote: ["Your content here..."]
-  }
+  // {
+  //   name: "GOKULBHARATHI D.",
+  //   role: "Research Director | Co-Founder",
+  //   degree: "M.Pharm",
+  //   image: founder3,
+  //   quote: ["Your content here..."]
+  // }
 ];
 
 export default function Team() {
