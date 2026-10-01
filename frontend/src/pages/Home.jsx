@@ -29,7 +29,7 @@ export default function Home() {
       {/* <Collection /> */}
       <Ingredients />
       <FAQ />
-      <Gallery />
+      {/* <Gallery /> */}
       <Footer />
       <Search />
       <ShoppingCart />
