@@ -3,7 +3,7 @@ import harish from "../assets/images/team/harish.png";
 import founder3 from "../assets/images/team/harish.png";
 import gokul from "../assets/images/team/gokul.png";
 import antony from "../assets/images/team/antony.png";
-import harishNEw from "../assets/images/team/harish-new.png";
+import harishNEw from "../assets/images/team/harish.png";
 
 const founders = [
   {
@@ -84,9 +84,8 @@ export default function Team() {
           <div className="container">
 
             <div
-              className={`row align-items-center ${
-                index % 2 === 1 ? "flex-row-reverse" : ""
-              }`}
+              className={`row align-items-center ${index % 2 === 1 ? "flex-row-reverse" : ""
+                }`}
             >
 
               <div className="col-lg-5 text-center">
