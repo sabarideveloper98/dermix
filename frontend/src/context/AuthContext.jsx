@@ -3,7 +3,7 @@ import { API_BASE as API_BASE_CONFIG } from '../config';
 
 const AuthContext = createContext();
 
-const API_BASE = `${API_BASE_CONFIG}/api`;
+const API_BASE = `${API_BASE_CONFIG}`;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
