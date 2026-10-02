@@ -17,7 +17,7 @@ export default function TrackOrder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE = `${API_BASE_CONFIG}/api`;
+  const API_BASE = `${API_BASE_CONFIG}`;
 
   useEffect(() => {
     const fetchOrderTracking = async () => {

@@ -20,7 +20,7 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState('orders');
 
-  const API_BASE = `${API_BASE_CONFIG}/api`;
+  const API_BASE = `${API_BASE_CONFIG}`;
 
   useEffect(() => {
     if (!user) {

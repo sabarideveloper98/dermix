@@ -139,7 +139,7 @@ export default function AdminApp() {
   // Product sizes selection
   const [selectedSizes, setSelectedSizes] = useState([]);
 
-  const API_BASE = `${API_BASE_CONFIG}/api`;
+  const API_BASE = `${API_BASE_CONFIG}`;
 
   // Check role & load initial dashboard stats
   useEffect(() => {
