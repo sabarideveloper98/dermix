@@ -33,7 +33,7 @@ export default function CheckoutContent() {
   const [shippingCost, setShippingCost] = useState(0);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
 
-  const API_BASE = `${API_BASE_CONFIG}/api`;
+  const API_BASE = `${API_BASE_CONFIG}`;
 
   // Redirect to login if not authenticated
   useEffect(() => {
