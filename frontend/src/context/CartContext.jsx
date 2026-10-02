@@ -5,7 +5,7 @@ import { API_BASE as API_BASE_CONFIG } from '../config';
 
 const CartContext = createContext();
 
-const API_BASE = `${API_BASE_CONFIG}/api`;
+const API_BASE = `${API_BASE_CONFIG}`;
 
 export const CartProvider = ({ children }) => {
   const { user, authFetch } = useAuth();
