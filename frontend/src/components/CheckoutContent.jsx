@@ -304,7 +304,7 @@ export default function CheckoutContent() {
 
       // 3. Launch Razorpay Gateway Modal
       const options = {
-        key: "rzp_test_TIpu5U4jYaChIu", // Test Key ID
+        key: "rzp_live_TPELRYvwLk3Fr6", // Test Key ID
         amount: rzpOrder.amount,
         currency: rzpOrder.currency,
         name: "Dermix E-Commerce",
