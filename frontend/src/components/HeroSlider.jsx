@@ -18,7 +18,7 @@ export default function HeroSlider() {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/banners`);
+        const res = await fetch(`${API_BASE}/banners`);
         const data = await res.json();
         if (res.ok && data.success && data.banners.length > 0) {
           setBanners(data.banners);

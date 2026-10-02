@@ -33,7 +33,7 @@ export default function ProductTabs() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/products?limit=50`);
+        const res = await fetch(`${API_BASE}/products?limit=50`);
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }

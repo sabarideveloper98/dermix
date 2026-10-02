@@ -8,7 +8,7 @@ export default function Gallery() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/instagram-videos`);
+        const res = await fetch(`${API_BASE}/instagram-videos`);
         const data = await res.json();
         if (res.ok && data.success) {
           setVideos(data.videos);

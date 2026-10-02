@@ -15,7 +15,7 @@ export default function Orders() {
             if (!user) return;
             try {
                 const token = localStorage.getItem('accessToken');
-                const res = await fetch(`${API_BASE}/api/orders`, {
+                const res = await fetch(`${API_BASE}/orders`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();

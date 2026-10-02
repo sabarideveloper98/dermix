@@ -58,7 +58,7 @@ export default function RefundModal({ order, onClose, onSuccess }) {
       });
 
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE}/api/refunds/request`, {
+      const response = await fetch(`${API_BASE}/refunds/request`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -43,7 +43,7 @@ export default function AccountSett() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_BASE}/api/users/profile`, {
+            const res = await fetch(`${API_BASE}/users/profile`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export default function AccountSett() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_BASE}/api/users/password`, {
+            const res = await fetch(`${API_BASE}/users/password`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',

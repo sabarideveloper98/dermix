@@ -16,10 +16,10 @@ export default function Account() {
             try {
                 const token = localStorage.getItem('accessToken');
                 const [ordersRes, addrRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/orders`, {
+                    fetch(`${API_BASE}/orders`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    fetch(`${API_BASE}/api/addresses`, {
+                    fetch(`${API_BASE}/addresses`, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);

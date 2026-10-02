@@ -18,7 +18,7 @@ export default function OrderDetailsCon() {
             if (!orderId) return;
             try {
                 const token = localStorage.getItem('accessToken');
-                const res = await fetch(`${API_BASE}/api/orders/${orderId}`, {
+                const res = await fetch(`${API_BASE}/orders/${orderId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -26,7 +26,7 @@ export default function OrderDetailsCon() {
                     setOrder(data.order);
 
                     setLoadingTracking(true);
-                    const trackRes = await fetch(`${API_BASE}/api/orders/${orderId}/shiprocket-tracking`, {
+                    const trackRes = await fetch(`${API_BASE}/orders/${orderId}/shiprocket-tracking`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     const trackData = await trackRes.json();

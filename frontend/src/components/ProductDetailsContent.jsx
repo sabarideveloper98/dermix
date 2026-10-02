@@ -34,7 +34,7 @@ export default function ProductDetailsContent() {
 
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/products/${productId}`);
+        const res = await fetch(`${API_BASE}/products/${productId}`);
         const data = await res.json();
         if (res.ok && data.success) {
           setProduct(data.product);
