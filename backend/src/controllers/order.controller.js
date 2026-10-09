@@ -36,7 +36,7 @@ export const createOrder = async (req, res) => {
     } else {
       // Guest Checkout flow
       const { name, email, mobile, street1, street2, district, state, pincode, landmark, items } = req.body;
-      
+
       if (!name || !email || !mobile) {
         return res.status(400).json({ success: false, message: 'Customer details (Name, Email, Mobile) are required for checkout' });
       }
@@ -184,7 +184,7 @@ export const createOrder = async (req, res) => {
         billing_phone: currentUser?.mobile || "9999999999",
         shipping_is_billing: true,
         order_items: resolvedItems,
-        payment_method: "COD",
+        payment_method: "Prepaid",  //COD
         sub_total: finalTotalPrice,
         length: 10,
         breadth: 10,
@@ -289,7 +289,7 @@ export const calculateShippingRate = async (req, res) => {
     if (!pincode) return res.status(400).json({ success: false, message: 'Pincode is required' });
 
     let paidShippingWeight = 0;
-    
+
     // Calculate total weight of paid-shipping products
     for (const item of products) {
       const product = await Product.findById(item.productId);

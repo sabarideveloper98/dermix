@@ -2318,7 +2318,7 @@ export default function AdminApp() {
                     </div>
                     <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
                     <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
-                    
+
                     {editingItem.images?.length > 0 && (
                       <div className="mt-2">
                         <strong className="text-body-s">Customer Uploaded Images:</strong>

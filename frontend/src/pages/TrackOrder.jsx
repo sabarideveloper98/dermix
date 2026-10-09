@@ -100,7 +100,7 @@ export default function TrackOrder() {
               <div className="col-12 col-md-6">
                 <div className="card p-4 border border-light" style={{ borderRadius: "12px", backgroundColor: "#fff" }}>
                   <h5 className="font-instrument_serif mb-24 pb-12 border-bottom border-light-2">Shipment Progress</h5>
-                  
+
                   {order.deliveryStatus === "Cancelled" ? (
                     <div className="alert alert-danger mb-0">
                       <strong>Order Cancelled:</strong> This order was cancelled and tracking is inactive.
@@ -108,8 +108,8 @@ export default function TrackOrder() {
                   ) : (
                     <div className="position-relative pl-24">
                       {/* Line connecting stages */}
-                      <div 
-                        className="position-absolute" 
+                      <div
+                        className="position-absolute"
                         style={{
                           left: "8px",
                           top: "20px",
@@ -127,7 +127,7 @@ export default function TrackOrder() {
                         return (
                           <div key={idx} className="d-flex mb-24 position-relative align-items-start" style={{ zIndex: 2 }}>
                             {/* Circle Pin */}
-                            <div 
+                            <div
                               className="d-flex align-items-center justify-content-center rounded-circle mr-16"
                               style={{
                                 width: "18px",
@@ -144,7 +144,7 @@ export default function TrackOrder() {
                             >
                               {isCompleted && "✓"}
                             </div>
-                            
+
                             <div>
                               <p className={`mb-4 text-body-s fw-semibold ${isCompleted ? 'text-dark' : 'text-muted'}`}>
                                 {stage.name}

@@ -213,7 +213,7 @@ export const CartProvider = ({ children }) => {
         updateCartItem,
         removeFromCart,
         clearCart,
-        refreshCart: user ? fetchDatabaseCart : () => {},
+        refreshCart: user ? fetchDatabaseCart : () => { },
       }}
     >
       {children}

@@ -152,7 +152,7 @@ export default function OrderDetailsCon() {
                                                 <li className="prd-item" key={idx}>
                                                     <div className="prd_image">
                                                         <img loading="lazy" width="74" height="88"
-                                                            src={item.productId?.images?.[0] || "/assets/images/product/product-13.jpg"} alt={item.productId?.name || "Image"}/>
+                                                            src={item.productId?.images?.[0] || "/assets/images/product/product-13.jpg"} alt={item.productId?.name || "Image"} />
                                                     </div>
                                                     <div className="prd_infor">
                                                         <div className="infor-wr">
@@ -214,9 +214,9 @@ export default function OrderDetailsCon() {
                                     <div className="">
                                         <p className="fw-normal mb-8">{order.addressId?.firstName} {order.addressId?.lastName}</p>
                                         <p className="text-body-s cl-text-5">
-                                            {order.addressId?.phone} <br/>
-                                            {order.addressId?.address} {order.addressId?.apartment ? `, ${order.addressId.apartment}` : ""} <br/>
-                                            {order.addressId?.city}, {order.addressId?.state} {order.addressId?.zipCode} <br/>
+                                            {order.addressId?.phone} <br />
+                                            {order.addressId?.address} {order.addressId?.apartment ? `, ${order.addressId.apartment}` : ""} <br />
+                                            {order.addressId?.city}, {order.addressId?.state} {order.addressId?.zipCode} <br />
                                             {order.addressId?.country}
                                         </p>
                                     </div>
@@ -225,9 +225,9 @@ export default function OrderDetailsCon() {
                                     <Link to="/contact" className="tf-btn type-2 style-2 w-100">
                                         Contact support
                                     </Link>
-                                    <button 
-                                        type="button" 
-                                        className="tf-btn-line bg-transparent border-0 p-0" 
+                                    <button
+                                        type="button"
+                                        className="tf-btn-line bg-transparent border-0 p-0"
                                         onClick={() => setShowRefundModal(true)}
                                     >
                                         <span className="fw-normal text-uppercase">
@@ -242,13 +242,13 @@ export default function OrderDetailsCon() {
             </div>
 
             {showRefundModal && (
-                <RefundModal 
-                    order={order} 
-                    onClose={() => setShowRefundModal(false)} 
+                <RefundModal
+                    order={order}
+                    onClose={() => setShowRefundModal(false)}
                     onSuccess={(msg) => {
                         toast.success(msg);
                         setShowRefundModal(false);
-                    }} 
+                    }}
                 />
             )}
         </>

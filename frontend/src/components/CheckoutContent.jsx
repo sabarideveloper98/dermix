@@ -59,7 +59,7 @@ export default function CheckoutContent() {
         setShippingCost(0);
         return;
       }
-      
+
       setCalculatingShipping(true);
       try {
         const response = await fetch(`${API_BASE}/orders/shiprocket/shipping-rate`, {
@@ -178,7 +178,7 @@ export default function CheckoutContent() {
   const handleDeleteAddress = async (e, addressId) => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this address?")) return;
-    
+
     try {
       const res = await authFetch(`${API_BASE}/addresses/${addressId}`, {
         method: "DELETE",
@@ -252,10 +252,10 @@ export default function CheckoutContent() {
     try {
       let payload = {};
       if (user) {
-        payload = { 
+        payload = {
           addressId: selectedAddressId,
           amount: cart.totalAmount + shippingCost,
-          items: cart.items 
+          items: cart.items
         };
       } else {
         payload = {

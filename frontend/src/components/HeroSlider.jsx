@@ -57,11 +57,11 @@ export default function HeroSlider() {
           <SwiperSlide key={slide._id}>
             <div className="slideshow-v02">
               <div className="sld-image">
-                <img 
-                  className="scale-item scale-item-1" 
-                  loading="lazy"  
-                  src={slide.image || slider101} 
-                  alt={slide.title} 
+                <img
+                  className="scale-item scale-item-1"
+                  loading="lazy"
+                  src={slide.image || slider101}
+                  alt={slide.title}
                 />
               </div>
 
@@ -85,7 +85,7 @@ export default function HeroSlider() {
                         <h4 className="slide_sub_head">crafted by <span className="laven_high">clinical minds</span></h4>
 
                         <p className="sld__desc fw-light text-body-l cl-text-5 fade-item fade-item-3 mt-4 slide_para">
-                          Advanced preventive skincare to <span className="laven_high">repair, recovery</span> and <span className="laven_high">protect</span> your skin every day. 
+                          Advanced preventive skincare to <span className="laven_high">repair, recovery</span> and <span className="laven_high">protect</span> your skin every day.
                         </p>
 
                         <div className="d-flex slide_feature gap-3">

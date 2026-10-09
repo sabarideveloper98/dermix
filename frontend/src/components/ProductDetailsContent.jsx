@@ -221,13 +221,13 @@ export default function ProductDetailsContent() {
 
                   <div className="tf-product-progress-sale">
                     <p className="title text-body-s fw-normal mb-8">
-                      {product.qty <= 0 
-                        ? "Currently Out of Stock." 
+                      {product.qty <= 0
+                        ? "Currently Out of Stock."
                         : `Hurry up, only ${product.qty} items left in stock.`}
                     </p>
                     <div className="progress-cart">
-                      <div 
-                        className="value" 
+                      <div
+                        className="value"
                         style={{ width: `${product.qty > 0 ? Math.min(100, (product.qty / 50) * 100) : 0}%` }}
                       ></div>
                     </div>

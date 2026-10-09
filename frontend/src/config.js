@@ -12,6 +12,7 @@ const getApiBase = () => {
   const hostname = window.location.hostname;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+<<<<<<< Updated upstream
     return 'http://localhost:5001/api';
   }
 
@@ -22,3 +23,12 @@ export const API_BASE = getApiBase();
 export const API_BASE_URL = API_BASE;
 
 export default API_BASE;
+=======
+    return `${window.location.protocol}//${hostname}:5001`;
+  }
+  return 'https://api.dermfix.in';
+};
+
+export const API_BASE = getApiBase();
+export default API_BASE;
+>>>>>>> Stashed changes
