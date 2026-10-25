@@ -9,6 +9,7 @@ import "swiper/css/free-mode";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import InfiniteText from "./InfiniteText";
+import ProductInfo from "./ProductInfo";
 
 import { API_BASE } from "../config";
 
@@ -172,7 +173,8 @@ export default function ProductDetailsContent() {
               <div className="tf-product-info-wrap position-relative mt-md-0" id="tfProductInfoWrap">
                 <div className="tf-zoom-main sticky-top"></div>
                 <div className="tf-product-info-list other-image-zoom">
-                  <div className="tf-product-info-heading">
+                  <div className="tf-product-info-heading" style={{gap:15}}> 
+                    
                     <ul className="product-infor-badge d-flex">
                       {product.qty <= 0 ? (
                         <li className="product-badge_item text-body-s" style={{ backgroundColor: '#ff4d4f', color: '#fff' }}>Out of Stock</li>
@@ -180,6 +182,9 @@ export default function ProductDetailsContent() {
                         discount > 0 && <li className="product-badge_item text-body-s new">Sale</li>
                       )}
                     </ul>
+                    <h3 className="product-infor-name font-instrument_serif" style={{fontSize:28,fontWeight:800}}>
+                      {product.name}
+                    </h3>
                     <div className="product-infor-meta meta_rate">
                       <div className="star-wrap">
                         <i className="icon icon-Star-Sharp"></i>
@@ -190,9 +195,7 @@ export default function ProductDetailsContent() {
                       </div>
                       <span className="text-body-s cl-text-5">4.9/5 (120 reviews)</span>
                     </div>
-                    <h5 className="product-infor-name font-instrument_serif fw-normal">
-                      {product.name}
-                    </h5>
+                    
                     {product.benefit && (
                       <ul className="product-infor-list-tag">
                         <li>
@@ -300,6 +303,9 @@ export default function ProductDetailsContent() {
           </div>
         </div>
       </section>
+
+      <ProductInfo />
+
       <InfiniteText />
     </>
   );

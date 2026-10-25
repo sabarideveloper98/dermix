@@ -1,0 +1,226 @@
+.infinite-marquee {
+    width: 100%;
+    overflow: hidden;
+    background: #fff;
+    
+  }
+  
+  .infinite-marquee .rfm-marquee-container {
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .infiniteSlide {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: max-content;
+    white-space: nowrap;
+  }
+  
+  .infiniteSlide-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0 35px;
+  }
+  
+  .marquee-text {
+    margin: 0;
+    padding: 0;
+    font-size: clamp(42px, 5vw, 80px);
+    line-height: 1.15;
+    white-space: nowrap;
+    font-weight: 400;
+  }
+  
+  .stroke-text_black {
+    color: transparent;
+    -webkit-text-stroke: 1px #000;
+  }
+  
+  .br-dot {
+    display: block;
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #000;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* product info css */
+
+  .product-info {
+    width: 100%;
+    background: #fff;
+    color: #000;
+    padding: 35px 20px 60px;
+    box-sizing: border-box;
+  }
+  
+  /* Accordion */
+  
+  .product-accordion {
+    width: min(100%, 740px);
+    margin: 0 auto;
+  }
+  
+  .accordion-item {
+    border-bottom: 1px solid transparent;
+  }
+  
+  .accordion-item.is-open {
+    border: 1px solid #777;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
+    margin-bottom: 2px;
+  }
+  
+  .accordion-trigger {
+    width: 100%;
+    min-height: 59px;
+    padding: 16px 20px 16px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    border: none;
+    background: transparent;
+    color: #111;
+    text-align: left;
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .accordion-icon {
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
+  }
+  
+  .accordion-content {
+    padding: 0 20px 18px 4px;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  
+  .accordion-content p {
+    margin: 0;
+  }
+  
+  /* Tabs section */
+  
+  .product-tabs-section {
+    max-width: 900px;
+    margin: 115px auto 0;
+    text-align: center;
+  }
+  
+  .product-eyebrow {
+    margin: 0 0 8px;
+    color: #ffa900;
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+  
+  .product-tabs-heading {
+    margin: 0 0 18px;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.15;
+    font-weight: 800;
+  }
+  
+  /* Rounded tab navigation */
+  
+  .product-tabs {
+    width: min(100%, 485px);
+    margin: 0 auto;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #333;
+    border-radius: 40px;
+    box-sizing: border-box;
+  }
+  
+  .product-tab {
+    flex: 1;
+    min-width: 0;
+    min-height: 39px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 30px;
+    background: transparent;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  
+  .product-tab.active {
+    background: #ffad00;
+    color: #fff;
+  }
+  
+  .product-tab-content {
+    max-width: 700px;
+    min-height: 100px;
+    margin: 35px auto 0;
+    text-align: center;
+    line-height: 1.7;
+  }
+  
+  .ingredient-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  
+  .ingredient-list div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  
+  .ingredient-list strong {
+    color: #c97900;
+    font-size: 38px;
+  }
+  
+  .ingredient-list span {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  /* Mobile responsive */
+  
+  @media (max-width: 480px) {
+    .product-info {
+      padding: 25px 16px 40px;
+    }
+  
+    .product-tabs-section {
+      margin-top: 75px;
+    }
+  
+    .product-tabs-heading {
+      font-size: 27px;
+    }
+  
+    .product-tabs {
+      width: 100%;
+    }
+  
+    .product-tab {
+      padding: 10px 4px;
+      font-size: 12px;
+    }
+  
+    .accordion-trigger {
+      font-size: 15px;
+    }
+  }

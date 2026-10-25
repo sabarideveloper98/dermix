@@ -19,6 +19,7 @@ import paymentRoutes from './routes/payment.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import sizeRoutes from './routes/size.routes.js';
 import refundRoutes from './routes/refund.routes.js';
+import shiprocketCatalogRoutes from "./routes/shiprocketCatalog.routes.js";
 
 // Controller imports for root public routes
 import { getBanners, getInstagramVideos } from './controllers/admin.controller.js';
@@ -27,6 +28,9 @@ import { protect, protectOptional } from './middlewares/auth.middleware.js';
 import { validateRequest } from './middlewares/validation.middleware.js';
 import { createOrder, trackOrder } from './controllers/order.controller.js';
 import { createRazorpayOrder, verifyPayment } from './controllers/payment.controller.js';
+
+
+
 
 const app = express();
 
@@ -93,6 +97,21 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/refunds', refundRoutes);
+app.use('/api/shiprocket/catalog', shiprocketCatalogRoutes);
+
+app.get("/api/shiprocket/test", (req, res) => {
+  console.log("SHIPROCKET TEST ROUTE HIT");
+
+  res.status(200).json({
+    success: true,
+    message: "Shiprocket test route is working",
+  });
+});
+// Base route health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Dermix API is healthy and running' });
+});
+
 
 // Compatibility fallback endpoints matching requested API spec
 app.post(
@@ -120,10 +139,8 @@ app.post(
 );
 app.get('/api/orders/track/:id', trackOrder);
 
-// Base route health check
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Dermix API is healthy and running' });
-});
+
+
 
 // 404 Route handler
 app.use('*', (req, res) => {
