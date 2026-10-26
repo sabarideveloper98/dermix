@@ -10,6 +10,8 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import InfiniteText from "./InfiniteText";
 import ProductInfo from "./ProductInfo";
+import ProductDetailsTabs from "./ProductDetailsTabs";
+
 
 import { API_BASE } from "../config";
 
@@ -304,9 +306,13 @@ export default function ProductDetailsContent() {
         </div>
       </section>
 
+      <ProductDetailsTabs />
+
       <ProductInfo />
 
       <InfiniteText />
+
+     
     </>
   );
 }

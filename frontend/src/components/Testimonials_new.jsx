@@ -1,7 +1,7 @@
 
 export default function Testimonials_new() {
     return(
-       
+        
 <div className="section-testimonial-2 flat-spacing">
             <div className="container">
                 <div className="sect-heading-v2 wow fadeInUp">

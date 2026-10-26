@@ -18,51 +18,8 @@ export default function ProductInfo() {
 
   return (
     <Box sx={{ width: "100%", bgcolor: "#fff", color: "#000", py: 4 }}>
-      {/* Accordion */}
-      <Box sx={{ maxWidth: 740, mx: "auto" }}>
-        {[
-          {
-            id: "ingredients",
-            title: "Why dermfix",
-            content: "Discover the ingredients and their benefits.",
-          },
-          {
-            id: "description",
-            title: "Ingretiends",
-            content: "Learn more about this skincare product.",
-          },
-        ].map((item) => (
-          <Accordion
-            key={item.id}
-            expanded={expanded === item.id}
-            onChange={(_, isExpanded) =>
-              setExpanded(isExpanded ? item.id : false)
-            }
-            disableGutters
-            elevation={0}
-            sx={{
-              borderBottom: "1px solid #919191",
-              borderRadius: 0,
-              "&:before": { display: "none" },
-              "&.Mui-expanded": { borderColor: "#777" },
-            }}
-          >
-            <AccordionSummary
-              expandIcon={
-                expanded === item.id ? <RemoveIcon /> : <AddIcon />
-              }
-              sx={{ px: 0.5, minHeight: 58 }}
-            >
-              <Typography style={{fontWeight:600}}>{item.title}</Typography>
-            </AccordionSummary>
-
-            <AccordionDetails>
-              {item.content}
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </Box>
-
+     
+     
       {/* Heading */}
       <Box sx={{ textAlign: "center", mt: 12, mb: 3 }}>
         <Typography sx={{ color: "#9800e4", fontSize: 14 , fontFamily: "cursive",fontWeight:500 }}>
