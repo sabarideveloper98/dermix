@@ -14,5 +14,8 @@ router.get(
   "/collections/:collectionId/products",
   fetchShiprocketCollectionProducts
 );
-
+router.get(
+  "/collection-products",
+  fetchShiprocketCollectionProducts
+);
 export default router;

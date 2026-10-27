@@ -45,11 +45,28 @@ const getNumericId = async (entityType, sourceId) => {
   }
 };
 
+// const getPagination = (req) => {
+//   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+//   const limit = Math.min(
+//     100,
+//     Math.max(1, parseInt(req.query.limit, 10) || 100)
+//   );
+
+//   return { page, limit, skip: (page - 1) * limit };
+// };
+
 const getPagination = (req) => {
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const page = Math.max(
+    1,
+    parseInt(req.get("x-page") ?? req.query.page, 10) || 1
+  );
+
   const limit = Math.min(
     100,
-    Math.max(1, parseInt(req.query.limit, 10) || 100)
+    Math.max(
+      1,
+      parseInt(req.get("x-limit") ?? req.query.limit, 10) || 100
+    )
   );
 
   return { page, limit, skip: (page - 1) * limit };
@@ -159,8 +176,10 @@ export const fetchShiprocketProducts = async (req, res) => {
     const { page, limit, skip } = getPagination(req);
     const filter = { status: "active" };
 
-    if (req.query.collection_id !== undefined) {
-      const numericId = Number(req.query.collection_id);
+    const requestedCollectionId =req.get("x-collection-id") ?? req.query.collection_id;
+
+    if (requestedCollectionId !== undefined) {
+      const numericId = Number(requestedCollectionId);
 
       if (!Number.isSafeInteger(numericId) || numericId < 1) {
         return res.status(400).json({
@@ -260,17 +279,33 @@ export const fetchShiprocketCollections = async (req, res) => {
 };
 
 // GET /shiprocket/collections/:collectionId/products?page=1&limit=100
+
 export const fetchShiprocketCollectionProducts = async (req, res) => {
   try {
-    const collectionId = Number(req.params.collectionId);
+    // Get collection ID from header or URL parameter
+    const requestedCollectionId =
+      req.get("x-collection-id") ?? req.params.collectionId;
+
+    if (
+      requestedCollectionId === undefined ||
+      String(requestedCollectionId).trim() === ""
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Collection ID is required",
+      });
+    }
+
+    const collectionId = Number(requestedCollectionId);
 
     if (!Number.isSafeInteger(collectionId) || collectionId < 1) {
       return res.status(400).json({
         success: false,
-        message: "Collection ID must be numeric",
+        message: "Collection ID must be a valid positive integer",
       });
     }
 
+    // Find numeric collection ID mapping
     const mapping = await ShiprocketCatalogId.findOne({
       entityType: "collection",
       numericId: collectionId,
@@ -283,6 +318,7 @@ export const fetchShiprocketCollectionProducts = async (req, res) => {
       });
     }
 
+    // Find actual category
     const category = await Category.findById(mapping.sourceId).lean();
 
     if (!category || category.status !== "active") {
@@ -292,7 +328,9 @@ export const fetchShiprocketCollectionProducts = async (req, res) => {
       });
     }
 
+    // Pagination from headers
     const { page, limit, skip } = getPagination(req);
+
     const filter = {
       categoryId: category._id,
       status: "active",
@@ -323,8 +361,12 @@ export const fetchShiprocketCollectionProducts = async (req, res) => {
         products: formattedProducts,
       },
     });
+
   } catch (error) {
-    console.error("Shiprocket collection products API error:", error);
+    console.error(
+      "Shiprocket collection products API error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
