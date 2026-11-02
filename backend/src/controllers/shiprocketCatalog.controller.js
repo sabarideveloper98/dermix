@@ -1,3 +1,4 @@
+
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import ShiprocketCatalogId from "../models/ShiprocketCatalogId.js";
@@ -55,7 +56,6 @@ const getNumericId = async (entityType, sourceId) => {
 
 // ======================================================
 // PAGINATION
-// Supports Headers and Query Parameters
 // ======================================================
 
 const getPagination = (req) => {
@@ -105,13 +105,7 @@ const getVariantTitle = (variant) => {
 };
 
 // ======================================================
-// TAG FORMAT FIX
-//
-// Shiprocket expects:
-// "tags": ""
-//
-// NOT:
-// "tags": []
+// TAG FORMAT
 // ======================================================
 
 const formatTags = (tags) => {
@@ -130,6 +124,48 @@ const formatTags = (tags) => {
 };
 
 // ======================================================
+// PRODUCT OPTIONS FORMAT
+//
+// Shiprocket expected format:
+//
+// "options": {
+//   "Size": ["10", "30ML"]
+// }
+//
+// NOT:
+//
+// "options": [
+//   {
+//     "name": "Size",
+//     "values": ["10", "30ML"]
+//   }
+// ]
+// ======================================================
+
+const formatProductOptions = (variants) => {
+  const sizes = [
+    ...new Set(
+      variants
+        .map((variant) => variant.title)
+        .filter(
+          (title) =>
+            title !== null &&
+            title !== undefined &&
+            title !== "" &&
+            title !== "Default"
+        )
+    ),
+  ];
+
+  // Return an object, not an array.
+  return sizes.length
+    ? {
+        Size: sizes,
+      }
+    : {};
+};
+
+// ======================================================
 // FORMAT PRODUCT FOR SHIPROCKET
 // ======================================================
 
@@ -137,10 +173,7 @@ const formatProduct = async (product) => {
   const productId = String(product._id);
 
   const collectionId = product.categoryId?._id
-    ? await getNumericId(
-        "collection",
-        product.categoryId._id
-      )
+    ? await getNumericId("collection", product.categoryId._id)
     : null;
 
   // Product Images
@@ -198,6 +231,7 @@ const formatProduct = async (product) => {
 
         taxable: false,
 
+        // Kept unchanged as an array.
         option_values: [
           {
             option_name: "Size",
@@ -217,10 +251,7 @@ const formatProduct = async (product) => {
   );
 
   return {
-    id: await getNumericId(
-      "product",
-      product._id
-    ),
+    id: await getNumericId("product", product._id),
 
     title: product.name,
 
@@ -240,8 +271,6 @@ const formatProduct = async (product) => {
       ? new Date(product.updatedAt).toISOString()
       : null,
 
-    // IMPORTANT FIX:
-    // Always return a STRING instead of an ARRAY.
     tags: formatTags(product.tags),
 
     status: product.status,
@@ -254,19 +283,8 @@ const formatProduct = async (product) => {
 
     images,
 
-    options: [
-      {
-        name: "Size",
-
-        values: [
-          ...new Set(
-            formattedVariants.map(
-              (variant) => variant.title
-            )
-          ),
-        ],
-      },
-    ],
+    // FIXED: options is now an OBJECT.
+    options: formatProductOptions(formattedVariants),
   };
 };
 
@@ -274,15 +292,6 @@ const formatProduct = async (product) => {
 // GET ALL PRODUCTS
 //
 // GET /api/shiprocket/catalog/products
-//
-// Optional:
-// ?page=1&limit=100
-// ?collection_id=1
-//
-// Headers:
-// x-page
-// x-limit
-// x-collection-id
 // ======================================================
 
 export const fetchShiprocketProducts = async (req, res) => {
@@ -306,16 +315,14 @@ export const fetchShiprocketProducts = async (req, res) => {
       ) {
         return res.status(400).json({
           success: false,
-          message:
-            "collection_id must be a valid numeric ID",
+          message: "collection_id must be a valid numeric ID",
         });
       }
 
-      const mapping =
-        await ShiprocketCatalogId.findOne({
-          entityType: "collection",
-          numericId,
-        }).lean();
+      const mapping = await ShiprocketCatalogId.findOne({
+        entityType: "collection",
+        numericId,
+      }).lean();
 
       if (!mapping) {
         return res.status(404).json({
@@ -353,10 +360,7 @@ export const fetchShiprocketProducts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(
-      "Shiprocket products API error:",
-      error
-    );
+    console.error("Shiprocket products API error:", error);
 
     return res.status(500).json({
       success: false,
@@ -369,15 +373,9 @@ export const fetchShiprocketProducts = async (req, res) => {
 // GET ALL COLLECTIONS
 //
 // GET /api/shiprocket/catalog/collections
-//
-// Optional:
-// ?page=1&limit=100
 // ======================================================
 
-export const fetchShiprocketCollections = async (
-  req,
-  res
-) => {
+export const fetchShiprocketCollections = async (req, res) => {
   try {
     const { limit, skip } = getPagination(req);
 
@@ -399,28 +397,21 @@ export const fetchShiprocketCollections = async (
     ]);
 
     const collections = await Promise.all(
-      categories.map(async (category) => {
-        return {
-          id: await getNumericId(
-            "collection",
-            category._id
-          ),
+      categories.map(async (category) => ({
+        id: await getNumericId("collection", category._id),
 
-          title: category.name,
+        title: category.name,
 
-          body_html: category.description || "",
+        body_html: category.description || "",
 
-          handle: slugify(category.name),
+        handle: slugify(category.name),
 
-          created_at: category.createdAt
-            ? new Date(
-                category.createdAt
-              ).toISOString()
-            : null,
+        created_at: category.createdAt
+          ? new Date(category.createdAt).toISOString()
+          : null,
 
-          image: imageObject(category.image),
-        };
-      })
+        image: imageObject(category.image),
+      }))
     );
 
     return res.status(200).json({
@@ -430,10 +421,7 @@ export const fetchShiprocketCollections = async (
       },
     });
   } catch (error) {
-    console.error(
-      "Shiprocket collections API error:",
-      error
-    );
+    console.error("Shiprocket collections API error:", error);
 
     return res.status(500).json({
       success: false,
@@ -445,22 +433,12 @@ export const fetchShiprocketCollections = async (
 // ======================================================
 // GET COLLECTION PRODUCTS
 //
-// Supported:
-//
 // GET /api/shiprocket/catalog/collection-products
-//
-// GET /api/shiprocket/catalog/collections/1/products
-//
+// GET /api/shiprocket/catalog/collections/:collectionId/products
 // GET /api/shiprocket/catalog/collection-products?collection_id=1
-//
-// Header:
-// x-collection-id: 1
 // ======================================================
 
-export const fetchShiprocketCollectionProducts = async (
-  req,
-  res
-) => {
+export const fetchShiprocketCollectionProducts = async (req, res) => {
   try {
     const requestedCollectionId =
       req.get("x-collection-id") ??
@@ -477,9 +455,7 @@ export const fetchShiprocketCollectionProducts = async (
       });
     }
 
-    const collectionId = Number(
-      requestedCollectionId
-    );
+    const collectionId = Number(requestedCollectionId);
 
     if (
       !Number.isSafeInteger(collectionId) ||
@@ -487,18 +463,15 @@ export const fetchShiprocketCollectionProducts = async (
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Collection ID must be a valid positive integer",
+        message: "Collection ID must be a valid positive integer",
       });
     }
 
     // Find Numeric Collection Mapping
-
-    const mapping =
-      await ShiprocketCatalogId.findOne({
-        entityType: "collection",
-        numericId: collectionId,
-      }).lean();
+    const mapping = await ShiprocketCatalogId.findOne({
+      entityType: "collection",
+      numericId: collectionId,
+    }).lean();
 
     if (!mapping) {
       return res.status(404).json({
@@ -508,19 +481,14 @@ export const fetchShiprocketCollectionProducts = async (
     }
 
     // Find Actual Category
-
     const category = await Category.findById(
       mapping.sourceId
     ).lean();
 
-    if (
-      !category ||
-      category.status !== "active"
-    ) {
+    if (!category || category.status !== "active") {
       return res.status(404).json({
         success: false,
-        message:
-          "Collection not found or inactive",
+        message: "Collection not found or inactive",
       });
     }
 
@@ -570,8 +538,7 @@ export const fetchShiprocketCollectionProducts = async (
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to fetch collection products",
+      message: "Failed to fetch collection products",
     });
   }
 };
