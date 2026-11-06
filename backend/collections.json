@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "title": "Serums",
+    "body_html": "Concentrated treatment serums",
+    "handle": "serums",
+    "created_at": "2026-08-02T14:33:35.994Z",
+    "image": {
+      "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1785681212/seed/categories/dds1wxhkezqxabv6a9ln.png"
+    }
+  },
+  {
+    "id": 2,
+    "title": "Perfume",
+    "body_html": "Lavender Ride fresh",
+    "handle": "perfume",
+    "created_at": "2026-10-03T07:36:59.486Z",
+    "image": {
+      "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791013019/categories/go5xfsu1mg0vxebawc0t.jpg"
+    }
+  }
+]

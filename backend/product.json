@@ -1,0 +1,100 @@
+[
+  {
+    "id": 2,
+    "title": "Ride Fresh",
+    "body_html": "<h3>RIDE FRESH — Lavender Eau de Parfum</h3><p><strong>Feel Fresh. Leave an Impression.</strong></p><p>A refreshing lavender fragrance crafted for everyday wear. <strong>RIDE FRESH</strong> opens with a clean, uplifting freshness and settles into a soft, elegant lavender character that feels smooth and comfortable throughout the day.</p><p><strong>10 mL | Eau de Parfum | Lavender</strong></p><p><strong>Fragrance profile:</strong><br>🌿 <strong>Fresh</strong> · 💜 <strong>Lavender</strong> · ✨ <strong>Elegant</strong></p><p><strong>Perfect for:</strong> Daily wear, college, work, outings and travel.</p><p><strong>Your everyday freshness, in a pocket-sized perfume.</strong></p>",
+    "vendor": "",
+    "product_type": "Perfume",
+    "created_at": "2026-10-03T07:48:49.885Z",
+    "handle": "ride-fresh",
+    "updated_at": "2026-10-19T14:13:19.843Z",
+    "tags": "",
+    "status": "active",
+    "collection_id": 2,
+    "variants": [
+      {
+        "id": 2,
+        "title": "10",
+        "price": 149,
+        "compare_at_price": 199,
+        "sku": "",
+        "quantity": 99,
+        "taxable": false,
+        "option_values": [
+          {
+            "option_name": "Size",
+            "value": "10"
+          }
+        ],
+        "grams": 0,
+        "weight": 0,
+        "weight_unit": "g",
+        "image": {
+          "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791013729/products/c0pgweu7keg4wh4dz6wc.jpg"
+        }
+      }
+    ],
+    "image": {
+      "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791013729/products/c0pgweu7keg4wh4dz6wc.jpg"
+    },
+    "images": [
+      {
+        "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791013729/products/c0pgweu7keg4wh4dz6wc.jpg"
+      }
+    ],
+    "options": {
+      "Size": [
+        "10"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "title": "Post Exposure Recovery Serum",
+    "body_html": "<h2>DERMFIX⁺ Post Exposure Recovery Serum</h2><h3><strong>Recover. Soothe. Hydrate. Strengthen.</strong></h3><p>Your skin faces daily exposure to <strong>UV radiation, pollution, heat, dust and environmental stressors</strong>. DERMFIX⁺ Post Exposure Recovery Serum is designed as a <strong>post-exposure skincare step</strong> to support skin recovery and maintain a healthy skin barrier.</p><p>Powered by <strong>2% Ectoin</strong>, with a supportive blend of <strong>Niacinamide, Tranexamic Acid and Centella Extract</strong>, the lightweight serum helps provide hydration, comfort and barrier-focused care after everyday environmental exposure.</p><h3><strong>Why DERMFIX⁺?</strong></h3><ul><li data-list-item-id=\"ea9359ef651ea8ef4ac0741243915e98f\"><strong>2% Ectoin Technology</strong> — supports skin resilience against environmental stress.</li><li data-list-item-id=\"eac50a7fe4e80605fbd1f92112ecc711f\"><strong>Barrier-focused care</strong> — helps maintain a healthy skin barrier.</li><li data-list-item-id=\"ef578a5fb28b7fe020fa2d1d628cb30c7\"><strong>Soothing care</strong> — designed to calm the feeling of stressed or uncomfortable skin.</li><li data-list-item-id=\"e367b0818fc798d5d2c0a72798066d095\"><strong>Hydration</strong> — helps replenish and maintain skin moisture.</li><li data-list-item-id=\"e13a5e62a7bc4828f3c17c1216dd1e692\"><strong>Lightweight texture</strong> — absorbs easily without a heavy feel.</li><li data-list-item-id=\"ee8c5a0186ebd3d44e6dbe367e25bc37d\"><strong>Fragrance-free formula</strong> — made without added fragrance.</li></ul><h3><strong>Key Actives</strong></h3><p><strong>Ectoin 2%</strong><br>A naturally derived extremolyte used in skincare for its skin-protective and hydration-supporting properties.</p><p><strong>Niacinamide</strong><br>Helps support the skin barrier and overall skin appearance.</p><p><strong>Tranexamic Acid</strong><br>Included as part of the formula to support a more even-looking complexion.</p><p><strong>Centella Extract</strong><br>Known for its soothing and skin-conditioning properties.</p><h3><strong>How to Use</strong></h3><p>After cleansing, apply <strong>2–3 drops</strong> evenly over the face and neck. Gently pat until absorbed.</p><p><strong>Recommended:</strong> Use as part of your post-exposure skincare routine, especially after a day outdoors or following environmental exposure.</p><p>For daytime use, <strong>follow with sunscreen</strong>.</p><h3><strong>Who Is It For?</strong></h3><p>Designed for people looking for a simple <strong>post-exposure recovery step</strong> in their daily skincare routine.</p><p><strong>30 mL | Fragrance Free | External Use Only</strong></p><h3><strong>Your Daily Recovery Step</strong></h3><p><strong>Exposure happens. Recovery matters.<br>Make DERMFIX⁺ part of your skin routine.</strong></p><p><strong>Launching Offer: ₹799</strong><br><strong>Free Shipping Across India + Free RIDE FRESH Perfume</strong></p>",
+    "vendor": "",
+    "product_type": "Serums",
+    "created_at": "2026-10-03T06:48:21.480Z",
+    "handle": "post-exposure-recovery-serum",
+    "updated_at": "2026-11-03T10:52:50.255Z",
+    "tags": "",
+    "status": "active",
+    "collection_id": 1,
+    "variants": [
+      {
+        "id": 4,
+        "title": "30ML",
+        "price": 799,
+        "compare_at_price": 1100,
+        "sku": "",
+        "quantity": 200,
+        "taxable": false,
+        "option_values": [
+          {
+            "option_name": "Size",
+            "value": "30ML"
+          }
+        ],
+        "grams": 0,
+        "weight": 0,
+        "weight_unit": "g",
+        "image": {
+          "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791800835/products/jzssznkkxf2posdvzrhx.png"
+        }
+      }
+    ],
+    "image": {
+      "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791800835/products/jzssznkkxf2posdvzrhx.png"
+    },
+    "images": [
+      {
+        "src": "https://res.cloudinary.com/acsf1w0m/image/upload/v1791800835/products/jzssznkkxf2posdvzrhx.png"
+      }
+    ],
+    "options": {
+      "Size": [
+        "30ML"
+      ]
+    }
+  }
+]
