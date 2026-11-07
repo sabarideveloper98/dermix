@@ -17,7 +17,7 @@ if (!API_KEY || !SECRET_KEY) {
 
 // Read the exact JSON file
 const body = fs.readFileSync(
-  path.join(__dirname, "product.json")
+  path.join(__dirname, "products.json")
 );
 
 // Generate HMAC SHA256 Base64
@@ -35,5 +35,5 @@ console.log(
 -H "Content-Type: application/json" \
 -H "X-Api-Key: ${API_KEY}" \
 -H "X-Api-HMAC-SHA256: ${hmac}" \
---data-binary @product.json`
+--data-binary @products.json`
 );
