@@ -85,6 +85,33 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    shiprocketCheckoutId: {
+      type: String,
+      default: '',
+    },
+    paymentReferenceId: {
+      type: String,
+      default: '',
+    },
+    paymentMethod: {
+      type: String,
+      default: '',
+    },
+    paymentAmount: {
+      type: Number,
+      default: 0,
+    },
+    paymentDate: {
+      type: Date,
+    },
+    shippingCharges: {
+      type: Number,
+      default: 0,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+    },
     shiprocketShipmentId: {
       type: String,
       default: '',

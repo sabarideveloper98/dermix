@@ -20,6 +20,7 @@ import adminRoutes from './routes/admin.routes.js';
 import sizeRoutes from './routes/size.routes.js';
 import refundRoutes from './routes/refund.routes.js';
 import shiprocketCatalogRoutes from "./routes/shiprocketCatalog.routes.js";
+import shiprocketCheckoutRoutes from "./routes/shiprocketCheckout.routes.js";
 
 // Controller imports for root public routes
 import { getBanners, getInstagramVideos } from './controllers/admin.controller.js';
@@ -98,6 +99,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/refunds', refundRoutes);
 app.use('/api/shiprocket/catalog', shiprocketCatalogRoutes);
+app.use('/api/shiprocket', shiprocketCheckoutRoutes);
+app.use('/api/checkout', shiprocketCheckoutRoutes);
 
 app.get("/api/shiprocket/test", (req, res) => {
   console.log("SHIPROCKET TEST ROUTE HIT");

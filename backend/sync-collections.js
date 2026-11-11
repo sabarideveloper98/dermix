@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import "dotenv/config";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,7 +71,7 @@ async function syncCollections() {
 
         try {
           result = JSON.parse(responseText);
-        } catch {}
+        } catch { }
 
         if (
           response.ok &&

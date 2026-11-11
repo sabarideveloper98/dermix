@@ -16,7 +16,7 @@ export default function ProductDetailsTabs() {
                 </a>
               </li>
 
-             
+
 
               <li className="nav-tab-item" role="presentation">
                 <a href="#tabIngredient" data-bs-toggle="tab" className="tf-btn-tab" role="tab">
@@ -43,7 +43,7 @@ export default function ProductDetailsTabs() {
               </p>
             </div>
 
-            
+
 
             {/* Key Ingredients */}
             <div className="tab-pane" id="tabIngredient" role="tabpanel">

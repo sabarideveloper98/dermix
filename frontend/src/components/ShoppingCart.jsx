@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
 
 export default function ShoppingCart() {
   const { cart, updateCartItem, removeFromCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const cartCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = cart.totalAmount;
@@ -14,23 +17,13 @@ export default function ShoppingCart() {
   const progressPercent = Math.min(100, (totalAmount / shippingThreshold) * 100);
 
   const handleCheckoutClick = (e) => {
-    e.preventDefault();
-    if (cart.items.length === 0) {
-      alert("Your cart is empty");
-      return;
-    }
-
-    const closeBtn = document.querySelector("#shoppingCart .btn-close-popup");
-    if (closeBtn) {
-      closeBtn.click();
-    }
-
-    if (user) {
-      navigate("/checkout");
-    } else {
-      localStorage.setItem("redirectAfterLogin", "/checkout");
-      navigate("/login");
-    }
+    triggerCheckoutWorkflow({
+      event: e,
+      cart,
+      user,
+      navigate,
+      setLoading: setCheckoutLoading
+    });
   };
 
   return (
@@ -45,8 +38,8 @@ export default function ShoppingCart() {
           </div>
           <div className="cart-threshold">
             <p className="text text-body-s fw-normal mb-8">
-              {spendMore > 0 
-                ? `Spend ₹${spendMore.toFixed(2)} more for free shipping` 
+              {spendMore > 0
+                ? `Spend ₹${spendMore.toFixed(2)} more for free shipping`
                 : "Congrats! You get free shipping!"}
             </p>
             <div className="tf-progress-bar tf-progress-ship">
@@ -108,23 +101,23 @@ export default function ShoppingCart() {
 
                       return (
                         <div key={`${prod._id}-${item.size}`} className="tf-mini-cart-item file-delete">
-                          <Link 
-                            to={`/ProductDetails?id=${prod._id}`} 
+                          <Link
+                            to={`/ProductDetails?id=${prod._id}`}
                             className="tf-mini-cart-image"
                             onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                             data-bs-dismiss="offcanvas"
                           >
-                            <img 
-                              loading="lazy" 
-                              width="74" 
+                            <img
+                              loading="lazy"
+                              width="74"
                               height="88"
-                              src={prod.images[0] || "assets/images/products/serum_product.png"} 
-                              alt={prod.name} 
+                              src={prod.images[0] || "assets/images/products/serum_product.png"}
+                              alt={prod.name}
                             />
                           </Link>
                           <div className="tf-mini-cart-info">
-                            <Link 
-                              to={`/ProductDetails?id=${prod._id}`} 
+                            <Link
+                              to={`/ProductDetails?id=${prod._id}`}
                               className="name fw-normal link-underline text-line-clamp-1"
                               onClick={() => localStorage.setItem('selectedProductId', prod._id)}
                               data-bs-dismiss="offcanvas"
@@ -146,30 +139,30 @@ export default function ShoppingCart() {
                             </div>
                             <div className="group-action">
                               <div className="wg-quantity style-2">
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   className="btn-quantity minus-btn"
                                   onClick={() => updateCartItem(prod._id, item.quantity - 1, item.size)}
                                 >
                                   <i className="icon icon-Minus"></i>
                                 </button>
-                                <input 
-                                  className="quantity-product" 
-                                  type="text" 
-                                  name="number" 
+                                <input
+                                  className="quantity-product"
+                                  type="text"
+                                  name="number"
                                   value={item.quantity}
                                   readOnly
                                 />
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   className="btn-quantity plus-btn"
                                   onClick={() => updateCartItem(prod._id, item.quantity + 1, item.size)}
                                 >
                                   <i className="icon icon-Plus"></i>
                                 </button>
                               </div>
-                              <button 
-                                type="button" 
+                              <button
+                                type="button"
                                 className="tf-btn-rounded style-2 remove"
                                 onClick={() => removeFromCart(prod._id, item.size)}
                               >
@@ -195,11 +188,12 @@ export default function ShoppingCart() {
                   <Link to="/cart" className="tf-btn style-2 type-2 btn-light" data-bs-dismiss="offcanvas">
                     View cart
                   </Link>
-                  <button 
+                  <button
                     onClick={handleCheckoutClick}
                     className="tf-btn style-2 w-100"
+                    disabled={checkoutLoading || cart.items.length === 0}
                   >
-                    Check out
+                    {checkoutLoading ? "Processing..." : "Check out"}
                   </button>
                 </div>
               </div>

@@ -18,8 +18,8 @@ import Login from "./pages/Login";
 import ProductDetails from "./pages/ProductDetails";
 import Register from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
-// Removed old Dashboard
 import OrderSuccess from "./pages/OrderSuccess";
+import PaymentResponse from "./pages/PaymentResponse";
 import Orders from "./pages/Orders";
 import TrackOrder from "./pages/TrackOrder";
 
@@ -53,6 +53,8 @@ createRoot(document.getElementById("root")).render(
             <Route path="/register" element={<Register />} />
             <Route path="/verify-otp" element={<VerifyOtp />} />
             <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/payment-response" element={<PaymentResponse />} />
+            <Route path="/order-confirmation" element={<PaymentResponse />} />
             <Route path="/orders" element={<Orders />} />
             {/* <Route path="/orders" element={<MyOrders />} /> */}
             <Route path="/track-order/:orderId" element={<TrackOrder />} />

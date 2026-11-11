@@ -61,10 +61,10 @@ export const createRazorpayOrder = async (req, res) => {
 
 // Verify Payment Signature
 export const verifyPayment = async (req, res) => {
-  const { 
-    razorpay_order_id, 
-    razorpay_payment_id, 
-    razorpay_signature, 
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
     orderId,
     name,
     email,
@@ -99,7 +99,7 @@ export const verifyPayment = async (req, res) => {
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       tokenValue = req.headers.authorization.split(' ')[1];
     }
-    
+
     if (tokenValue) {
       try {
         const decoded = jwt.verify(tokenValue, process.env.JWT_SECRET);
@@ -113,7 +113,7 @@ export const verifyPayment = async (req, res) => {
       let query = [];
       if (email) query.push({ email });
       if (mobile) query.push({ mobile });
-      
+
       let existingUser;
       if (query.length > 0) {
         existingUser = await User.findOne({ $or: query });
@@ -125,7 +125,7 @@ export const verifyPayment = async (req, res) => {
         isNewUser = true;
         rawPassword = 'Dermix@' + Math.floor(10000 + Math.random() * 90000);
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
-        
+
         currentUser = await User.create({
           name: name || 'Guest Customer',
           email,
@@ -160,7 +160,7 @@ export const verifyPayment = async (req, res) => {
     const orderProducts = [];
     let calculatedAmount = 0;
     let paidShippingWeight = 0;
-    
+
     if (items && items.length > 0) {
       for (const item of items) {
         const product = await Product.findById(item.productId);
@@ -172,7 +172,7 @@ export const verifyPayment = async (req, res) => {
             size: item.size || 'Standard',
           });
           calculatedAmount += product.salePrice * item.quantity;
-          
+
           if (product.isShippingPaid) {
             paidShippingWeight += 0.5 * item.quantity;
           }
@@ -184,7 +184,7 @@ export const verifyPayment = async (req, res) => {
     if (paidShippingWeight > 0 && address && address.pincode) {
       shippingCost = await getShippingRate(address.pincode, paidShippingWeight, 0); // 0 for Prepaid
     }
-    
+
     // Security check: calculate total internally
     const secureCalculatedTotal = calculatedAmount + shippingCost;
 
@@ -356,9 +356,9 @@ Thank you for shopping with Dermix.`,
       console.error('Failed to send order/welcome email notifications:', emailErr);
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'Payment successfully processed and order placed', 
+    res.status(200).json({
+      success: true,
+      message: 'Payment successfully processed and order placed',
       order,
       token,
       refreshToken,

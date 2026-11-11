@@ -1,20 +1,23 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
 
 export default function CartContent() {
   const { cart, updateCartItem, removeFromCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleCheckoutClick = (e) => {
-    e.preventDefault();
-    if (user) {
-      navigate("/checkout");
-    } else {
-      localStorage.setItem("redirectAfterLogin", "/checkout");
-      navigate("/login");
-    }
+    triggerCheckoutWorkflow({
+      event: e,
+      cart,
+      user,
+      navigate,
+      setLoading: setCheckoutLoading
+    });
   };
 
   const totalAmount = cart.totalAmount;
@@ -133,8 +136,12 @@ export default function CartContent() {
                     <p className="text-save text-body-s fw-normal text-end mb-24">
                       Taxes and shipping calculated at checkout
                     </p>
-                    <button onClick={handleCheckoutClick} className="tf-btn type-2 style-2 w-100 mb-16">
-                      Check out
+                    <button
+                      onClick={handleCheckoutClick}
+                      className="tf-btn type-2 style-2 w-100 mb-16"
+                      disabled={checkoutLoading || cart.items.length === 0}
+                    >
+                      {checkoutLoading ? "Processing..." : "Check out"}
                     </button>
                     <p className="text-center text-body-s cl-text-5 mb-24">
                       We support major secure payment methods.

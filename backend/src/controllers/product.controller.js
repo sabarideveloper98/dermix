@@ -165,7 +165,7 @@ export const updateProduct = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid category' });
       }
     }
-    
+
     // parse sizes
     let parsedSizes = undefined;
     if (sizes !== undefined) {
@@ -200,7 +200,7 @@ export const updateProduct = async (req, res) => {
         const remaining = Array.isArray(req.body.remainingImages)
           ? req.body.remainingImages
           : JSON.parse(req.body.remainingImages);
-        
+
         // Find images to delete
         const toDelete = product.images.filter((img) => !remaining.includes(img));
         for (const img of toDelete) {
