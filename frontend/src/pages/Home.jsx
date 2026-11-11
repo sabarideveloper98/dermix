@@ -24,8 +24,8 @@ export default function Home() {
       <Header />
       <HeroSlider />
       <MarqueeTop />
-      <Philosophy />
       <ProductTabs />
+      <Philosophy />
       {/* <Collection /> */}
       <Ingredients />
       <FAQ />
