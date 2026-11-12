@@ -26,6 +26,42 @@ export default function ShoppingCart() {
     });
   };
 
+  const handleViewCartClick = (e) => {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    // Cleanly close offcanvas
+    try {
+      const offcanvasEl = document.getElementById("shoppingCart");
+      if (offcanvasEl) {
+        if (window.bootstrap?.Offcanvas) {
+          const bsOffcanvas =
+            window.bootstrap.Offcanvas.getInstance(offcanvasEl) ||
+            new window.bootstrap.Offcanvas(offcanvasEl);
+          if (bsOffcanvas) {
+            bsOffcanvas.hide();
+          }
+        }
+        const closeBtn = offcanvasEl.querySelector(".btn-close-popup");
+        if (closeBtn) {
+          closeBtn.click();
+        }
+      }
+    } catch (err) {
+      console.warn("Offcanvas close error:", err);
+    }
+
+    // Clean up any dangling backdrop or scroll locks
+    setTimeout(() => {
+      document.querySelectorAll(".offcanvas-backdrop").forEach((el) => el.remove());
+      document.body.classList.remove("modal-open");
+      document.body.style.removeProperty("overflow");
+      document.body.style.removeProperty("padding-right");
+    }, 100);
+
+    navigate("/cart");
+  };
+
   return (
     <div className="offcanvas offcanvas-end popup-shopping-cart" id="shoppingCart">
       <div className="canvas-wrapper overflow-hidden">
@@ -185,9 +221,14 @@ export default function ShoppingCart() {
                   </div>
                 </div>
                 <div className="tf-mini-cart-view-checkout">
-                  <Link to="/cart" className="tf-btn style-2 type-2 btn-light" data-bs-dismiss="offcanvas">
+                  <button
+                    type="button"
+                    onClick={handleViewCartClick}
+                    className="tf-btn style-2 type-2 btn-light"
+                    data-bs-dismiss="offcanvas"
+                  >
                     View cart
-                  </Link>
+                  </button>
                   <button
                     onClick={handleCheckoutClick}
                     className="tf-btn style-2 w-100"

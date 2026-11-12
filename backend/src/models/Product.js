@@ -54,6 +54,78 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    tabConfig: {
+      descriptionEnabled: {
+        type: Boolean,
+        default: true,
+      },
+      ingredientsEnabled: {
+        type: Boolean,
+        default: true,
+      },
+      reviewsEnabled: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    ingredients: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        percentage: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        description: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+    keyIngredients: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        percentage: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        description: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+    howToUseImage: {
+      type: String,
+      default: '',
+    },
+    whatItDoesImage: {
+      type: String,
+      default: '',
+    },
+    ingredientsImage: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: ['active', 'inactive'],

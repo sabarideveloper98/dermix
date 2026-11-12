@@ -1,7 +1,195 @@
+import React, { useState, useEffect } from "react";
+import { API_BASE } from "../config";
 
-import React from "react";
+export default function ProductDetailsTabs({ product }) {
+  // Read tab configuration with defaults
+  const descriptionEnabled = product?.tabConfig?.descriptionEnabled !== false;
+  const ingredientsEnabled = product?.tabConfig?.ingredientsEnabled !== false;
+  const reviewsEnabled = product?.tabConfig?.reviewsEnabled !== false;
 
-export default function ProductDetailsTabs() {
+  // Build array of available enabled tab IDs
+  const enabledTabs = [];
+  if (descriptionEnabled) enabledTabs.push("tabDesc");
+  if (ingredientsEnabled) enabledTabs.push("tabIngredient");
+  if (reviewsEnabled) enabledTabs.push("tabReview");
+
+  // Determine initial active tab based on URL hash or first enabled tab
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash && enabledTabs.includes(hash)) {
+      return hash;
+    }
+    return enabledTabs[0] || "";
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  // Synchronize active tab when tabConfig or hash changes
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash && enabledTabs.includes(hash)) {
+      setActiveTab(hash);
+    } else if (!enabledTabs.includes(activeTab)) {
+      setActiveTab(enabledTabs[0] || "");
+    }
+  }, [descriptionEnabled, ingredientsEnabled, reviewsEnabled, product?._id]);
+
+  // Handle URL hash changes from browser back/forward
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && enabledTabs.includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [enabledTabs]);
+
+  // Switch tab and update URL hash
+  const switchTab = (tabId) => {
+    setActiveTab(tabId);
+    window.history.replaceState(null, null, `#${tabId}`);
+  };
+
+  // Reviews state (only fetched when reviews are enabled)
+  const [reviewsData, setReviewsData] = useState({
+    reviews: [],
+    totalReviews: 0,
+    averageRating: 5.0,
+    breakdown: {
+      5: { count: 0, percent: 0 },
+      4: { count: 0, percent: 0 },
+      3: { count: 0, percent: 0 },
+      2: { count: 0, percent: 0 },
+      1: { count: 0, percent: 0 },
+    },
+  });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  // Write Review form state
+  const [reviewScore, setReviewScore] = useState(5);
+  const [reviewName, setReviewName] = useState("");
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewSkinType, setReviewSkinType] = useState("Normal");
+  const [reviewSkinConcerns, setReviewSkinConcerns] = useState([]);
+  const [reviewImages, setReviewImages] = useState([]);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [submitFeedback, setSubmitFeedback] = useState(null);
+
+  // Fetch approved reviews for the product
+  useEffect(() => {
+    if (!reviewsEnabled || !product?._id) return;
+
+    const fetchReviews = async () => {
+      setReviewsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/reviews/product/${product._id}`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setReviewsData({
+            reviews: data.reviews || [],
+            totalReviews: data.totalReviews || 0,
+            averageRating: data.averageRating || 5.0,
+            breakdown: data.breakdown || {
+              5: { count: 0, percent: 0 },
+              4: { count: 0, percent: 0 },
+              3: { count: 0, percent: 0 },
+              2: { count: 0, percent: 0 },
+              1: { count: 0, percent: 0 },
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching product reviews:", err);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [reviewsEnabled, product?._id]);
+
+  // Handle Review submission
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewsEnabled) {
+      alert("Reviews are currently disabled for this product.");
+      return;
+    }
+
+    if (!reviewName.trim() || !reviewTitle.trim() || !reviewBody.trim()) {
+      alert("Please fill in your name, review title, and review description.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    setSubmitFeedback(null);
+
+    const formData = new FormData();
+    formData.append("productId", product._id);
+    formData.append("name", reviewName.trim());
+    formData.append("title", reviewTitle.trim());
+    formData.append("review", reviewBody.trim());
+    formData.append("rating", reviewScore);
+    formData.append("skinType", reviewSkinType);
+    formData.append("skinConcerns", JSON.stringify(reviewSkinConcerns));
+
+    if (reviewImages && reviewImages.length > 0) {
+      Array.from(reviewImages).forEach((file) => {
+        formData.append("images", file);
+      });
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/reviews`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setSubmitFeedback({
+          type: "success",
+          message: "Thank you! Your review has been submitted.",
+        });
+        // Reset form
+        setReviewTitle("");
+        setReviewBody("");
+        setReviewImages([]);
+      } else {
+        setSubmitFeedback({
+          type: "danger",
+          message: data.message || "Failed to submit review. Please try again.",
+        });
+      }
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      setSubmitFeedback({
+        type: "danger",
+        message: "An error occurred while submitting your review. Please try again.",
+      });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // If all three tabs are disabled, do not render any tab navigation or container
+  if (!descriptionEnabled && !ingredientsEnabled && !reviewsEnabled) {
+    return null;
+  }
+
+  const rawIngredientsList = (product?.ingredients && product.ingredients.length > 0)
+    ? product.ingredients
+    : (product?.keyIngredients || []);
+
+  const ingredientsList = [...rawIngredientsList].sort((a, b) => {
+    const orderA = a.order !== undefined ? a.order : 0;
+    const orderB = b.order !== undefined ? b.order : 0;
+    return orderA - orderB;
+  });
+
   return (
     <>
       <div className="flat-spacing flat-animate-tab pb-0">
@@ -10,652 +198,537 @@ export default function ProductDetailsTabs() {
             <ul className="tab-btn-wrap-v1 justify-content-center" role="tablist">
               <li className="br-line fake-class bottom-0"></li>
 
-              <li className="nav-tab-item" role="presentation">
-                <a href="#tabDesc" data-bs-toggle="tab" className="tf-btn-tab active" role="tab">
-                  <span className="h6 font-instrument_serif fw-normal">Description</span>
-                </a>
-              </li>
+              {/* 1. Description Tab Link */}
+              {descriptionEnabled && (
+                <li className="nav-tab-item" role="presentation">
+                  <a
+                    href="#tabDesc"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      switchTab("tabDesc");
+                    }}
+                    className={`tf-btn-tab ${activeTab === "tabDesc" ? "active" : ""}`}
+                    role="tab"
+                    aria-selected={activeTab === "tabDesc"}
+                  >
+                    <span className="h6 font-instrument_serif fw-normal">Description</span>
+                  </a>
+                </li>
+              )}
 
+              {/* 2. Key Ingredients Tab Link */}
+              {ingredientsEnabled && (
+                <li className="nav-tab-item" role="presentation">
+                  <a
+                    href="#tabIngredient"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      switchTab("tabIngredient");
+                    }}
+                    className={`tf-btn-tab ${activeTab === "tabIngredient" ? "active" : ""}`}
+                    role="tab"
+                    aria-selected={activeTab === "tabIngredient"}
+                  >
+                    <span className="h6 font-instrument_serif fw-normal">Key Ingredients</span>
+                  </a>
+                </li>
+              )}
 
-
-              <li className="nav-tab-item" role="presentation">
-                <a href="#tabIngredient" data-bs-toggle="tab" className="tf-btn-tab" role="tab">
-                  <span className="h6 font-instrument_serif fw-normal">Key Ingredients</span>
-                </a>
-              </li>
-
-              <li className="nav-tab-item" role="presentation">
-                <a href="#tabReview" data-bs-toggle="tab" className="tf-btn-tab" role="tab">
-                  <span className="h6 font-instrument_serif fw-normal">Reviews (0)</span>
-                </a>
-              </li>
+              {/* 3. Reviews Tab Link */}
+              {reviewsEnabled && (
+                <li className="nav-tab-item" role="presentation">
+                  <a
+                    href="#tabReview"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      switchTab("tabReview");
+                    }}
+                    className={`tf-btn-tab ${activeTab === "tabReview" ? "active" : ""}`}
+                    role="tab"
+                    aria-selected={activeTab === "tabReview"}
+                  >
+                    <span className="h6 font-instrument_serif fw-normal">
+                      Reviews ({reviewsData.totalReviews})
+                    </span>
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
           <div className="tab-content">
-            {/* Description */}
-            <div className="tab-pane active show" id="tabDesc" role="tabpanel">
-              <p className="cl-text-5">
-                Our AHA Rosaline Serum 10% gently exfoliates dead skin cells,
-                unclogs pores, and boosts cell turnover for smoother, brighter
-                skin. This lightweight formula absorbs quickly without
-                stickiness, making it perfect for both day and night routines.
-              </p>
-            </div>
+            {/* Description Tab Content */}
+            {descriptionEnabled && (
+              <div
+                className={`tab-pane ${activeTab === "tabDesc" ? "active show" : ""}`}
+                id="tabDesc"
+                role="tabpanel"
+              >
+                {product?.description ? (
+                  <div
+                    className="cl-text-5 ck-content"
+                    dangerouslySetInnerHTML={{ __html: product.description }}
+                  />
+                ) : (
+                  <p className="cl-text-5">No description available for this product.</p>
+                )}
+              </div>
+            )}
 
-
-
-            {/* Key Ingredients */}
-            <div className="tab-pane" id="tabIngredient" role="tabpanel">
-              <ul className="product-desc_ingredients">
-                <li className="desc__heading">
-                  <p className="h7 fw-normal text-white mb-8">Ingredient Facts</p>
-                  <p className="text-body-s cl-text-6">
-                    Serving Size: 1 full dropper (approx. 0.5 ml)
-                  </p>
-                </li>
-
-                <li className="fw-normal">
-                  <span>Alpha Hydroxy Acid (AHA) Complex</span>
-                  <span>10%</span>
-                </li>
-                <li className="fw-normal">
-                  <span>Glycolic Acid</span>
-                  <span>7%</span>
-                </li>
-                <li className="fw-normal">
-                  <span>Lactic Acid</span>
-                  <span>3%</span>
-                </li>
-                <li className="fw-normal">
-                  <span>Niacinamide (Vitamin B3)</span>
-                  <span>2%</span>
-                </li>
-                <li className="fw-normal">
-                  <span>Hyaluronic Acid</span>
-                  <span>1%</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Reviews */}
-            <div className="tab-pane" id="tabReview" role="tabpanel">
-              <div className="product-desc_review">
-                <div className="heading">
-                  <h3 className="font-instrument_serif">Customer Reviews</h3>
-
-                  <a
-                    href="#modalWriteReview"
-                    data-bs-toggle="modal"
-                    className="tf-btn type-2"
-                  >
-                    write a review
-                    <i className="icon icon-Edit"></i>
-                  </a>
-                </div>
-
-                <div className="review-rating">
-                  <div className="rating_average">
-                    <div className="rate__number">
-                      <span className="h2">4.9</span>
-                      <div className="star-wrap">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <i className="icon icon-Star-Sharp" key={star}></i>
+            {/* Key Ingredients Tab Content */}
+            {ingredientsEnabled && (
+              <div
+                className={`tab-pane ${activeTab === "tabIngredient" ? "active show" : ""}`}
+                id="tabIngredient"
+                role="tabpanel"
+              >
+                {ingredientsList.length > 0 || product?.ingredientsImage ? (
+                  <>
+                    {ingredientsList.length > 0 && (
+                      <ul className="product-desc_ingredients">
+                        <li className="desc__heading">
+                          <p className="h7 fw-normal text-white mb-8">Ingredient Facts</p>
+                          <p className="text-body-s cl-text-6">Active &amp; Key Ingredients Breakdown</p>
+                        </li>
+                        {ingredientsList.map((item, index) => (
+                          <li className="fw-normal" key={item._id || index} style={{ display: "block" }}>
+                            <div className="d-flex justify-content-between align-items-center w-100">
+                              <span className="fw-medium">{item.name}</span>
+                              {item.percentage ? (
+                                <span className="fw-medium ms-auto text-end">{item.percentage}</span>
+                              ) : null}
+                            </div>
+                            {item.description ? (
+                              <div
+                                className="mt-1"
+                                style={{
+                                  fontSize: "13px",
+                                  lineHeight: "1.55",
+                                  opacity: 0.88,
+                                }}
+                              >
+                                {item.description}
+                              </div>
+                            ) : null}
+                          </li>
                         ))}
-                      </div>
-                    </div>
-                    <p className="rate__text">Average rating (305 reviews)</p>
-                  </div>
+                      </ul>
+                    )}
 
-                  <div className="br-line xl-d-none"></div>
-
-                  <div className="rating_progress-list">
-                    {[
-                      { star: 5, percent: 60, count: 290 },
-                      { star: 4, percent: 15, count: 10 },
-                      { star: 3, percent: 5, count: 5 },
-                      { star: 2, percent: 0, count: 0 },
-                      { star: 1, percent: 0, count: 0 },
-                    ].map((item) => (
-                      <div className="rate_progress-item" key={item.star}>
-                        <span className="number-star">
-                          {item.star}
-                          <i className="icon icon-Star-Sharp"></i>
-                        </span>
-
-                        <div
-                          className="progress"
-                          role="progressbar"
-                          aria-label={`${item.star} star reviews`}
-                          aria-valuenow={item.percent}
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        >
-                          <div
-                            className="progress-bar"
-                            style={{ width: `${item.percent}%` }}
-                          ></div>
-                        </div>
-
-                        <span className="number-percent text-body-s">
-                          {item.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="rating_image-list">
-                    {[1, 2, 3, 4, 5].map((image) => (
-                      <div className="image-item" key={image}>
+                    {product?.ingredientsImage && (
+                      <div className="mt-4 text-center">
                         <img
-                          loading="lazy"
-                          width="148"
-                          height="148"
-                          src={`assets/images/section/review-${image}.jpg`}
-                          alt="Customer review"
+                          src={product.ingredientsImage}
+                          alt={`${product?.name || "Product"} Ingredients`}
+                          className="rounded img-fluid"
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "520px",
+                            objectFit: "contain",
+                            borderRadius: "10px",
+                            boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+                          }}
                         />
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="cl-text-5">No key ingredients listed for this product.</p>
+                )}
+              </div>
+            )}
 
-                <div className="br-line bg-line-5"></div>
-
-                <div className="desc_review__comment">
-                  <div className="head-comment-filter">
-                    <form className="form-search small" onSubmit={(e) => e.preventDefault()}>
-                      <fieldset>
-                        <input
-                          type="text"
-                          className="text-body-m"
-                          placeholder="Search"
-                        />
-                      </fieldset>
-                      <button type="submit" className="btn-action cl-text-main link">
-                        <i className="icon icon-Search"></i>
-                      </button>
-                    </form>
-
-                    <div className="tf-select text-uppercase fw-normal">
-                      <select defaultValue="latest">
-                        <option value="latest">Sort by: Latest</option>
-                        <option value="new">Sort by: New</option>
-                      </select>
-                    </div>
-
-                    <div className="tf-select text-uppercase fw-normal">
-                      <select defaultValue="all">
-                        <option value="all">Rating</option>
-                        <option value="1">Rating 1</option>
-                        <option value="2">Rating 2</option>
-                      </select>
-                    </div>
-
-                    <div className="checkbox-wrap">
-                      <input type="checkbox" id="checkReview" className="tf-check" />
-                      <label htmlFor="checkReview">Photos &amp; Videos only</label>
-                    </div>
+            {/* Reviews Tab Content */}
+            {reviewsEnabled && (
+              <div
+                className={`tab-pane ${activeTab === "tabReview" ? "active show" : ""}`}
+                id="tabReview"
+                role="tabpanel"
+              >
+                <div className="product-desc_review">
+                  <div className="heading">
+                    <h3 className="font-instrument_serif">Customer Reviews</h3>
 
                     <a
-                      href="#"
-                      className="tf-btn-line fw-normal ms-xl-auto"
-                      onClick={(e) => e.preventDefault()}
+                      href="#modalWriteReview"
+                      data-bs-toggle="modal"
+                      className="tf-btn type-2"
                     >
-                      <i className="icon icon-Close"></i>
-                      CLEAR ALL FILTER
+                      write a review
+                      <i className="icon icon-Edit"></i>
                     </a>
                   </div>
 
-                  <div className="list-comment">
-                    {/* Review 1 */}
-                    <div className="box-comment">
-                      <div className="col-left">
-                        <div className="comment-author">
-                          <div className="author-avt">
-                            <img
-                              loading="lazy"
-                              width="64"
-                              height="64"
-                              src="assets/images/avatar/avt-1.jpg"
-                              alt="Jamie L."
-                            />
-                          </div>
-                          <div className="more">
-                            <p className="author-name text-body-l fw-normal">Jamie L.</p>
-                            <div className="author-verified fw-me">
-                              <i className="icon icon-Verified"></i>
-                              Verified buyer
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="comment-tag">
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Normal Skin</a>
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Dullness</a>
-                        </div>
-                      </div>
-
-                      <div className="col-center comment-review">
-                        <div className="star-wrap fs-24 gap-4">
+                  <div className="review-rating">
+                    <div className="rating_average">
+                      <div className="rate__number">
+                        <span className="h2">{reviewsData.averageRating}</span>
+                        <div className="star-wrap">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <i className="icon icon-Star-Sharp" key={star}></i>
+                            <i
+                              className="icon icon-Star-Sharp"
+                              key={star}
+                              style={{
+                                color: star <= Math.round(reviewsData.averageRating) ? "#f59e0b" : "#e2e8f0",
+                              }}
+                            ></i>
                           ))}
                         </div>
-
-                        <div className="review_text">
-                          <p className="text-1 h7 fw-normal">
-                            “Visible glow in under a week”
-                          </p>
-                          <p className="text-2 cl-text-5">
-                            I’ve only been using this serum for a few days, but I can
-                            already see a difference. My skin feels noticeably smoother,
-                            and my pores look smaller, especially around my nose. No
-                            stinging or irritation at all, which was my biggest concern
-                            with AHA products. Will definitely keep using it.
-                          </p>
-                        </div>
-
-                        <div className="review_image">
-                          {[1, 2].map((image) => (
-                            <div className="image-item" key={image}>
-                              <img
-                                loading="lazy"
-                                width="148"
-                                height="148"
-                                src={`assets/images/section/review-${image}.jpg`}
-                                alt="Customer review"
-                              />
-                            </div>
-                          ))}
-                        </div>
-
-                        <p className="review_prd text-body-s cl-text-5">
-                          Review for{" "}
-                          <span className="text-decoration-underline">
-                            AHA Rosaline Serum 10%
-                          </span>
-                        </p>
                       </div>
-
-                      <div className="col-right comment-action">
-                        <p className="review_date text-ssm-end text-body-s cl-text-5">Dec 22, 2025</p>
-                        <div className="group-react">
-                          <button type="button" className="react-btn like">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">9</span>
-                          </button>
-                          <button type="button" className="react-btn dislike">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">0</span>
-                          </button>
-                        </div>
-                      </div>
+                      <p className="rate__text">
+                        Average rating ({reviewsData.totalReviews} review{reviewsData.totalReviews === 1 ? "" : "s"})
+                      </p>
                     </div>
 
-                    {/* Review 2 */}
-                    <div className="box-comment">
-                      <div className="col-left">
-                        <div className="comment-author">
-                          <div className="author-avt">
-                            <img
-                              loading="lazy"
-                              width="64"
-                              height="64"
-                              src="assets/images/avatar/avt-2.jpg"
-                              alt="JJ Samaluk"
-                            />
-                          </div>
-                          <div className="more">
-                            <p className="author-name text-body-l fw-normal">JJ Samaluk</p>
-                            <div className="author-verified fw-me">
-                              <i className="icon icon-Verified"></i>
-                              Verified buyer
+                    <div className="br-line xl-d-none"></div>
+
+                    <div className="rating_progress-list">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const item = reviewsData.breakdown[star] || { count: 0, percent: 0 };
+                        return (
+                          <div className="rate_progress-item" key={star}>
+                            <span className="number-star">
+                              {star}
+                              <i className="icon icon-Star-Sharp" style={{ color: "#f59e0b" }}></i>
+                            </span>
+
+                            <div
+                              className="progress"
+                              role="progressbar"
+                              aria-label={`${star} star reviews`}
+                              aria-valuenow={item.percent}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                            >
+                              <div
+                                className="progress-bar"
+                                style={{ width: `${item.percent}%` }}
+                              ></div>
                             </div>
-                          </div>
-                        </div>
 
-                        <div className="comment-tag">
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Oily Skin</a>
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Uneven skin tone</a>
-                        </div>
+                            <span className="number-percent text-body-s">{item.count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="br-line bg-line-5"></div>
+
+                  <div className="desc_review__comment">
+                    {reviewsLoading ? (
+                      <div className="text-center py-5">
+                        <p className="text-muted">Loading customer reviews...</p>
                       </div>
-
-                      <div className="col-center comment-review">
-                        <div className="star-wrap fs-24 gap-4">
-                          {[1, 2, 3, 4].map((star) => (
-                            <i className="icon icon-Star-Sharp" key={star}></i>
-                          ))}
-                          <i className="icon icon-Star-Sharp-Stroke"></i>
-                        </div>
-
-                        <div className="review_text">
-                          <p className="text-1 h7 fw-normal">
-                            “Gentle but effective exfoliation”
-                          </p>
-                          <p className="text-2 cl-text-5">
-                            I was influenced by skincare TikTok and honestly didn’t expect
-                            much — but wow. I massage this into my skin at night and wake
-                            up with clearer, brighter skin. I noticed less congestion and
-                            fewer blackheads after the first week. It feels like a
-                            professional exfoliation without the irritation.
-                          </p>
-                        </div>
-
-                        <div className="review_image">
-                          <div className="image-item">
-                            <img
-                              loading="lazy"
-                              width="148"
-                              height="148"
-                              src="assets/images/section/review-3.jpg"
-                              alt="Customer review"
-                            />
-                          </div>
-                        </div>
-
-                        <p className="review_prd text-body-s cl-text-5">
-                          Review for{" "}
-                          <span className="text-decoration-underline">
-                            Multivitamin Body Serum
-                          </span>
+                    ) : reviewsData.reviews.length === 0 ? (
+                      <div className="text-center py-5">
+                        <h5 className="font-instrument_serif fw-normal mb-2">No reviews yet</h5>
+                        <p className="text-muted cl-text-5">
+                          Be the first to share your experience with {product?.name}!
                         </p>
                       </div>
+                    ) : (
+                      <div className="list-comment">
+                        {reviewsData.reviews.map((rev) => (
+                          <div className="box-comment" key={rev._id}>
+                            <div className="col-left">
+                              <div className="comment-author">
+                                <div className="author-avt">
+                                  <div
+                                    className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle fw-bold"
+                                    style={{ width: "48px", height: "48px", fontSize: "18px" }}
+                                  >
+                                    {(rev.name || "C").charAt(0).toUpperCase()}
+                                  </div>
+                                </div>
+                                <div className="more">
+                                  <p className="author-name text-body-l fw-normal">{rev.name}</p>
+                                  <div className="author-verified fw-me">
+                                    <i className="icon icon-Verified"></i>
+                                    Verified buyer
+                                  </div>
+                                </div>
+                              </div>
 
-                      <div className="col-right comment-action">
-                        <p className="review_date text-ssm-end text-body-s cl-text-5">Dec 10, 2025</p>
-                        <div className="group-react">
-                          <button type="button" className="react-btn like">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">6</span>
-                          </button>
-                          <button type="button" className="react-btn dislike">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">0</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                              {(rev.skinType || (rev.skinConcerns && rev.skinConcerns.length > 0)) && (
+                                <div className="comment-tag">
+                                  {rev.skinType && (
+                                    <span className="tag-item text-body-s">{rev.skinType}</span>
+                                  )}
+                                  {rev.skinConcerns?.map((concern, idx) => (
+                                    <span className="tag-item text-body-s" key={idx}>
+                                      {concern}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
-                    {/* Review 3 */}
-                    <div className="box-comment">
-                      <div className="col-left">
-                        <div className="comment-author">
-                          <div className="author-avt">
-                            <img
-                              loading="lazy"
-                              width="64"
-                              height="64"
-                              src="assets/images/avatar/avt-3.jpg"
-                              alt="Sophia K."
-                            />
-                          </div>
-                          <div className="more">
-                            <p className="author-name text-body-l fw-normal">Sophia K.</p>
-                            <div className="author-verified fw-me">
-                              <i className="icon icon-Verified"></i>
-                              Verified buyer
+                            <div className="col-center comment-review">
+                              <div className="star-wrap fs-24 gap-4">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <i
+                                    className={star <= rev.rating ? "icon icon-Star-Sharp" : "icon icon-Star-Sharp-Stroke"}
+                                    key={star}
+                                    style={{ color: star <= rev.rating ? "#f59e0b" : "#94a3b8" }}
+                                  ></i>
+                                ))}
+                              </div>
+
+                              <div className="review_text">
+                                <p className="text-1 h7 fw-normal">&ldquo;{rev.title}&rdquo;</p>
+                                <p className="text-2 cl-text-5">{rev.review}</p>
+                              </div>
+
+                              {rev.images && rev.images.length > 0 && (
+                                <div className="review_image">
+                                  {rev.images.map((imgUrl, idx) => (
+                                    <div className="image-item" key={idx}>
+                                      <img
+                                        loading="lazy"
+                                        width="148"
+                                        height="148"
+                                        src={imgUrl}
+                                        alt="Customer review photo"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <p className="review_prd text-body-s cl-text-5">
+                                Review for{" "}
+                                <span className="text-decoration-underline">
+                                  {product?.name}
+                                </span>
+                              </p>
+                            </div>
+
+                            <div className="col-right comment-action">
+                              <p className="review_date text-ssm-end text-body-s cl-text-5">
+                                {new Date(rev.createdAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </p>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="comment-tag">
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Sensitive</a>
-                          <a href="#" onClick={(e) => e.preventDefault()} className="tag-item text-body-s">Blackheads / congestion</a>
-                        </div>
+                        ))}
                       </div>
-
-                      <div className="col-center comment-review">
-                        <div className="star-wrap fs-24 gap-4">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <i className="icon icon-Star-Sharp" key={star}></i>
-                          ))}
-                        </div>
-
-                        <div className="review_text">
-                          <p className="text-1 h7 fw-normal">
-                            “Perfect addition to my nighttime routine”
-                          </p>
-                          <p className="text-2 cl-text-5">
-                            This serum layers beautifully with the rest of my skincare.
-                            It absorbs fast, doesn’t pill, and I wake up with glowing
-                            skin. I’ve noticed makeup applies much more smoothly since
-                            using this.
-                          </p>
-                        </div>
-
-                        <div className="review_image">
-                          <div className="image-item">
-                            <img
-                              loading="lazy"
-                              width="148"
-                              height="148"
-                              src="assets/images/section/review-3.jpg"
-                              alt="Customer review"
-                            />
-                          </div>
-                        </div>
-
-                        <p className="review_prd text-body-s cl-text-5">
-                          Review for{" "}
-                          <span className="text-decoration-underline">
-                            Multivitamin Body Serum
-                          </span>
-                        </p>
-                      </div>
-
-                      <div className="col-right comment-action">
-                        <p className="review_date text-ssm-end text-body-s cl-text-5">Dec 4, 2025</p>
-                        <div className="group-react">
-                          <button type="button" className="react-btn like">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">11</span>
-                          </button>
-                          <button type="button" className="react-btn dislike">
-                            <i className="icon icon-Like"></i>
-                            <span className="number_react">0</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Write Review Modal */}
-      <div
-        className="modal modalCentered fade modal-write-review"
-        id="modalWriteReview"
-        tabIndex="-1"
-        aria-labelledby="modalWriteReviewTitle"
-        aria-hidden="true"
-      >
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-heading">
-              <h5
-                id="modalWriteReviewTitle"
-                className="font-instrument_serif fw-normal"
-              >
-                Write a Reviews
-              </h5>
-              <button
-                type="button"
-                className="btn-unstyled"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              >
-                <i className="icon icon-Close link-rotate"></i>
-              </button>
-            </div>
-
-            <form
-              className="form-write-review"
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Your review has been submitted.");
-              }}
-            >
-              <div className="form-content">
-                <fieldset className="tf-field">
-                  <p className="text-body-xs">Score*</p>
-                  <div className="star-wrap fs-24 gap-4 rate-click cs-pointer">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <i className="icon icon-Star-Sharp-Stroke" key={star}></i>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <label htmlFor="yourName_review" className="text-body-xs">
-                    Your name*
-                  </label>
-                  <input
-                    type="text"
-                    id="yourName_review"
-                    name="yourName_review"
-                    className="style-3"
-                    placeholder="Your name*"
-                    defaultValue="Patrick Dang"
-                    required
-                  />
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <label htmlFor="yourTitle_review" className="text-body-xs">
-                    Review title*
-                  </label>
-                  <input
-                    type="text"
-                    id="yourTitle_review"
-                    name="yourTitle_review"
-                    className="style-3"
-                    placeholder="Review title*"
-                    defaultValue="Visible glow in under a week"
-                    required
-                  />
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <label htmlFor="yourReview_review" className="text-body-xs">
-                    Your review*
-                  </label>
-                  <textarea
-                    name="yourReview_review"
-                    id="yourReview_review"
-                    className="style-3"
-                    placeholder="Tell us about your experience. How did it feel on your skin? What changes did you notice?"
-                    required
-                  ></textarea>
-                  <label
-                    htmlFor="yourReview_review"
-                    className="text-body-xs cl-text-5"
-                  >
-                    Please note, comments need to be approved before they are published.
-                  </label>
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <p className="text-body-xs">Image review*</p>
-                  <div className="box-uploadImage">
-                    <ul className="image-upload_list">
-                      <li className="image-upload_item">
-                        <img
-                          loading="lazy"
-                          width="104"
-                          height="104"
-                          src="assets/images/section/review-1.jpg"
-                          alt="Review upload preview"
-                        />
-                      </li>
-                    </ul>
-
-                    <div className="group-action">
-                      <label
-                        htmlFor="reviewImageUpload"
-                        className="btn-action_upload tf-btn type-3 style-2 btn-stroke-2"
-                      >
-                        upload <i className="icon icon-Upload"></i>
-                      </label>
-                      <input
-                        type="file"
-                        id="reviewImageUpload"
-                        name="reviewImageUpload"
-                        accept="image/*"
-                        hidden
-                      />
-
-                      <button type="button" className="tf-btn-rounded style-2">
-                        <i className="icon icon-Refresh"></i>
-                      </button>
-                      <button type="button" className="btn-action_remove-upload tf-btn-rounded style-2">
-                        <i className="icon icon-Trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <p className="text-body-xs">Skin type</p>
-                  <div className="grid-choose tf-grid-layout sm-col-2 w-100">
-                    {[
-                      ["skinNormal", "Normal"],
-                      ["skinCombination", "Combination"],
-                      ["skinDry", "Dry"],
-                      ["skinSensitive", "Sensitive"],
-                      ["skinOily", "Oily"],
-                    ].map(([id, label]) => (
-                      <div className="checkbox-wrap" key={id}>
-                        <input
-                          type="radio"
-                          id={id}
-                          name="skin-type"
-                          value={label}
-                          className="tf-check"
-                        />
-                        <label htmlFor={id}>{label}</label>
-                      </div>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className="tf-field">
-                  <p className="text-body-xs">Skin concerns</p>
-                  <div className="grid-choose tf-grid-layout sm-col-2 w-100">
-                    {[
-                      ["skinDullness", "Dullness"],
-                      ["skinBlackheads", "Blackheads / congestion"],
-                      ["skinUnevenTexture", "Uneven texture"],
-                      ["skinUnevenSkinTone", "Uneven skin tone"],
-                      ["skinEnlargedPores", "Enlarged pores"],
-                      ["skinSensitivity", "Sensitivity"],
-                    ].map(([id, label]) => (
-                      <div className="checkbox-wrap" key={id}>
-                        <input
-                          type="radio"
-                          id={id}
-                          name="skin-concerns"
-                          value={label}
-                          className="tf-check"
-                        />
-                        <label htmlFor={id}>{label}</label>
-                      </div>
-                    ))}
-                  </div>
-                </fieldset>
+      {/* Write Review Modal (Rendered only when Reviews tab is enabled) */}
+      {reviewsEnabled && (
+        <div
+          className="modal modalCentered fade modal-write-review"
+          id="modalWriteReview"
+          tabIndex="-1"
+          aria-labelledby="modalWriteReviewTitle"
+          aria-hidden="true"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-heading">
+                <h5 id="modalWriteReviewTitle" className="font-instrument_serif fw-normal">
+                  Write a Review
+                </h5>
+                <button
+                  type="button"
+                  className="btn-unstyled"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                >
+                  <i className="icon icon-Close link-rotate"></i>
+                </button>
               </div>
 
-              <button type="submit" className="tf-btn style-2 type-2 w-100">
-                Submit review
-              </button>
-            </form>
+              {submitFeedback && (
+                <div
+                  className={`alert alert-${submitFeedback.type} m-3`}
+                  role="alert"
+                >
+                  {submitFeedback.message}
+                </div>
+              )}
+
+              <form className="form-write-review" onSubmit={handleSubmitReview}>
+                <div className="form-content">
+                  <fieldset className="tf-field">
+                    <p className="text-body-xs">Score*</p>
+                    <div className="star-wrap fs-24 gap-4 rate-click cs-pointer">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <i
+                          key={star}
+                          className={star <= reviewScore ? "icon icon-Star-Sharp" : "icon icon-Star-Sharp-Stroke"}
+                          style={{ color: star <= reviewScore ? "#f59e0b" : "#94a3b8", cursor: "pointer" }}
+                          onClick={() => setReviewScore(star)}
+                        ></i>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <label htmlFor="yourName_review" className="text-body-xs">
+                      Your name*
+                    </label>
+                    <input
+                      type="text"
+                      id="yourName_review"
+                      name="yourName_review"
+                      className="style-3"
+                      placeholder="Your name*"
+                      value={reviewName}
+                      onChange={(e) => setReviewName(e.target.value)}
+                      required
+                    />
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <label htmlFor="yourTitle_review" className="text-body-xs">
+                      Review title*
+                    </label>
+                    <input
+                      type="text"
+                      id="yourTitle_review"
+                      name="yourTitle_review"
+                      className="style-3"
+                      placeholder="Review title*"
+                      value={reviewTitle}
+                      onChange={(e) => setReviewTitle(e.target.value)}
+                      required
+                    />
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <label htmlFor="yourReview_review" className="text-body-xs">
+                      Your review*
+                    </label>
+                    <textarea
+                      name="yourReview_review"
+                      id="yourReview_review"
+                      className="style-3"
+                      placeholder="Tell us about your experience with this product..."
+                      value={reviewBody}
+                      onChange={(e) => setReviewBody(e.target.value)}
+                      required
+                    ></textarea>
+                    <label htmlFor="yourReview_review" className="text-body-xs cl-text-5">
+                      Please note: Reviews are reviewed and approved by admin before they appear on the site.
+                    </label>
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <p className="text-body-xs">Upload photos (optional)</p>
+                    <div className="box-uploadImage">
+                      <div className="group-action">
+                        <label
+                          htmlFor="reviewImageUpload"
+                          className="btn-action_upload tf-btn type-3 style-2 btn-stroke-2"
+                          style={{ cursor: "pointer" }}
+                        >
+                          Choose Photos <i className="icon icon-Upload"></i>
+                        </label>
+                        <input
+                          type="file"
+                          id="reviewImageUpload"
+                          name="reviewImageUpload"
+                          accept="image/*"
+                          multiple
+                          hidden
+                          onChange={(e) => setReviewImages(e.target.files)}
+                        />
+                        {reviewImages && reviewImages.length > 0 && (
+                          <span className="small text-success ms-2">
+                            {reviewImages.length} photo(s) selected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <p className="text-body-xs">Skin type</p>
+                    <div className="grid-choose tf-grid-layout sm-col-2 w-100">
+                      {[
+                        ["skinNormal", "Normal"],
+                        ["skinCombination", "Combination"],
+                        ["skinDry", "Dry"],
+                        ["skinSensitive", "Sensitive"],
+                        ["skinOily", "Oily"],
+                      ].map(([id, label]) => (
+                        <div className="checkbox-wrap" key={id}>
+                          <input
+                            type="radio"
+                            id={id}
+                            name="skin-type"
+                            value={label}
+                            checked={reviewSkinType === label}
+                            onChange={() => setReviewSkinType(label)}
+                            className="tf-check"
+                          />
+                          <label htmlFor={id}>{label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="tf-field">
+                    <p className="text-body-xs">Skin concerns</p>
+                    <div className="grid-choose tf-grid-layout sm-col-2 w-100">
+                      {[
+                        ["skinDullness", "Dullness"],
+                        ["skinBlackheads", "Blackheads / congestion"],
+                        ["skinUnevenTexture", "Uneven texture"],
+                        ["skinUnevenSkinTone", "Uneven skin tone"],
+                        ["skinEnlargedPores", "Enlarged pores"],
+                        ["skinSensitivity", "Sensitivity"],
+                      ].map(([id, label]) => {
+                        const isChecked = reviewSkinConcerns.includes(label);
+                        return (
+                          <div className="checkbox-wrap" key={id}>
+                            <input
+                              type="checkbox"
+                              id={id}
+                              name="skin-concerns"
+                              value={label}
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setReviewSkinConcerns([...reviewSkinConcerns, label]);
+                                } else {
+                                  setReviewSkinConcerns(reviewSkinConcerns.filter((c) => c !== label));
+                                }
+                              }}
+                              className="tf-check"
+                            />
+                            <label htmlFor={id}>{label}</label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                </div>
+
+                <button
+                  type="submit"
+                  className="tf-btn style-2 type-2 w-100"
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? "Submitting review..." : "Submit review"}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-      {/* /Write Review */}
+      )}
     </>
   );
 }

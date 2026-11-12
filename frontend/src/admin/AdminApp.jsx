@@ -15,7 +15,14 @@ import {
   FiVideo,
   FiLogOut,
   FiChevronRight,
-  FiHome
+  FiHome,
+  FiStar,
+  FiPlus,
+  FiTrash2,
+  FiCheck,
+  FiX,
+  FiFileText,
+  FiEdit3
 } from "react-icons/fi";
 import { API_BASE as API_BASE_CONFIG } from "../config";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -139,6 +146,113 @@ export default function AdminApp() {
   // Product sizes selection
   const [selectedSizes, setSelectedSizes] = useState([]);
 
+  // Product Details Tab Management States
+  const [tabConfig, setTabConfig] = useState({
+    descriptionEnabled: true,
+    ingredientsEnabled: true,
+    reviewsEnabled: true,
+  });
+  const [ingredients, setIngredients] = useState([]);
+
+  // Review Moderation States
+  const [adminReviews, setAdminReviews] = useState([]);
+  const [reviewsFilter, setReviewsFilter] = useState("all");
+  const [reviewsProductFilter, setReviewsProductFilter] = useState("all");
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+  const [approvedReviewsCount, setApprovedReviewsCount] = useState(0);
+  const [rejectedReviewsCount, setRejectedReviewsCount] = useState(0);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  // Product Content Management States
+  const [selectedContentProductId, setSelectedContentProductId] = useState("");
+  const [contentDescription, setContentDescription] = useState("");
+  const [contentIngredients, setContentIngredients] = useState([]);
+  const [contentTabConfig, setContentTabConfig] = useState({
+    descriptionEnabled: true,
+    ingredientsEnabled: true,
+    reviewsEnabled: true,
+  });
+  const [contentIngredientsImage, setContentIngredientsImage] = useState("");
+  const [ingredientsImageFile, setIngredientsImageFile] = useState(null);
+  const [ingredientsImagePreview, setIngredientsImagePreview] = useState("");
+  const [removeIngredientsImage, setRemoveIngredientsImage] = useState(false);
+  const [savingContent, setSavingContent] = useState(false);
+  const [contentFeedback, setContentFeedback] = useState(null);
+
+  // Synchronize Content Management fields when selected product changes
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const targetId = selectedContentProductId || products[0]._id;
+      const prod = products.find(p => p._id === targetId);
+      if (prod) {
+        if (!selectedContentProductId) setSelectedContentProductId(prod._id);
+        setContentDescription(prod.description || "");
+        setContentTabConfig({
+          descriptionEnabled: prod.tabConfig?.descriptionEnabled !== false,
+          ingredientsEnabled: prod.tabConfig?.ingredientsEnabled !== false,
+          reviewsEnabled: prod.tabConfig?.reviewsEnabled !== false,
+        });
+        const existingIngs = (prod.ingredients && prod.ingredients.length > 0)
+          ? prod.ingredients
+          : (prod.keyIngredients || []);
+        setContentIngredients(existingIngs.map((ing, idx) => ({
+          name: ing.name || "",
+          percentage: ing.percentage || "",
+          description: ing.description || "",
+          order: ing.order !== undefined ? ing.order : idx,
+        })));
+        setContentIngredientsImage(prod.ingredientsImage || "");
+        setIngredientsImageFile(null);
+        setIngredientsImagePreview(prod.ingredientsImage || "");
+        setRemoveIngredientsImage(false);
+      }
+    }
+  }, [selectedContentProductId, products]);
+
+  // Product Tab Image Management States
+  const [selectedTabImageProductId, setSelectedTabImageProductId] = useState("");
+  const [tabImagesSearch, setTabImagesSearch] = useState("");
+  const [tabImagesData, setTabImagesData] = useState({
+    howToUseImage: { url: "", file: null, preview: "", remove: false },
+    whatItDoesImage: { url: "", file: null, preview: "", remove: false },
+    ingredientsImage: { url: "", file: null, preview: "", remove: false },
+  });
+  const [savingTabImages, setSavingTabImages] = useState(false);
+  const [tabImagesFeedback, setTabImagesFeedback] = useState(null);
+
+  // Synchronize Tab Image Management fields when selected product changes
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const targetId = selectedTabImageProductId || products[0]._id;
+      if (!selectedTabImageProductId) {
+        setSelectedTabImageProductId(targetId);
+      }
+      const prod = products.find(p => p._id === targetId);
+      if (prod) {
+        setTabImagesData({
+          howToUseImage: {
+            url: prod.howToUseImage || "",
+            file: null,
+            preview: prod.howToUseImage || "",
+            remove: false,
+          },
+          whatItDoesImage: {
+            url: prod.whatItDoesImage || "",
+            file: null,
+            preview: prod.whatItDoesImage || "",
+            remove: false,
+          },
+          ingredientsImage: {
+            url: prod.ingredientsImage || "",
+            file: null,
+            preview: prod.ingredientsImage || "",
+            remove: false,
+          },
+        });
+      }
+    }
+  }, [selectedTabImageProductId, products]);
+
   const API_BASE = `${API_BASE_CONFIG}`;
 
   // Check role & load initial dashboard stats
@@ -156,8 +270,333 @@ export default function AdminApp() {
       if (res.ok && data.success) {
         setStats(data.stats);
       }
+      // Also fetch pending reviews count for notification badge
+      fetchAdminReviews();
     } catch (err) {
       console.error("Error loading stats:", err);
+    }
+  };
+
+  const fetchAdminReviews = async (statusFilter = reviewsFilter, productFilter = reviewsProductFilter) => {
+    setReviewsLoading(true);
+    try {
+      const params = ['limit=100'];
+      if (statusFilter && statusFilter !== 'all') {
+        params.push(`status=${encodeURIComponent(statusFilter)}`);
+      }
+      if (productFilter && productFilter !== 'all') {
+        params.push(`productId=${encodeURIComponent(productFilter)}`);
+      }
+      const url = `${API_BASE}/reviews/admin?${params.join('&')}`;
+      const res = await authFetch(url);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAdminReviews(data.reviews || []);
+        setPendingReviewsCount(data.pendingCount || 0);
+        setApprovedReviewsCount(data.approvedCount || 0);
+        setRejectedReviewsCount(data.rejectedCount || 0);
+      }
+    } catch (err) {
+      console.error("Error loading reviews for admin:", err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleUpdateReviewStatus = async (id, status) => {
+    try {
+      const res = await authFetch(`${API_BASE}/reviews/admin/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchAdminReviews(reviewsFilter, reviewsProductFilter);
+      } else {
+        alert(data.message || "Failed to update review status");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating review status");
+    }
+  };
+
+  const handleDeleteReview = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    try {
+      const res = await authFetch(`${API_BASE}/reviews/admin/${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchAdminReviews(reviewsFilter, reviewsProductFilter);
+      } else {
+        alert(data.message || "Failed to delete review");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting review");
+    }
+  };
+
+  const handleIngredientsImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate format: JPG, JPEG, PNG, WEBP
+    const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!validFormats.includes(file.type.toLowerCase())) {
+      setContentFeedback({
+        type: "danger",
+        message: "Invalid file format. Only JPG, JPEG, PNG, and WEBP formats are supported.",
+      });
+      return;
+    }
+
+    // Validate size: Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      setContentFeedback({
+        type: "danger",
+        message: "Image file size exceeds maximum limit of 10MB.",
+      });
+      return;
+    }
+
+    setIngredientsImageFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setIngredientsImagePreview(previewUrl);
+    setRemoveIngredientsImage(false);
+    setContentFeedback({
+      type: "info",
+      message: `Image ready: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB). Click "Save Product Content" to upload and save.`,
+    });
+  };
+
+  const handleRemoveIngredientsImage = () => {
+    setIngredientsImageFile(null);
+    setIngredientsImagePreview("");
+    setRemoveIngredientsImage(true);
+    setContentFeedback({
+      type: "warning",
+      message: "Image marked for removal. Click \"Save Product Content\" to apply changes.",
+    });
+  };
+
+  const saveProductContent = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedContentProductId) {
+      alert("Please select a product first.");
+      return;
+    }
+
+    const validIngredients = contentIngredients
+      .filter(ing => ing && ing.name && ing.name.trim().length > 0)
+      .map((ing, idx) => ({
+        name: ing.name.trim(),
+        percentage: ing.percentage ? ing.percentage.trim() : "",
+        description: ing.description ? ing.description.trim() : "",
+        order: ing.order !== undefined ? ing.order : idx,
+      }));
+
+    setSavingContent(true);
+    setContentFeedback(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("description", contentDescription);
+      formData.append("ingredients", JSON.stringify(validIngredients));
+      formData.append("tabConfig", JSON.stringify(contentTabConfig));
+
+      if (ingredientsImageFile) {
+        formData.append("ingredientsImage", ingredientsImageFile);
+      } else if (removeIngredientsImage) {
+        formData.append("removeIngredientsImage", "true");
+      }
+
+      let res = await authFetch(`${API_BASE}/products/${selectedContentProductId}/content`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      let data = await res.json().catch(() => ({}));
+
+      // Fallback to standard product update endpoint if /content route is missing
+      if (res.status === 404 || data.message === "API Route not found") {
+        const currentProd = products.find(p => p._id === selectedContentProductId);
+        if (currentProd?.images) {
+          formData.append("remainingImages", JSON.stringify(currentProd.images));
+        }
+
+        res = await authFetch(`${API_BASE}/products/${selectedContentProductId}`, {
+          method: 'PUT',
+          body: formData,
+        });
+        data = await res.json().catch(() => ({}));
+      }
+
+      if (res.ok && data.success) {
+        const updatedProduct = data.product;
+        const newImg = updatedProduct?.ingredientsImage !== undefined
+          ? updatedProduct.ingredientsImage
+          : (removeIngredientsImage ? "" : (contentIngredientsImage || ""));
+
+        setContentIngredientsImage(newImg);
+        setIngredientsImagePreview(newImg);
+        setIngredientsImageFile(null);
+        setRemoveIngredientsImage(false);
+
+        setContentFeedback({
+          type: "success",
+          message: "Product content (Description, Key Ingredients, Ingredients Section Image, and Tab Config) updated successfully!",
+        });
+        setProducts(prev => prev.map(p => p._id === selectedContentProductId ? {
+          ...p,
+          description: contentDescription,
+          tabConfig: contentTabConfig,
+          ingredients: validIngredients,
+          keyIngredients: validIngredients,
+          ingredientsImage: newImg,
+        } : p));
+      } else {
+        setContentFeedback({
+          type: "danger",
+          message: data.message || "Failed to update product content.",
+        });
+      }
+    } catch (err) {
+      console.error("Error saving product content:", err);
+      setContentFeedback({
+        type: "danger",
+        message: "An error occurred while saving product content.",
+      });
+    } finally {
+      setSavingContent(false);
+    }
+  };
+
+  const handleTabImageChange = (fieldName, file) => {
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setTabImagesFeedback({
+        type: "danger",
+        message: "Invalid file format. Only JPG, JPEG, PNG, and WEBP formats are supported.",
+      });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setTabImagesFeedback({
+        type: "danger",
+        message: "Image size exceeds maximum limit of 10MB.",
+      });
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setTabImagesData(prev => ({
+      ...prev,
+      [fieldName]: {
+        ...prev[fieldName],
+        file,
+        preview: previewUrl,
+        remove: false,
+      },
+    }));
+    setTabImagesFeedback(null);
+  };
+
+  const handleTabImageRemove = (fieldName) => {
+    setTabImagesData(prev => ({
+      ...prev,
+      [fieldName]: {
+        url: "",
+        file: null,
+        preview: "",
+        remove: true,
+      },
+    }));
+    setTabImagesFeedback(null);
+  };
+
+  const saveProductTabImages = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedTabImageProductId) {
+      alert("Please select a product first.");
+      return;
+    }
+
+    setSavingTabImages(true);
+    setTabImagesFeedback(null);
+
+    try {
+      const formData = new FormData();
+
+      // How to Use Image
+      if (tabImagesData.howToUseImage.file) {
+        formData.append("howToUseImage", tabImagesData.howToUseImage.file);
+      } else if (tabImagesData.howToUseImage.remove) {
+        formData.append("removeHowToUseImage", "true");
+      }
+
+      // What It Does Image
+      if (tabImagesData.whatItDoesImage.file) {
+        formData.append("whatItDoesImage", tabImagesData.whatItDoesImage.file);
+      } else if (tabImagesData.whatItDoesImage.remove) {
+        formData.append("removeWhatItDoesImage", "true");
+      }
+
+      // Ingredients Image
+      if (tabImagesData.ingredientsImage.file) {
+        formData.append("ingredientsImage", tabImagesData.ingredientsImage.file);
+      } else if (tabImagesData.ingredientsImage.remove) {
+        formData.append("removeIngredientsImage", "true");
+      }
+
+      const res = await authFetch(`${API_BASE}/products/${selectedTabImageProductId}/tab-images`, {
+        method: "PATCH",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        const returnedImages = data.tabImages || data.product || {};
+        const newHowToUse = returnedImages.howToUseImage !== undefined ? returnedImages.howToUseImage : (tabImagesData.howToUseImage.remove ? "" : tabImagesData.howToUseImage.url);
+        const newWhatItDoes = returnedImages.whatItDoesImage !== undefined ? returnedImages.whatItDoesImage : (tabImagesData.whatItDoesImage.remove ? "" : tabImagesData.whatItDoesImage.url);
+        const newIngredients = returnedImages.ingredientsImage !== undefined ? returnedImages.ingredientsImage : (tabImagesData.ingredientsImage.remove ? "" : tabImagesData.ingredientsImage.url);
+
+        setTabImagesData({
+          howToUseImage: { url: newHowToUse, file: null, preview: newHowToUse, remove: false },
+          whatItDoesImage: { url: newWhatItDoes, file: null, preview: newWhatItDoes, remove: false },
+          ingredientsImage: { url: newIngredients, file: null, preview: newIngredients, remove: false },
+        });
+
+        // Update global products list so UI stays instantly synchronized
+        setProducts(prev => prev.map(p => p._id === selectedTabImageProductId ? {
+          ...p,
+          howToUseImage: newHowToUse,
+          whatItDoesImage: newWhatItDoes,
+          ingredientsImage: newIngredients,
+        } : p));
+
+        setTabImagesFeedback({
+          type: "success",
+          message: "Product tab images saved successfully! Storefront will reflect the latest images.",
+        });
+      } else {
+        setTabImagesFeedback({
+          type: "danger",
+          message: data.message || "Failed to update product tab images.",
+        });
+      }
+    } catch (err) {
+      console.error("Error saving tab images:", err);
+      setTabImagesFeedback({
+        type: "danger",
+        message: "An error occurred while saving tab images. Please try again.",
+      });
+    } finally {
+      setSavingTabImages(false);
     }
   };
 
@@ -209,6 +648,12 @@ export default function AdminApp() {
         const res = await authFetch(`${API_BASE}/admin/refund-settings`);
         const data = await res.json();
         if (res.ok && data.success) setRefundSettings(data.settings);
+      } else if (tab === "reviews") {
+        await fetchAdminReviews();
+      } else if (tab === "product-content" || tab === "product-tab-images") {
+        const res = await fetch(`${API_BASE}/products?admin=true&limit=100`);
+        const data = await res.json();
+        if (res.ok && data.success) setProducts(data.products);
       }
     } catch (err) {
       console.error(`Error loading tab ${tab}:`, err);
@@ -398,6 +843,8 @@ export default function AdminApp() {
     formData.append("isShippingPaid", isShippingPaid);
     formData.append("categoryId", categoryId);
     formData.append("sizes", JSON.stringify(selectedSizes));
+    formData.append("tabConfig", JSON.stringify(tabConfig));
+    formData.append("ingredients", JSON.stringify(ingredients));
 
     // Append remaining images state on edit
     if (editingItem) {
@@ -626,6 +1073,23 @@ export default function AdminApp() {
         }
         return { size: s.size._id || s.size, mrpPrice: s.mrpPrice, salePrice: s.salePrice };
       }) : []);
+      setTabConfig(item && item.tabConfig ? {
+        descriptionEnabled: item.tabConfig.descriptionEnabled !== false,
+        ingredientsEnabled: item.tabConfig.ingredientsEnabled !== false,
+        reviewsEnabled: item.tabConfig.reviewsEnabled !== false,
+      } : {
+        descriptionEnabled: true,
+        ingredientsEnabled: true,
+        reviewsEnabled: true,
+      });
+      const modalIngs = (item && item.ingredients && item.ingredients.length > 0)
+        ? item.ingredients
+        : (item && item.keyIngredients ? item.keyIngredients : []);
+      setIngredients(modalIngs.map(ing => ({
+        name: ing.name || "",
+        percentage: ing.percentage || "",
+        description: ing.description || "",
+      })));
       setImageFiles([]);
     } else if (type === "stock") {
       setQty(item ? item.qty : "");
@@ -901,6 +1365,14 @@ export default function AdminApp() {
             <FiBox size={18} /> Product
             <FiChevronRight size={16} className="chevron-icon" />
           </button>
+          <button className={`nav-item-btn ${activeTab === "product-content" ? "active" : ""}`} onClick={() => setActiveTab("product-content")}>
+            <FiFileText size={18} /> Product Content
+            <FiChevronRight size={16} className="chevron-icon" />
+          </button>
+          <button className={`nav-item-btn ${activeTab === "product-tab-images" ? "active" : ""}`} onClick={() => setActiveTab("product-tab-images")}>
+            <FiImage size={18} /> Product Tab Images
+            <FiChevronRight size={16} className="chevron-icon" />
+          </button>
           <button className={`nav-item-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>
             <FiLayers size={18} /> Categories
             <FiChevronRight size={16} className="chevron-icon" />
@@ -912,6 +1384,15 @@ export default function AdminApp() {
           <button className={`nav-item-btn ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
             <FiShoppingBag size={18} /> Orders
             <FiChevronRight size={16} className="chevron-icon" />
+          </button>
+          <button className={`nav-item-btn ${activeTab === "reviews" ? "active" : ""}`} onClick={() => setActiveTab("reviews")}>
+            <FiStar size={18} /> Reviews
+            {pendingReviewsCount > 0 && (
+              <span className="badge bg-warning text-dark ms-auto me-2" style={{ fontSize: '10px', padding: '3px 6px', borderRadius: '10px' }}>
+                {pendingReviewsCount}
+              </span>
+            )}
+            <FiChevronRight size={16} className={`chevron-icon ${pendingReviewsCount > 0 ? '' : 'ms-auto'}`} />
           </button>
 
           <div className="mt-4 mb-2 ps-3 text-muted small fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>
@@ -1322,6 +1803,7 @@ export default function AdminApp() {
                         <th>MRP</th>
                         <th>Sale Price</th>
                         <th>Stock Qty</th>
+                        <th>Tabs Config</th>
                         <th>Status</th>
                         <th className="text-end">Actions</th>
                       </tr>
@@ -1346,6 +1828,19 @@ export default function AdminApp() {
                               <button className="btn btn-sm btn-link text-info p-0 ml-10" onClick={() => openModal("stock", prod)}>Adjust</button>
                             </td>
                             <td>
+                              <div className="d-flex flex-column gap-1" style={{ fontSize: '11px', minWidth: '110px' }}>
+                                <span className={`badge ${prod.tabConfig?.descriptionEnabled !== false ? 'bg-success text-white' : 'bg-secondary text-white'}`} style={{ fontSize: '10px' }}>
+                                  Desc: {prod.tabConfig?.descriptionEnabled !== false ? 'ON' : 'OFF'}
+                                </span>
+                                <span className={`badge ${prod.tabConfig?.ingredientsEnabled !== false ? 'bg-success text-white' : 'bg-secondary text-white'}`} style={{ fontSize: '10px' }}>
+                                  Ingr ({prod.ingredients?.length || 0}): {prod.tabConfig?.ingredientsEnabled !== false ? 'ON' : 'OFF'}
+                                </span>
+                                <span className={`badge ${prod.tabConfig?.reviewsEnabled !== false ? 'bg-success text-white' : 'bg-secondary text-white'}`} style={{ fontSize: '10px' }}>
+                                  Reviews: {prod.tabConfig?.reviewsEnabled !== false ? 'ON' : 'OFF'}
+                                </span>
+                              </div>
+                            </td>
+                            <td>
                               <button
                                 className={`btn btn-sm ${prod.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
                                 onClick={() => toggleStatus("product", prod._id, prod.status)}
@@ -1354,6 +1849,10 @@ export default function AdminApp() {
                               </button>
                             </td>
                             <td className="text-end">
+                              <button className="btn btn-sm btn-outline-primary mr-2" onClick={() => {
+                                setSelectedContentProductId(prod._id);
+                                setActiveTab("product-content");
+                              }} title="Manage Description and Key Ingredients">Content</button>
                               <button className="btn btn-sm btn-outline-info mr-2" onClick={() => {
                                 openModal("product", prod);
                               }}>Edit</button>
@@ -1389,6 +1888,1070 @@ export default function AdminApp() {
                 </div>
               </div>
             )}
+
+            {/* Product Content Management Tab */}
+            {activeTab === "product-content" && (() => {
+              const selectedProduct = products.find(p => p._id === selectedContentProductId) || products[0] || null;
+
+              return (
+                <div className="product-content-management">
+                  {/* Header Bar */}
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 bg-white rounded shadow-sm border">
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <FiFileText size={22} className="text-primary" />
+                        <h4 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Content Management</h4>
+                      </div>
+                      <p className="text-muted small mb-0 mt-1">
+                        Manage rich Product Description and dynamic Key Ingredients separately for each product
+                      </p>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      {selectedContentProductId && (
+                        <a
+                          href={`/ProductDetails?id=${selectedContentProductId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                          title="Open storefront product page in a new tab"
+                        >
+                          <FiHome size={14} /> View Storefront
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                        onClick={saveProductContent}
+                        disabled={savingContent || !selectedContentProductId}
+                      >
+                        {savingContent ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FiCheck size={16} /> Save Product Content
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Feedback Banner */}
+                  {contentFeedback && (
+                    <div className={`alert alert-${contentFeedback.type} alert-dismissible fade show d-flex align-items-center justify-content-between mb-4`} role="alert">
+                      <div>
+                        {contentFeedback.type === "success" ? <FiCheck className="me-2" /> : <FiX className="me-2" />}
+                        {contentFeedback.message}
+                      </div>
+                      <button type="button" className="btn-close" onClick={() => setContentFeedback(null)} aria-label="Close"></button>
+                    </div>
+                  )}
+
+                  {/* Step 1: Product Selector Card */}
+                  <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                    <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Step 1</span>
+                        <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Select Product to Manage</h6>
+                      </div>
+                      {selectedProduct && (
+                        <span className="badge bg-light text-dark border" style={{ fontSize: "11px" }}>
+                          ID: {selectedProduct._id}
+                        </span>
+                      )}
+                    </div>
+                    <div className="card-body p-3">
+                      <div className="row align-items-center">
+                        <div className="col-12 col-md-7 mb-2 mb-md-0">
+                          <label className="small fw-bold text-muted mb-1 block">Choose Product from Catalog</label>
+                          <select
+                            className="form-select form-select-lg"
+                            value={selectedContentProductId}
+                            onChange={(e) => {
+                              setSelectedContentProductId(e.target.value);
+                              setContentFeedback(null);
+                            }}
+                            style={{ fontSize: "15px", fontWeight: "500" }}
+                          >
+                            <option value="">-- Choose a product ({products.length} available) --</option>
+                            {products.map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.name} — ₹{p.salePrice} ({p.categoryId?.name || "General"})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {selectedProduct && (
+                          <div className="col-12 col-md-5">
+                            <div className="d-flex align-items-center gap-3 p-2 bg-light rounded border">
+                              <img
+                                src={selectedProduct.images?.[0] || "assets/images/products/serum_product.png"}
+                                alt={selectedProduct.name}
+                                style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px" }}
+                              />
+                              <div className="overflow-hidden">
+                                <div className="fw-bold text-truncate" style={{ fontSize: "14px", color: "#0f172a" }}>
+                                  {selectedProduct.name}
+                                </div>
+                                <div className="small text-muted">
+                                  ₹{selectedProduct.salePrice} &bull; Stock: {selectedProduct.qty} units &bull; {selectedProduct.categoryId?.name || "Skin Care"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedContentProductId ? (
+                    <div className="row g-4">
+                      {/* Section 1: Product Description */}
+                      <div className="col-12">
+                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Section 1</span>
+                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Description Management</h6>
+                              </div>
+                              <small className="text-muted">
+                                Enter and format complete product description (supports paragraphs, headings, bold text, lists, and line breaks).
+                              </small>
+                            </div>
+                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                              Rich Text Formatter
+                            </span>
+                          </div>
+                          <div className="card-body p-3">
+                            <div className="border rounded overflow-hidden" style={{ minHeight: "260px" }}>
+                              <CKEditor
+                                editor={ClassicEditor}
+                                config={{
+                                  licenseKey: "GPL",
+                                  plugins: [Essentials, Bold, Italic, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                                  toolbar: [
+                                    "heading",
+                                    "|",
+                                    "bold",
+                                    "italic",
+                                    "fontColor",
+                                    "fontBackgroundColor",
+                                    "|",
+                                    "bulletedList",
+                                    "numberedList",
+                                    "insertTable",
+                                    "link",
+                                    "undo",
+                                    "redo",
+                                  ],
+                                }}
+                                data={contentDescription}
+                                onChange={(event, editor) => {
+                                  setContentDescription(editor.getData());
+                                }}
+                              />
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-2">
+                              <small className="text-muted">
+                                Content is automatically saved against product ID: <code>{selectedContentProductId}</code>
+                              </small>
+                              <small className="text-muted">
+                                {contentDescription.replace(/<[^>]*>/g, "").length} characters
+                              </small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Key Ingredients */}
+                      <div className="col-12">
+                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Section 2</span>
+                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Key Ingredients – Multiple Add Option</h6>
+                              </div>
+                              <small className="text-muted">
+                                Add multiple dynamic ingredients with Name (required), optional Percentage/Quantity, and Description.
+                              </small>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary d-flex align-items-center gap-1 px-3 py-1 fw-semibold"
+                              onClick={() => {
+                                setContentIngredients([
+                                  ...contentIngredients,
+                                  { name: "", percentage: "", description: "" },
+                                ]);
+                              }}
+                            >
+                              <FiPlus size={16} /> Add Ingredient
+                            </button>
+                          </div>
+
+                          <div className="card-body p-3">
+                            {contentIngredients.length === 0 ? (
+                              <div className="text-center p-4 bg-light rounded border border-dashed">
+                                <FiLayers size={36} className="text-muted mb-2" />
+                                <h6 className="fw-bold mb-1" style={{ color: "#334155" }}>No Ingredients Added Yet</h6>
+                                <p className="text-muted small mb-3">
+                                  Add dynamic key ingredients for this product to display in the &quot;Ingredient Facts&quot; section.
+                                </p>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                                  onClick={() => {
+                                    setContentIngredients([
+                                      { name: "", percentage: "", description: "" },
+                                    ]);
+                                  }}
+                                >
+                                  <FiPlus size={14} /> Add First Ingredient
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="d-flex flex-column gap-3">
+                                {contentIngredients.map((ing, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="p-3 bg-white rounded border shadow-sm position-relative"
+                                    style={{ borderLeft: "4px solid #4f46e5" }}
+                                  >
+                                    <div className="d-flex align-items-center justify-content-between mb-2">
+                                      <div className="d-flex align-items-center gap-2">
+                                        <span className="badge bg-dark text-white rounded-pill px-2" style={{ fontSize: "11px" }}>
+                                          Ingredient #{idx + 1}
+                                        </span>
+                                        {ing.name && (
+                                          <span className="fw-bold" style={{ fontSize: "14px", color: "#1e293b" }}>
+                                            {ing.name} {ing.percentage ? `(${ing.percentage})` : ""}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="d-flex align-items-center gap-1">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                          disabled={idx === 0}
+                                          onClick={() => {
+                                            if (idx === 0) return;
+                                            const updated = [...contentIngredients];
+                                            const temp = updated[idx];
+                                            updated[idx] = updated[idx - 1];
+                                            updated[idx - 1] = temp;
+                                            setContentIngredients(updated);
+                                          }}
+                                          title="Move Up"
+                                        >
+                                          ↑
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                          disabled={idx === contentIngredients.length - 1}
+                                          onClick={() => {
+                                            if (idx === contentIngredients.length - 1) return;
+                                            const updated = [...contentIngredients];
+                                            const temp = updated[idx];
+                                            updated[idx] = updated[idx + 1];
+                                            updated[idx + 1] = temp;
+                                            setContentIngredients(updated);
+                                          }}
+                                          title="Move Down"
+                                        >
+                                          ↓
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 px-2 py-1"
+                                          onClick={() => {
+                                            setContentIngredients(contentIngredients.filter((_, i) => i !== idx));
+                                          }}
+                                          title="Remove this ingredient"
+                                        >
+                                          <FiTrash2 size={13} /> Remove
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="row g-2 mb-2">
+                                      <div className="col-12 col-md-7">
+                                        <label className="small fw-semibold text-muted mb-1 block">
+                                          Ingredient Name <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          placeholder="e.g. Ectoin, Niacinamide, Tranexamic Acid"
+                                          value={ing.name}
+                                          onChange={(e) => {
+                                            const updated = [...contentIngredients];
+                                            updated[idx].name = e.target.value;
+                                            setContentIngredients(updated);
+                                          }}
+                                          required
+                                        />
+                                      </div>
+                                      <div className="col-12 col-md-5">
+                                        <label className="small fw-semibold text-muted mb-1 block">
+                                          Percentage / Quantity <span className="text-muted fw-normal">(Optional)</span>
+                                        </label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          placeholder="e.g. 2%, 10%, 500mg, or leave blank"
+                                          value={ing.percentage}
+                                          onChange={(e) => {
+                                            const updated = [...contentIngredients];
+                                            updated[idx].percentage = e.target.value;
+                                            setContentIngredients(updated);
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <label className="small fw-semibold text-muted mb-1 block">
+                                        Ingredient Description &amp; Benefits <span className="text-muted fw-normal">(Explains active benefits on customer page)</span>
+                                      </label>
+                                      <textarea
+                                        rows={2}
+                                        className="form-control"
+                                        placeholder="e.g. A naturally derived extremolyte used in skincare for its skin-protective and hydration-supporting properties."
+                                        value={ing.description || ""}
+                                        onChange={(e) => {
+                                          const updated = [...contentIngredients];
+                                          updated[idx].description = e.target.value;
+                                          setContentIngredients(updated);
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+
+                                <div className="d-flex justify-content-between align-items-center pt-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                                    onClick={() => {
+                                      setContentIngredients([
+                                        ...contentIngredients,
+                                        { name: "", percentage: "", description: "" },
+                                      ]);
+                                    }}
+                                  >
+                                    <FiPlus size={14} /> Add Another Ingredient
+                                  </button>
+                                  <span className="text-muted small">
+                                    Total: {contentIngredients.length} ingredient{contentIngredients.length === 1 ? "" : "s"} &bull; Order preserved
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Ingredients Section Image */}
+                      <div className="col-12">
+                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Section 3</span>
+                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Ingredients Section Image</h6>
+                              </div>
+                              <small className="text-muted">
+                                Upload an image displayed in the Ingredients section on the customer product details page.
+                              </small>
+                            </div>
+                            <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>
+                              JPG, JPEG, PNG, WEBP (Max 10MB)
+                            </span>
+                          </div>
+
+                          <div className="card-body p-4">
+                            {ingredientsImagePreview ? (
+                              <div className="d-flex flex-column flex-md-row gap-4 align-items-start">
+                                <div
+                                  className="position-relative border rounded p-2 bg-light shadow-sm"
+                                  style={{
+                                    maxWidth: "380px",
+                                    width: "100%",
+                                    textAlign: "center",
+                                    borderRadius: "10px",
+                                  }}
+                                >
+                                  <img
+                                    src={ingredientsImagePreview}
+                                    alt="Ingredients section preview"
+                                    style={{
+                                      maxWidth: "100%",
+                                      maxHeight: "260px",
+                                      width: "auto",
+                                      height: "auto",
+                                      objectFit: "contain",
+                                      borderRadius: "6px",
+                                      display: "block",
+                                      margin: "0 auto",
+                                    }}
+                                  />
+                                  <div className="mt-2 text-center">
+                                    {ingredientsImageFile ? (
+                                      <span className="badge bg-warning text-dark">
+                                        New Image (Unsaved Preview &bull; {(ingredientsImageFile.size / (1024 * 1024)).toFixed(2)} MB)
+                                      </span>
+                                    ) : (
+                                      <span className="badge bg-success text-white">
+                                        Current Saved Image
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="d-flex flex-column gap-3 flex-grow-1">
+                                  <div>
+                                    <h6 className="fw-bold mb-1" style={{ color: "#1e293b" }}>
+                                      {ingredientsImageFile ? "Ready to Save New Image" : "Image Active on Storefront"}
+                                    </h6>
+                                    <p className="text-muted small mb-0">
+                                      This image displays dynamically under the Ingredients section on the product details page. You can replace or remove it at any time.
+                                    </p>
+                                  </div>
+
+                                  <div className="d-flex flex-wrap gap-2">
+                                    <label
+                                      className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2 px-3 py-2"
+                                      style={{ cursor: "pointer", fontWeight: "600" }}
+                                    >
+                                      <FiImage size={15} /> Replace Image
+                                      <input
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                        onChange={handleIngredientsImageChange}
+                                        hidden
+                                      />
+                                    </label>
+
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 px-3 py-2"
+                                      onClick={handleRemoveIngredientsImage}
+                                      style={{ fontWeight: "600" }}
+                                    >
+                                      <FiTrash2 size={15} /> Remove Image
+                                    </button>
+                                  </div>
+
+                                  <div className="small text-muted border-top pt-2 mt-auto">
+                                    &bull; <strong>Recommended:</strong> High-resolution infographic, ingredient breakdown, or lab facts graphic.<br />
+                                    &bull; Click <strong>Save Product Content</strong> below to persist your changes.
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                className="border border-2 border-dashed rounded p-4 text-center bg-light"
+                                style={{
+                                  borderRadius: "12px",
+                                  borderColor: "#cbd5e1",
+                                  transition: "all 0.2s ease",
+                                }}
+                              >
+                                <FiImage size={40} className="text-secondary mb-2" />
+                                <h6 className="fw-bold mb-1" style={{ color: "#334155" }}>
+                                  No Ingredients Section Image Uploaded
+                                </h6>
+                                <p className="text-muted small mb-3">
+                                  Upload a custom ingredients graphic or infographic for this product.<br />
+                                  Supports JPG, JPEG, PNG, and WEBP formats (up to 10MB).
+                                </p>
+
+                                <label
+                                  className="btn btn-primary btn-sm d-inline-flex align-items-center gap-2 px-4 py-2"
+                                  style={{ cursor: "pointer", fontWeight: "600" }}
+                                >
+                                  <FiPlus size={16} /> Choose Image from Computer
+                                  <input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                    onChange={handleIngredientsImageChange}
+                                    hidden
+                                  />
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 4: Product Details Tab Configuration */}
+                      <div className="col-12">
+                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Section 4</span>
+                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Details Tab Configuration</h6>
+                              </div>
+                              <small className="text-muted">
+                                Configure which tabs are visible to customers on this product's storefront page.
+                              </small>
+                            </div>
+                            <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>
+                              Independent Per Product
+                            </span>
+                          </div>
+
+                          <div className="card-body p-4">
+                            <div className="row g-3">
+                              {/* 1. Description Tab Switch */}
+                              <div className="col-12 col-md-4">
+                                <div className="p-3 border rounded h-100 bg-white">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="fw-bold" style={{ color: "#1e293b" }}>Description Tab</span>
+                                    <div className="form-check form-switch m-0">
+                                      <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="contentDescTabToggle"
+                                        style={{ width: "2.3em", height: "1.2em", cursor: "pointer" }}
+                                        checked={contentTabConfig.descriptionEnabled}
+                                        onChange={(e) => setContentTabConfig(prev => ({ ...prev, descriptionEnabled: e.target.checked }))}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="d-flex align-items-center justify-content-between">
+                                    <small className="text-muted">Show product description</small>
+                                    <span className={`badge ${contentTabConfig.descriptionEnabled ? "bg-success" : "bg-secondary"}`}>
+                                      {contentTabConfig.descriptionEnabled ? "Enabled" : "Disabled"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 2. Key Ingredients Tab Switch */}
+                              <div className="col-12 col-md-4">
+                                <div className="p-3 border rounded h-100 bg-white">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="fw-bold" style={{ color: "#1e293b" }}>Key Ingredients Tab</span>
+                                    <div className="form-check form-switch m-0">
+                                      <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="contentIngTabToggle"
+                                        style={{ width: "2.3em", height: "1.2em", cursor: "pointer" }}
+                                        checked={contentTabConfig.ingredientsEnabled}
+                                        onChange={(e) => setContentTabConfig(prev => ({ ...prev, ingredientsEnabled: e.target.checked }))}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="d-flex align-items-center justify-content-between">
+                                    <small className="text-muted">Show ingredients &amp; graphic</small>
+                                    <span className={`badge ${contentTabConfig.ingredientsEnabled ? "bg-success" : "bg-secondary"}`}>
+                                      {contentTabConfig.ingredientsEnabled ? "Enabled" : "Disabled"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 3. Customer Reviews Tab Switch */}
+                              <div className="col-12 col-md-4">
+                                <div className="p-3 border rounded h-100 bg-white">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="fw-bold" style={{ color: "#1e293b" }}>Customer Reviews Tab</span>
+                                    <div className="form-check form-switch m-0">
+                                      <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="contentRevTabToggle"
+                                        style={{ width: "2.3em", height: "1.2em", cursor: "pointer" }}
+                                        checked={contentTabConfig.reviewsEnabled}
+                                        onChange={(e) => setContentTabConfig(prev => ({ ...prev, reviewsEnabled: e.target.checked }))}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="d-flex align-items-center justify-content-between">
+                                    <small className="text-muted">Show reviews &amp; submission</small>
+                                    <span className={`badge ${contentTabConfig.reviewsEnabled ? "bg-success" : "bg-secondary"}`}>
+                                      {contentTabConfig.reviewsEnabled ? "Enabled" : "Disabled"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="col-12">
+                        <div className="p-3 bg-white rounded shadow-sm border d-flex flex-wrap align-items-center justify-content-between gap-3">
+                          <div>
+                            <span className="fw-semibold text-dark">Ready to apply changes?</span>
+                            <div className="text-muted small">
+                              Updates will immediately reflect on the frontend product details page for this product.
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-primary px-4 py-2 fw-semibold d-flex align-items-center gap-2"
+                            onClick={saveProductContent}
+                            disabled={savingContent || !selectedContentProductId}
+                          >
+                            {savingContent ? (
+                              <>
+                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Saving Content...
+                              </>
+                            ) : (
+                              <>
+                                <FiCheck size={16} /> Save Product Content
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card p-5 text-center bg-white border-0 shadow-sm" style={{ borderRadius: "12px" }}>
+                      <FiBox size={40} className="text-muted mx-auto mb-3" />
+                      <h5 className="fw-bold" style={{ color: "#0f172a" }}>Please Select a Product</h5>
+                      <p className="text-muted small mb-0">
+                        Choose a product from the dropdown above to load and edit its description and key ingredients.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Product Tab Image Management Tab */}
+            {activeTab === "product-tab-images" && (() => {
+              const selectedProduct = products.find(p => p._id === selectedTabImageProductId) || products[0] || null;
+
+              const filteredProducts = (products || []).filter(p => {
+                if (!tabImagesSearch.trim()) return true;
+                const query = tabImagesSearch.toLowerCase();
+                return (p.name && p.name.toLowerCase().includes(query)) ||
+                       (p._id && p._id.toLowerCase().includes(query));
+              });
+
+              return (
+                <div className="product-tab-image-management">
+                  {/* Header Bar */}
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 bg-white rounded shadow-sm border">
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <FiImage size={22} className="text-primary" />
+                        <h4 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Tab Image Management</h4>
+                      </div>
+                      <p className="text-muted small mb-0 mt-1">
+                        Manage independent product images for the <strong>How to Use</strong>, <strong>What It Does</strong>, and <strong>Ingredients</strong> tabs.
+                      </p>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      {selectedTabImageProductId && (
+                        <a
+                          href={`/ProductDetails?id=${selectedTabImageProductId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                          title="Open storefront product page in a new tab"
+                        >
+                          <FiHome size={14} /> View Storefront
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                        onClick={saveProductTabImages}
+                        disabled={savingTabImages || !selectedTabImageProductId}
+                      >
+                        {savingTabImages ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Saving Images...
+                          </>
+                        ) : (
+                          <>
+                            <FiCheck size={16} /> Save Changes
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Feedback Banner */}
+                  {tabImagesFeedback && (
+                    <div className={`alert alert-${tabImagesFeedback.type} alert-dismissible fade show d-flex align-items-center justify-content-between mb-4`} role="alert">
+                      <div>
+                        {tabImagesFeedback.type === "success" ? <FiCheck className="me-2" /> : <FiX className="me-2" />}
+                        {tabImagesFeedback.message}
+                      </div>
+                      <button type="button" className="btn-close" onClick={() => setTabImagesFeedback(null)} aria-label="Close"></button>
+                    </div>
+                  )}
+
+                  {/* Step 1: Product Selector Card */}
+                  <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                    <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: "11px" }}>Step 1</span>
+                        <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Select Product to Manage Tab Images</h6>
+                      </div>
+                      {selectedProduct && (
+                        <span className="badge bg-light text-dark border" style={{ fontSize: "11px" }}>
+                          ID: {selectedProduct._id}
+                        </span>
+                      )}
+                    </div>
+                    <div className="card-body p-3">
+                      <div className="row align-items-center">
+                        <div className="col-12 col-md-5 mb-2 mb-md-0">
+                          <label className="small fw-bold text-muted mb-1 block">Quick Search</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Filter by product name or ID..."
+                            value={tabImagesSearch}
+                            onChange={(e) => setTabImagesSearch(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-12 col-md-7">
+                          <label className="small fw-bold text-muted mb-1 block">Choose Product from Catalog</label>
+                          <select
+                            className="form-select form-select-lg"
+                            value={selectedTabImageProductId}
+                            onChange={(e) => {
+                              setSelectedTabImageProductId(e.target.value);
+                            }}
+                          >
+                            {filteredProducts.map(p => (
+                              <option key={p._id} value={p._id}>
+                                {p.name} — ₹{p.salePrice} (ID: {p._id})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {selectedProduct && (
+                        <div className="d-flex align-items-center gap-3 mt-3 pt-3 border-top">
+                          {selectedProduct.images && selectedProduct.images[0] ? (
+                            <img
+                              src={selectedProduct.images[0]}
+                              alt={selectedProduct.name}
+                              style={{ width: 48, height: 48, objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                            />
+                          ) : (
+                            <div className="bg-light rounded d-flex align-items-center justify-content-center" style={{ width: 48, height: 48 }}>
+                              <FiBox className="text-muted" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="fw-bold" style={{ color: "#0f172a" }}>{selectedProduct.name}</div>
+                            <div className="small text-muted">
+                              Category: {selectedProduct.categoryId?.name || "General"} &bull; Price: ₹{selectedProduct.salePrice}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedTabImageProductId ? (
+                    <div>
+                      {/* Three Independent Upload Sections */}
+                      <div className="row g-4 mb-4">
+                        {/* Section A: How to Use Image */}
+                        <div className="col-12 col-lg-4">
+                          <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                            <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                              <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>How to Use Image</h6>
+                              {tabImagesData.howToUseImage.file ? (
+                                <span className="badge bg-primary" style={{ fontSize: "11px" }}>Ready to Upload</span>
+                              ) : tabImagesData.howToUseImage.remove ? (
+                                <span className="badge bg-danger" style={{ fontSize: "11px" }}>Will be Removed</span>
+                              ) : tabImagesData.howToUseImage.url ? (
+                                <span className="badge bg-success" style={{ fontSize: "11px" }}>Saved Image</span>
+                              ) : (
+                                <span className="badge bg-secondary" style={{ fontSize: "11px" }}>Default Active</span>
+                              )}
+                            </div>
+                            <div className="card-body p-3 d-flex flex-column">
+                              <p className="text-muted small mb-3">
+                                Displayed in the storefront <strong>How to Use?</strong> tab section.
+                              </p>
+
+                              {/* Preview Area */}
+                              <div
+                                className="mb-3 rounded d-flex align-items-center justify-content-center bg-light position-relative overflow-hidden"
+                                style={{
+                                  height: "220px",
+                                  border: "2px dashed #cbd5e1",
+                                }}
+                              >
+                                {tabImagesData.howToUseImage.preview && !tabImagesData.howToUseImage.remove ? (
+                                  <img
+                                    src={tabImagesData.howToUseImage.preview}
+                                    alt="How to Use Preview"
+                                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                                  />
+                                ) : (
+                                  <div className="text-center p-3 text-muted">
+                                    <FiImage size={36} className="text-muted mb-2 opacity-50" />
+                                    <div className="small fw-semibold">No custom image uploaded</div>
+                                    <div style={{ fontSize: "11px" }}>Default graphic will be displayed</div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="mt-auto">
+                                <input
+                                  type="file"
+                                  id="howToUseInputFile"
+                                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                                  style={{ display: "none" }}
+                                  onChange={(e) => handleTabImageChange("howToUseImage", e.target.files[0])}
+                                />
+                                <div className="d-flex gap-2">
+                                  <label
+                                    htmlFor="howToUseInputFile"
+                                    className="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-1 cursor-pointer"
+                                  >
+                                    <FiEdit3 size={14} />
+                                    {tabImagesData.howToUseImage.preview && !tabImagesData.howToUseImage.remove ? "Replace Image" : "Upload Image"}
+                                  </label>
+                                  {(tabImagesData.howToUseImage.preview || tabImagesData.howToUseImage.url) && !tabImagesData.howToUseImage.remove && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                                      onClick={() => handleTabImageRemove("howToUseImage")}
+                                      title="Remove image"
+                                    >
+                                      <FiTrash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="text-muted mt-2" style={{ fontSize: "11px" }}>
+                                  Formats: JPG, JPEG, PNG, WEBP &bull; Max: 10MB
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section B: What It Does Image */}
+                        <div className="col-12 col-lg-4">
+                          <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                            <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                              <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>What It Does Image</h6>
+                              {tabImagesData.whatItDoesImage.file ? (
+                                <span className="badge bg-primary" style={{ fontSize: "11px" }}>Ready to Upload</span>
+                              ) : tabImagesData.whatItDoesImage.remove ? (
+                                <span className="badge bg-danger" style={{ fontSize: "11px" }}>Will be Removed</span>
+                              ) : tabImagesData.whatItDoesImage.url ? (
+                                <span className="badge bg-success" style={{ fontSize: "11px" }}>Saved Image</span>
+                              ) : (
+                                <span className="badge bg-secondary" style={{ fontSize: "11px" }}>No Image</span>
+                              )}
+                            </div>
+                            <div className="card-body p-3 d-flex flex-column">
+                              <p className="text-muted small mb-3">
+                                Displayed in the storefront <strong>What it does?</strong> tab section.
+                              </p>
+
+                              {/* Preview Area */}
+                              <div
+                                className="mb-3 rounded d-flex align-items-center justify-content-center bg-light position-relative overflow-hidden"
+                                style={{
+                                  height: "220px",
+                                  border: "2px dashed #cbd5e1",
+                                }}
+                              >
+                                {tabImagesData.whatItDoesImage.preview && !tabImagesData.whatItDoesImage.remove ? (
+                                  <img
+                                    src={tabImagesData.whatItDoesImage.preview}
+                                    alt="What It Does Preview"
+                                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                                  />
+                                ) : (
+                                  <div className="text-center p-3 text-muted">
+                                    <FiImage size={36} className="text-muted mb-2 opacity-50" />
+                                    <div className="small fw-semibold">No custom image uploaded</div>
+                                    <div style={{ fontSize: "11px" }}>Text benefits will be displayed</div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="mt-auto">
+                                <input
+                                  type="file"
+                                  id="whatItDoesInputFile"
+                                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                                  style={{ display: "none" }}
+                                  onChange={(e) => handleTabImageChange("whatItDoesImage", e.target.files[0])}
+                                />
+                                <div className="d-flex gap-2">
+                                  <label
+                                    htmlFor="whatItDoesInputFile"
+                                    className="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-1 cursor-pointer"
+                                  >
+                                    <FiEdit3 size={14} />
+                                    {tabImagesData.whatItDoesImage.preview && !tabImagesData.whatItDoesImage.remove ? "Replace Image" : "Upload Image"}
+                                  </label>
+                                  {(tabImagesData.whatItDoesImage.preview || tabImagesData.whatItDoesImage.url) && !tabImagesData.whatItDoesImage.remove && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                                      onClick={() => handleTabImageRemove("whatItDoesImage")}
+                                      title="Remove image"
+                                    >
+                                      <FiTrash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="text-muted mt-2" style={{ fontSize: "11px" }}>
+                                  Formats: JPG, JPEG, PNG, WEBP &bull; Max: 10MB
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section C: Ingredients Image */}
+                        <div className="col-12 col-lg-4">
+                          <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                            <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                              <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Ingredients Image</h6>
+                              {tabImagesData.ingredientsImage.file ? (
+                                <span className="badge bg-primary" style={{ fontSize: "11px" }}>Ready to Upload</span>
+                              ) : tabImagesData.ingredientsImage.remove ? (
+                                <span className="badge bg-danger" style={{ fontSize: "11px" }}>Will be Removed</span>
+                              ) : tabImagesData.ingredientsImage.url ? (
+                                <span className="badge bg-success" style={{ fontSize: "11px" }}>Saved Image</span>
+                              ) : (
+                                <span className="badge bg-secondary" style={{ fontSize: "11px" }}>No Image</span>
+                              )}
+                            </div>
+                            <div className="card-body p-3 d-flex flex-column">
+                              <p className="text-muted small mb-3">
+                                Displayed in the storefront <strong>Ingredients</strong> tab section.
+                              </p>
+
+                              {/* Preview Area */}
+                              <div
+                                className="mb-3 rounded d-flex align-items-center justify-content-center bg-light position-relative overflow-hidden"
+                                style={{
+                                  height: "220px",
+                                  border: "2px dashed #cbd5e1",
+                                }}
+                              >
+                                {tabImagesData.ingredientsImage.preview && !tabImagesData.ingredientsImage.remove ? (
+                                  <img
+                                    src={tabImagesData.ingredientsImage.preview}
+                                    alt="Ingredients Preview"
+                                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                                  />
+                                ) : (
+                                  <div className="text-center p-3 text-muted">
+                                    <FiImage size={36} className="text-muted mb-2 opacity-50" />
+                                    <div className="small fw-semibold">No custom image uploaded</div>
+                                    <div style={{ fontSize: "11px" }}>Key ingredients list will be displayed</div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="mt-auto">
+                                <input
+                                  type="file"
+                                  id="ingredientsInputFile"
+                                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                                  style={{ display: "none" }}
+                                  onChange={(e) => handleTabImageChange("ingredientsImage", e.target.files[0])}
+                                />
+                                <div className="d-flex gap-2">
+                                  <label
+                                    htmlFor="ingredientsInputFile"
+                                    className="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-1 cursor-pointer"
+                                  >
+                                    <FiEdit3 size={14} />
+                                    {tabImagesData.ingredientsImage.preview && !tabImagesData.ingredientsImage.remove ? "Replace Image" : "Upload Image"}
+                                  </label>
+                                  {(tabImagesData.ingredientsImage.preview || tabImagesData.ingredientsImage.url) && !tabImagesData.ingredientsImage.remove && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                                      onClick={() => handleTabImageRemove("ingredientsImage")}
+                                      title="Remove image"
+                                    >
+                                      <FiTrash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="text-muted mt-2" style={{ fontSize: "11px" }}>
+                                  Formats: JPG, JPEG, PNG, WEBP &bull; Max: 10MB
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Save Action Bar */}
+                      <div className="card border-0 shadow-sm p-3 bg-white d-flex flex-wrap flex-md-row align-items-center justify-content-between gap-3" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        <div>
+                          <div className="fw-semibold text-dark">Save Product Tab Images</div>
+                          <div className="text-muted small">
+                            Images are saved independently against product ID <code>{selectedTabImageProductId}</code> without affecting other fields.
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 fw-semibold"
+                          onClick={saveProductTabImages}
+                          disabled={savingTabImages || !selectedTabImageProductId}
+                        >
+                          {savingTabImages ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                              Uploading &amp; Saving...
+                            </>
+                          ) : (
+                            <>
+                              <FiCheck size={16} /> Save Changes
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card p-5 text-center bg-white border-0 shadow-sm" style={{ borderRadius: "12px" }}>
+                      <FiBox size={40} className="text-muted mx-auto mb-3" />
+                      <h5 className="fw-bold" style={{ color: "#0f172a" }}>Please Select a Product</h5>
+                      <p className="text-muted small mb-0">
+                        Choose a product from the dropdown above to manage its tab images.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 3. Sizes Tab */}
             {activeTab === "sizes" && (
@@ -1940,6 +3503,184 @@ export default function AdminApp() {
                 </div>
               </div>
             )}
+
+            {/* Reviews Tab */}
+            {activeTab === "reviews" && (
+              <div>
+                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                  <div>
+                    <h5 className="mb-1 text-dark fw-bold">Customer Reviews Moderation</h5>
+                    <p className="text-muted small mb-0">Approve or reject customer reviews before they are displayed on the storefront</p>
+                  </div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <div className="d-flex align-items-center gap-1">
+                      <span className="small text-muted fw-semibold">Filter Product:</span>
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ minWidth: "180px", maxWidth: "260px" }}
+                        value={reviewsProductFilter}
+                        onChange={(e) => {
+                          const pId = e.target.value;
+                          setReviewsProductFilter(pId);
+                          fetchAdminReviews(reviewsFilter, pId);
+                        }}
+                      >
+                        <option value="all">All Products</option>
+                        {products.map(p => (
+                          <option key={p._id} value={p._id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="d-flex gap-1 flex-wrap">
+                      <button
+                        className={`btn btn-sm ${reviewsFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                          setReviewsFilter('all');
+                          fetchAdminReviews('all', reviewsProductFilter);
+                        }}
+                      >
+                        All
+                      </button>
+                      <button
+                        className={`btn btn-sm ${reviewsFilter === 'Pending' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                          setReviewsFilter('Pending');
+                          fetchAdminReviews('Pending', reviewsProductFilter);
+                        }}
+                      >
+                        Pending {pendingReviewsCount > 0 && <span className="badge bg-warning text-dark ms-1">{pendingReviewsCount}</span>}
+                      </button>
+                      <button
+                        className={`btn btn-sm ${reviewsFilter === 'Approved' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                          setReviewsFilter('Approved');
+                          fetchAdminReviews('Approved', reviewsProductFilter);
+                        }}
+                      >
+                        Approved {approvedReviewsCount > 0 && <span className="badge bg-success ms-1">{approvedReviewsCount}</span>}
+                      </button>
+                      <button
+                        className={`btn btn-sm ${reviewsFilter === 'Rejected' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                          setReviewsFilter('Rejected');
+                          fetchAdminReviews('Rejected', reviewsProductFilter);
+                        }}
+                      >
+                        Rejected {rejectedReviewsCount > 0 && <span className="badge bg-danger ms-1">{rejectedReviewsCount}</span>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {reviewsLoading ? (
+                  <div className="text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : adminReviews.length === 0 ? (
+                  <div className="card p-5 text-center bg-light border-0">
+                    <p className="text-muted mb-0">No reviews found matching status &quot;{reviewsFilter}&quot;.</p>
+                  </div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table table-premium mb-0">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Customer</th>
+                          <th>Rating</th>
+                          <th>Review</th>
+                          <th>Status</th>
+                          <th className="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminReviews.map((rev) => (
+                          <tr key={rev._id} className="align-middle">
+                            <td style={{ maxWidth: '180px' }}>
+                              <div className="d-flex align-items-center gap-2">
+                                <img
+                                  src={rev.productId?.images?.[0] || "assets/images/products/serum_product.png"}
+                                  alt=""
+                                  width="40"
+                                  height="40"
+                                  style={{ objectFit: "cover", borderRadius: "4px" }}
+                                />
+                                <span className="small fw-semibold text-truncate">{rev.productId?.name || "Product"}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="fw-semibold">{rev.name}</div>
+                              <small className="text-muted">{new Date(rev.createdAt).toLocaleDateString()}</small>
+                            </td>
+                            <td>
+                              <div className="d-flex align-items-center text-warning gap-1">
+                                <span>{rev.rating}</span>
+                                <FiStar fill="#f59e0b" color="#f59e0b" size={14} />
+                              </div>
+                            </td>
+                            <td style={{ maxWidth: '300px' }}>
+                              <div className="fw-bold small">{rev.title}</div>
+                              <p className="text-muted small mb-1 text-truncate" title={rev.review}>{rev.review}</p>
+                              {(rev.skinType || (rev.skinConcerns && rev.skinConcerns.length > 0)) && (
+                                <div className="d-flex gap-1 flex-wrap">
+                                  {rev.skinType && <span className="badge bg-light text-dark border" style={{ fontSize: '10px' }}>{rev.skinType}</span>}
+                                  {rev.skinConcerns?.map((c, i) => (
+                                    <span key={i} className="badge bg-light text-secondary border" style={{ fontSize: '10px' }}>{c}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`badge ${
+                                rev.status === 'Approved'
+                                  ? 'bg-success'
+                                  : rev.status === 'Pending'
+                                  ? 'bg-warning text-dark'
+                                  : 'bg-danger'
+                              }`}>
+                                {rev.status}
+                              </span>
+                            </td>
+                            <td className="text-end">
+                              <div className="d-flex gap-1 justify-content-end">
+                                {rev.status !== 'Approved' && (
+                                  <button
+                                    className="btn btn-sm btn-success d-flex align-items-center gap-1"
+                                    onClick={() => handleUpdateReviewStatus(rev._id, 'Approved')}
+                                    title="Approve review"
+                                  >
+                                    <FiCheck size={14} /> Approve
+                                  </button>
+                                )}
+                                {rev.status !== 'Rejected' && (
+                                  <button
+                                    className="btn btn-sm btn-outline-warning d-flex align-items-center gap-1"
+                                    onClick={() => handleUpdateReviewStatus(rev._id, 'Rejected')}
+                                    title="Reject review"
+                                  >
+                                    <FiX size={14} /> Reject
+                                  </button>
+                                )}
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteReview(rev._id)}
+                                  title="Delete review"
+                                >
+                                  <FiTrash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </main>
@@ -2086,6 +3827,167 @@ export default function AdminApp() {
                       {sizes.length === 0 && <span className="text-muted small">No sizes available.</span>}
                     </div>
                   </div>
+                  {/* --- Product Details Tab Management Section --- */}
+                  <div className="col-12 mb-3">
+                    <div className="card border-0 shadow-sm" style={{ background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                      <div className="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
+                        <div>
+                          <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Details Tab Management</h6>
+                          <small className="text-muted">Configure &amp; enable/disable tabs independently on the Product Details page</small>
+                        </div>
+                        <span className="badge bg-primary text-white" style={{ fontSize: "11px" }}>Storefront Tabs</span>
+                      </div>
+                      <div className="card-body p-3">
+                        {/* 1. Description Tab Control */}
+                        <div className="p-3 mb-3 bg-white rounded border">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <div className="fw-bold" style={{ color: "#0f172a" }}>1. Description Tab</div>
+                              <small className="text-muted">Enable or disable product description tab on customer details page</small>
+                            </div>
+                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="descTabToggle"
+                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                checked={tabConfig.descriptionEnabled}
+                                onChange={(e) => setTabConfig(prev => ({ ...prev, descriptionEnabled: e.target.checked }))}
+                              />
+                              <label className="form-check-label fw-bold mb-0" htmlFor="descTabToggle" style={{ color: tabConfig.descriptionEnabled ? "#16a34a" : "#dc2626" }}>
+                                {tabConfig.descriptionEnabled ? "Enabled" : "Disabled"}
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Key Ingredients Tab Control */}
+                        <div className="p-3 mb-3 bg-white rounded border">
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                              <div className="fw-bold" style={{ color: "#0f172a" }}>2. Key Ingredients Tab</div>
+                              <small className="text-muted">Enable or disable key ingredients facts and percentage table</small>
+                            </div>
+                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="ingredientsTabToggle"
+                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                checked={tabConfig.ingredientsEnabled}
+                                onChange={(e) => setTabConfig(prev => ({ ...prev, ingredientsEnabled: e.target.checked }))}
+                              />
+                              <label className="form-check-label fw-bold mb-0" htmlFor="ingredientsTabToggle" style={{ color: tabConfig.ingredientsEnabled ? "#16a34a" : "#dc2626" }}>
+                                {tabConfig.ingredientsEnabled ? "Enabled" : "Disabled"}
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Key Ingredients Items Configuration */}
+                          <div className="mt-3 pt-3 border-top">
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                              <label className="small fw-bold text-dark mb-0">Key Ingredients List ({ingredients.length})</label>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                onClick={() => setIngredients([...ingredients, { name: "", percentage: "", description: "" }])}
+                              >
+                                <FiPlus size={14} /> Add Ingredient
+                              </button>
+                            </div>
+                            {ingredients.length === 0 ? (
+                              <div className="text-muted small p-2 bg-light rounded text-center">
+                                No ingredients added yet. Click &quot;+ Add Ingredient&quot; to configure key ingredients.
+                              </div>
+                            ) : (
+                              <div className="d-flex flex-column gap-2" style={{ maxHeight: "260px", overflowY: "auto" }}>
+                                {ingredients.map((ing, idx) => (
+                                  <div key={idx} className="p-2 border rounded bg-light">
+                                    <div className="d-flex gap-2 align-items-center mb-1">
+                                      <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Ingredient Name * (e.g. Niacinamide)"
+                                        value={ing.name}
+                                        onChange={(e) => {
+                                          const updated = [...ingredients];
+                                          updated[idx].name = e.target.value;
+                                          setIngredients(updated);
+                                        }}
+                                      />
+                                      <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        style={{ maxWidth: "160px" }}
+                                        placeholder="Percentage (optional)"
+                                        value={ing.percentage}
+                                        onChange={(e) => {
+                                          const updated = [...ingredients];
+                                          updated[idx].percentage = e.target.value;
+                                          setIngredients(updated);
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-danger"
+                                        onClick={() => setIngredients(ingredients.filter((_, i) => i !== idx))}
+                                        title="Remove ingredient"
+                                      >
+                                        <FiTrash2 size={14} />
+                                      </button>
+                                    </div>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      placeholder="Ingredient description / role (e.g. Skin barrier support)"
+                                      value={ing.description || ""}
+                                      onChange={(e) => {
+                                        const updated = [...ingredients];
+                                        updated[idx].description = e.target.value;
+                                        setIngredients(updated);
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. Customer Reviews Tab Control */}
+                        <div className="p-3 bg-white rounded border">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <div className="fw-bold" style={{ color: "#0f172a" }}>3. Customer Reviews Tab</div>
+                              <small className="text-muted">Enable or disable customer reviews tab and write-review submissions</small>
+                            </div>
+                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="reviewsTabToggle"
+                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                checked={tabConfig.reviewsEnabled}
+                                onChange={(e) => setTabConfig(prev => ({ ...prev, reviewsEnabled: e.target.checked }))}
+                              />
+                              <label className="form-check-label fw-bold mb-0" htmlFor="reviewsTabToggle" style={{ color: tabConfig.reviewsEnabled ? "#16a34a" : "#dc2626" }}>
+                                {tabConfig.reviewsEnabled ? "Enabled" : "Disabled"}
+                              </label>
+                            </div>
+                          </div>
+                          {!tabConfig.reviewsEnabled && (
+                            <div className="mt-2 small text-muted">
+                              Note: When disabled, existing reviews are safely stored and will reappear when re-enabled.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="col-12 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
                     <div className="border rounded" style={{ minHeight: '200px' }}>

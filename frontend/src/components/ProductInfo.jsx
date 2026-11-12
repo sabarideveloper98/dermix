@@ -12,17 +12,17 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
-export default function ProductInfo() {
+export default function ProductInfo({ product }) {
   const [expanded, setExpanded] = useState("false");
-  const [tab, setTab] = useState(2);
+  const [tab, setTab] = useState(0);
 
   return (
     <Box sx={{ width: "100%", bgcolor: "#fff", color: "#000", py: 4 }}>
-     
-     
+
+
       {/* Heading */}
       <Box sx={{ textAlign: "center", mt: 12, mb: 3 }}>
-        <Typography sx={{ color: "#9800e4", fontSize: 14 , fontFamily: "cursive",fontWeight:500 }}>
+        <Typography sx={{ color: "#9800e4", fontSize: 14, fontFamily: "cursive", fontWeight: 500 }}>
           WHAT IS SO SPECIAL ABOUT
         </Typography>
 
@@ -76,26 +76,81 @@ export default function ProductInfo() {
 
       {/* Tab content */}
       <Box sx={{ maxWidth: 700, mx: "auto", mt: 5, textAlign: "center" }}>
-        {tab === 0 && <Typography>
-            <img
-    src="{howToUseImage}"
-    alt="How to use"
-    style={{ maxWidth: "100%", height: "auto" }}
-  />
-        </Typography>}
-        {tab === 1 && <Typography>Product benefits and results.</Typography>}
+        {tab === 0 && (
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            {product?.howToUseImage ? (
+              <img
+                src={product.howToUseImage}
+                alt={`${product.name || "Product"} - How to use`}
+                style={{ maxWidth: "100%", maxHeight: "550px", height: "auto", borderRadius: "8px", objectFit: "contain" }}
+              />
+            ) : (
+              <img
+                src={howToUseImage}
+                alt="How to use"
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+            )}
+          </Box>
+        )}
+        {tab === 1 && (
+          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+            {product?.whatItDoesImage ? (
+              <img
+                src={product.whatItDoesImage}
+                alt={`${product.name || "Product"} - What it does`}
+                style={{ maxWidth: "100%", maxHeight: "550px", height: "auto", borderRadius: "8px", objectFit: "contain" }}
+              />
+            ) : (
+              <Typography sx={{ color: "#444", fontSize: 16, py: 3 }}>
+                {product?.benefit || "Product benefits and results."}
+              </Typography>
+            )}
+          </Box>
+        )}
         {tab === 2 && (
-          <>
-            <Typography variant="h4" sx={{ color: "#c97900" }}>
-              (5%)
-            </Typography>
-            <Typography variant="h5">Niacinamide</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {product?.ingredientsImage && (
+              <Box sx={{ mb: 3, width: "100%", display: "flex", justifyContent: "center" }}>
+                <img
+                  src={product.ingredientsImage}
+                  alt={`${product.name || "Product"} - Ingredients`}
+                  style={{ maxWidth: "100%", maxHeight: "550px", height: "auto", borderRadius: "8px", objectFit: "contain" }}
+                />
+              </Box>
+            )}
+            {product?.ingredients && product.ingredients.length > 0 ? (
+              product.ingredients.map((ing, idx) => (
+                <Box key={idx} sx={{ mb: 2 }}>
+                  {ing.percentage && (
+                    <Typography variant="h4" sx={{ color: "#c97900" }}>
+                      ({ing.percentage})
+                    </Typography>
+                  )}
+                  <Typography variant="h5">{ing.name}</Typography>
+                  {ing.description && (
+                    <Typography variant="body2" sx={{ color: "#666", mt: 0.5, maxWidth: 500, mx: "auto" }}>
+                      {ing.description}
+                    </Typography>
+                  )}
+                </Box>
+              ))
+            ) : (
+              !product?.ingredientsImage && (
+                <>
+                  <Typography variant="h4" sx={{ color: "#c97900" }}>
+                    (5%)
+                  </Typography>
+                  <Typography variant="h5">Niacinamide</Typography>
 
-            <Typography variant="h4" sx={{ color: "#c97900", mt: 3 }}>
-              (3%)
-            </Typography>
-            <Typography variant="h5">Panthenol</Typography>
-          </>
+                  <Typography variant="h4" sx={{ color: "#c97900", mt: 3 }}>
+                    (3%)
+                  </Typography>
+                  <Typography variant="h5">Panthenol</Typography>
+                </>
+              )
+            )}
+          </Box>
         )}
       </Box>
     </Box>

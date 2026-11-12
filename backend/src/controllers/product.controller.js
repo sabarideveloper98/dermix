@@ -81,7 +81,24 @@ export const getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
-    res.status(200).json({ success: true, product });
+
+    const prodObj = product.toObject ? product.toObject() : product;
+    if (!prodObj.tabConfig) {
+      prodObj.tabConfig = {
+        descriptionEnabled: true,
+        ingredientsEnabled: true,
+        reviewsEnabled: true,
+      };
+    } else {
+      if (prodObj.tabConfig.descriptionEnabled === undefined) prodObj.tabConfig.descriptionEnabled = true;
+      if (prodObj.tabConfig.ingredientsEnabled === undefined) prodObj.tabConfig.ingredientsEnabled = true;
+      if (prodObj.tabConfig.reviewsEnabled === undefined) prodObj.tabConfig.reviewsEnabled = true;
+    }
+    if (!prodObj.ingredients) {
+      prodObj.ingredients = [];
+    }
+
+    res.status(200).json({ success: true, product: prodObj });
   } catch (error) {
     console.error('Get product detail error:', error);
     res.status(500).json({ success: false, message: 'Server error fetching product details' });
@@ -90,7 +107,7 @@ export const getProductById = async (req, res) => {
 
 // Create Product (Admin)
 export const createProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes, isShippingPaid } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
 
   try {
     // Validate category exists
@@ -117,6 +134,37 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // parse tabConfig
+    let parsedTabConfig = {
+      descriptionEnabled: true,
+      ingredientsEnabled: true,
+      reviewsEnabled: true,
+    };
+    if (tabConfig) {
+      try {
+        parsedTabConfig = typeof tabConfig === 'string' ? JSON.parse(tabConfig) : tabConfig;
+      } catch (err) {
+        console.error('Error parsing tabConfig:', err);
+      }
+    }
+
+    // parse ingredients
+    let parsedIngredients = [];
+    if (ingredients !== undefined) {
+      try {
+        const raw = Array.isArray(ingredients) ? ingredients : JSON.parse(ingredients);
+        parsedIngredients = (Array.isArray(raw) ? raw : [])
+          .filter(ing => ing && ing.name && ing.name.trim().length > 0)
+          .map(ing => ({
+            name: ing.name.trim(),
+            percentage: ing.percentage ? String(ing.percentage).trim() : '',
+            description: ing.description ? String(ing.description).trim() : '',
+          }));
+      } catch (err) {
+        console.error('Error parsing ingredients:', err);
+      }
+    }
+
     const product = await Product.create({
       name,
       categoryId,
@@ -129,6 +177,9 @@ export const createProduct = async (req, res) => {
       qty: Number(qty) || 0,
       status: 'active',
       isShippingPaid: isShippingPaid === 'true' || isShippingPaid === true,
+      tabConfig: parsedTabConfig,
+      ingredients: parsedIngredients,
+      keyIngredients: parsedIngredients,
     });
 
     // Create Initial Stock History
@@ -150,7 +201,7 @@ export const createProduct = async (req, res) => {
 
 // Update Product (Admin)
 export const updateProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes, isShippingPaid } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
 
   try {
     let product = await Product.findById(req.params.id);
@@ -176,6 +227,33 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // parse tabConfig
+    let parsedTabConfig = undefined;
+    if (tabConfig !== undefined) {
+      try {
+        parsedTabConfig = typeof tabConfig === 'string' ? JSON.parse(tabConfig) : tabConfig;
+      } catch (err) {
+        console.error('Error parsing tabConfig:', err);
+      }
+    }
+
+    // parse ingredients
+    let parsedIngredients = undefined;
+    if (ingredients !== undefined) {
+      try {
+        const raw = Array.isArray(ingredients) ? ingredients : JSON.parse(ingredients);
+        parsedIngredients = (Array.isArray(raw) ? raw : [])
+          .filter(ing => ing && ing.name && ing.name.trim().length > 0)
+          .map(ing => ({
+            name: ing.name.trim(),
+            percentage: ing.percentage ? String(ing.percentage).trim() : '',
+            description: ing.description ? String(ing.description).trim() : '',
+          }));
+      } catch (err) {
+        console.error('Error parsing ingredients:', err);
+      }
+    }
+
     const updates = {
       name,
       categoryId,
@@ -185,7 +263,11 @@ export const updateProduct = async (req, res) => {
       description,
       status,
       sizes: parsedSizes,
-      isShippingPaid: isShippingPaid !== undefined ? (isShippingPaid === 'true' || isShippingPaid === true) : undefined
+      isShippingPaid: isShippingPaid !== undefined ? (isShippingPaid === 'true' || isShippingPaid === true) : undefined,
+      tabConfig: parsedTabConfig,
+      ingredients: parsedIngredients,
+      keyIngredients: parsedIngredients,
+      ingredientsImage: req.body.ingredientsImage !== undefined ? req.body.ingredientsImage : (req.body.removeIngredientsImage === 'true' || req.body.removeIngredientsImage === true ? '' : undefined),
     };
 
     // Filter out undefined fields
@@ -327,3 +409,218 @@ export const toggleProductStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error toggling status' });
   }
 };
+
+// Update Product Content (Description & Key Ingredients & Ingredients Image) - Admin
+export const updateProductContent = async (req, res) => {
+  const { description, ingredients } = req.body;
+
+  try {
+    let product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    const updates = {};
+    if (description !== undefined) {
+      updates.description = description;
+    }
+
+    if (req.body.tabConfig !== undefined) {
+      try {
+        const rawTab = typeof req.body.tabConfig === 'string'
+          ? JSON.parse(req.body.tabConfig)
+          : req.body.tabConfig;
+        updates.tabConfig = {
+          descriptionEnabled: rawTab.descriptionEnabled !== false,
+          ingredientsEnabled: rawTab.ingredientsEnabled !== false,
+          reviewsEnabled: rawTab.reviewsEnabled !== false,
+        };
+      } catch (err) {
+        console.error('Error parsing tabConfig in updateProductContent:', err);
+      }
+    }
+
+    if (ingredients !== undefined) {
+      try {
+        const raw = Array.isArray(ingredients) ? ingredients : JSON.parse(ingredients);
+        updates.ingredients = (Array.isArray(raw) ? raw : [])
+          .filter(ing => ing && ing.name && ing.name.trim().length > 0)
+          .map((ing, idx) => ({
+            name: ing.name.trim(),
+            percentage: ing.percentage ? String(ing.percentage).trim() : '',
+            description: ing.description ? String(ing.description).trim() : '',
+            order: ing.order !== undefined ? Number(ing.order) : idx,
+          }));
+        updates.keyIngredients = updates.ingredients;
+      } catch (err) {
+        console.error('Error parsing ingredients:', err);
+        return res.status(400).json({ success: false, message: 'Invalid ingredients format' });
+      }
+    }
+
+    // Handle ingredientsImage upload or removal
+    if (req.file) {
+      const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedMimes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file format. Only JPG, JPEG, PNG, and WEBP formats are supported.',
+        });
+      }
+
+      // Max size: 10MB
+      if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          message: 'Image size exceeds maximum limit of 10MB.',
+        });
+      }
+
+      const result = await uploadBuffer(req.file.buffer, 'products/ingredients');
+      updates.ingredientsImage = result.secure_url;
+
+      // Delete previous image from Cloudinary if exists
+      if (product.ingredientsImage) {
+        const oldPublicId = extractPublicId(product.ingredientsImage);
+        if (oldPublicId) {
+          try {
+            await deleteFromCloudinary(oldPublicId);
+          } catch (delErr) {
+            console.error('Error deleting previous ingredients image:', delErr);
+          }
+        }
+      }
+    } else if (req.body.removeIngredientsImage === 'true' || req.body.removeIngredientsImage === true) {
+      if (product.ingredientsImage) {
+        const oldPublicId = extractPublicId(product.ingredientsImage);
+        if (oldPublicId) {
+          try {
+            await deleteFromCloudinary(oldPublicId);
+          } catch (delErr) {
+            console.error('Error deleting ingredients image:', delErr);
+          }
+        }
+      }
+      updates.ingredientsImage = '';
+    } else if (req.body.ingredientsImage !== undefined) {
+      updates.ingredientsImage = req.body.ingredientsImage;
+    }
+
+    product = await Product.findByIdAndUpdate(req.params.id, updates, { new: true });
+    res.status(200).json({ success: true, message: 'Product content updated successfully', product });
+  } catch (error) {
+    console.error('Update product content error:', error);
+    res.status(500).json({ success: false, message: 'Server error updating product content' });
+  }
+};
+
+// Get Product Tab Images
+export const getProductTabImages = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      tabImages: {
+        howToUseImage: product.howToUseImage || '',
+        whatItDoesImage: product.whatItDoesImage || '',
+        ingredientsImage: product.ingredientsImage || '',
+      },
+      product: {
+        _id: product._id,
+        name: product.name,
+        howToUseImage: product.howToUseImage || '',
+        whatItDoesImage: product.whatItDoesImage || '',
+        ingredientsImage: product.ingredientsImage || '',
+      },
+    });
+  } catch (error) {
+    console.error('Get product tab images error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching tab images' });
+  }
+};
+
+// Update Product Tab Images (Admin)
+export const updateProductTabImages = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    const updates = {};
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    const handleSingleTabImage = async (fieldName, folderName) => {
+      const file = req.files && req.files[fieldName] && req.files[fieldName][0];
+      const removeFlagKey = `remove${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}`;
+      const shouldRemove = req.body[removeFlagKey] === 'true' || req.body[removeFlagKey] === true;
+
+      if (file) {
+        if (!allowedMimes.includes(file.mimetype)) {
+          throw new Error(`Invalid format for ${fieldName}. Only JPG, JPEG, PNG, and WEBP formats are supported.`);
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`Image size for ${fieldName} exceeds maximum limit of 10MB.`);
+        }
+
+        const result = await uploadBuffer(file.buffer, `products/${folderName}`);
+        updates[fieldName] = result.secure_url;
+
+        // Cleanup old image from Cloudinary
+        if (product[fieldName]) {
+          const oldPublicId = extractPublicId(product[fieldName]);
+          if (oldPublicId) {
+            try {
+              await deleteFromCloudinary(oldPublicId);
+            } catch (delErr) {
+              console.error(`Error deleting previous ${fieldName}:`, delErr);
+            }
+          }
+        }
+      } else if (shouldRemove) {
+        if (product[fieldName]) {
+          const oldPublicId = extractPublicId(product[fieldName]);
+          if (oldPublicId) {
+            try {
+              await deleteFromCloudinary(oldPublicId);
+            } catch (delErr) {
+              console.error(`Error deleting ${fieldName}:`, delErr);
+            }
+          }
+        }
+        updates[fieldName] = '';
+      } else if (req.body[fieldName] !== undefined) {
+        updates[fieldName] = req.body[fieldName];
+      }
+    };
+
+    await handleSingleTabImage('howToUseImage', 'how_to_use');
+    await handleSingleTabImage('whatItDoesImage', 'what_it_does');
+    await handleSingleTabImage('ingredientsImage', 'ingredients');
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Product tab images updated successfully',
+      tabImages: {
+        howToUseImage: updatedProduct.howToUseImage || '',
+        whatItDoesImage: updatedProduct.whatItDoesImage || '',
+        ingredientsImage: updatedProduct.ingredientsImage || '',
+      },
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.error('Update product tab images error:', error);
+    res.status(400).json({ success: false, message: error.message || 'Server error updating tab images' });
+  }
+};
+

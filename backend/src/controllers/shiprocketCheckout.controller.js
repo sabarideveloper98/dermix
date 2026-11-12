@@ -31,13 +31,74 @@ export async function processCheckout(req, res) {
       customerDetails.mobile = customerDetails.mobile || req.user.mobile;
     }
 
+    // Ensure all items have live, validated product information from the database
+    const resolvedItems = [];
+    for (const item of items) {
+      const rawProd = item.productId || item.product || item;
+      const prodId = typeof rawProd === 'object' && rawProd?._id
+        ? rawProd._id
+        : (typeof rawProd === 'string' ? rawProd : item._id);
+
+      let dbProduct = null;
+      if (prodId && mongoose.isValidObjectId(prodId)) {
+        dbProduct = await Product.findById(prodId).populate('sizes.size').lean();
+      }
+
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+      const sizeName = item.size || "Standard";
+
+      if (dbProduct) {
+        if (dbProduct.status === 'inactive') {
+          return res.status(400).json({
+            success: false,
+            message: `Product "${dbProduct.name}" is currently unavailable.`
+          });
+        }
+        if (dbProduct.qty <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Product "${dbProduct.name}" is out of stock.`
+          });
+        }
+        if (quantity > dbProduct.qty) {
+          return res.status(400).json({
+            success: false,
+            message: `Requested quantity for "${dbProduct.name}" exceeds available stock (${dbProduct.qty} available).`
+          });
+        }
+
+        // Calculate size-specific price
+        let calculatedPrice = dbProduct.salePrice || dbProduct.mrpPrice;
+        if (Array.isArray(dbProduct.sizes) && dbProduct.sizes.length > 0) {
+          const matchedSize = dbProduct.sizes.find(
+            (s) => (s.size ? s.size.name : s.name) === sizeName
+          );
+          if (matchedSize && matchedSize.salePrice) {
+            calculatedPrice = Number(matchedSize.salePrice);
+          }
+        }
+
+        resolvedItems.push({
+          ...item,
+          productId: {
+            ...dbProduct,
+            salePrice: calculatedPrice,
+          },
+          quantity,
+          size: sizeName,
+        });
+      } else {
+        resolvedItems.push(item);
+      }
+    }
+
     const frontendBase = (process.env.FRONTEND_URL || "https://dermfix.in").replace(/\/+$/, "");
     const defaultRedirect = `${frontendBase}/payment-response`;
     const finalRedirectUrl = redirectUrl || defaultRedirect;
 
     // Execute the 3-step sequence
     const result = await executeFullCheckout({
-      items,
+      items: resolvedItems,
       customer: customerDetails,
       redirectUrl: finalRedirectUrl
     });

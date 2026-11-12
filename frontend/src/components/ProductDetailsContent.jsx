@@ -11,7 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import InfiniteText from "./InfiniteText";
 import ProductInfo from "./ProductInfo";
 import ProductDetailsTabs from "./ProductDetailsTabs";
-
+import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
 
 import { API_BASE } from "../config";
 
@@ -26,6 +26,7 @@ export default function ProductDetailsContent() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState("");
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
 
   const productId = searchParams.get("id") || localStorage.getItem("selectedProductId");
 
@@ -67,19 +68,63 @@ export default function ProductDetailsContent() {
     }
   };
 
-  const handleBuyItNow = async () => {
-    if (!product) return;
-    try {
-      await addToCart(product, quantity, selectedSize);
-      if (user) {
-        navigate("/checkout");
-      } else {
-        localStorage.setItem("redirectAfterLogin", "/checkout");
-        navigate("/login");
-      }
-    } catch (err) {
-      console.error(err);
+  const handleBuyItNow = async (e) => {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
     }
+    if (!product || buyNowLoading) return;
+
+    if (product.status === "inactive") {
+      alert("This product is currently unavailable.");
+      return;
+    }
+
+    if (product.qty <= 0) {
+      alert("This product is currently out of stock.");
+      return;
+    }
+
+    if (quantity < 1 || quantity > product.qty) {
+      alert(`Please select a valid quantity between 1 and ${product.qty}.`);
+      return;
+    }
+
+    // Determine current effective price based on selected size variant
+    let effectivePrice = product.salePrice || product.mrpPrice || 0;
+    let effectiveMrp = product.mrpPrice || effectivePrice;
+    if (product.sizes && product.sizes.length > 0 && selectedSize) {
+      const sizeObj = product.sizes.find(s => (s.size ? s.size.name : s.name) === selectedSize);
+      if (sizeObj && sizeObj.salePrice) {
+        effectivePrice = sizeObj.salePrice;
+        effectiveMrp = sizeObj.mrpPrice || effectiveMrp;
+      }
+    }
+
+    // Standalone Buy Now item (independent of customer cart)
+    const buyNowItem = {
+      productId: product._id,
+      quantity,
+      size: selectedSize || "Standard",
+      product: {
+        _id: product._id,
+        name: product.name,
+        salePrice: effectivePrice,
+        price: effectivePrice,
+        mrpPrice: effectiveMrp,
+        images: product.images,
+        image: product.images && product.images[0] ? product.images[0] : "",
+        sizes: product.sizes,
+        qty: product.qty,
+      }
+    };
+
+    await triggerCheckoutWorkflow({
+      event: e,
+      items: [buyNowItem],
+      user,
+      navigate,
+      setLoading: setBuyNowLoading,
+    });
   };
 
   if (loading) {
@@ -289,8 +334,20 @@ export default function ProductDetailsContent() {
                           Add To Cart
                         </a>
                       </div>
-                      <button onClick={handleBuyItNow} className="tf-btn style-2 type-2 w-100 mt-12">
-                        Buy It Now
+                      <button
+                        type="button"
+                        onClick={handleBuyItNow}
+                        disabled={buyNowLoading || product.qty <= 0}
+                        className="tf-btn style-2 type-2 w-100 mt-12 d-flex align-items-center justify-content-center gap-2"
+                      >
+                        {buyNowLoading ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Redirecting to Checkout...
+                          </>
+                        ) : (
+                          "Buy It Now"
+                        )}
                       </button>
                     </div>
                   )}
@@ -306,9 +363,9 @@ export default function ProductDetailsContent() {
         </div>
       </section>
 
-      <ProductDetailsTabs />
+      <ProductDetailsTabs product={product} />
 
-      <ProductInfo />
+      <ProductInfo product={product} />
 
       <InfiniteText />
 
