@@ -357,15 +357,15 @@ export default function CartContent() {
               {/* Right Column: Order Summary */}
               <div className="col-lg-5 col-xl-4">
                 <div
-                  className="sidebar-cart-checkout p-24 rounded-8"
+                  className="sidebar-cart-checkout p-3 rounded-8"
                   style={{
                     backgroundColor: "#FFFFFF",
                     border: "1px solid #ECECEC",
                     boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
                   }}
                 >
-                  <h5 className="font-instrument_serif mb-20 pb-12 border-bottom">
-                    Order Summary
+                  <h5 className=" mb-20 pb-12 border-bottom">
+                    <b>Order Summary</b>
                   </h5>
 
                   {/* Summary Breakdown */}
@@ -420,7 +420,7 @@ export default function CartContent() {
                   </ul>
 
                   {/* Coupon Code Input */}
-                  <div className="coupon-box mb-20 pt-16 border-top">
+                  <div className="coupon-box  my-4  border-top" style={{paddingTop:"20px"}}>
                     <form onSubmit={handleApplyCoupon} className="d-flex gap-2">
                       <input
                         type="text"
@@ -452,7 +452,7 @@ export default function CartContent() {
                   </div>
 
                   {/* Final Total */}
-                  <div className="pt-16 border-top mb-20">
+                  <div className="pt-16 border-top mb-20" style={{paddingTop:"20px"}}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
                       <span className="fw-semibold text-body-l">Final Total</span>
                       <span className="fw-bold fs-20 text-primary">₹{finalTotal.toFixed(2)}</span>
