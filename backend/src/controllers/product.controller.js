@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import StockHistory from '../models/StockHistory.js';
 import Category from '../models/Category.js';
@@ -61,9 +62,24 @@ export const getProducts = async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
 
+    // Ensure images field is always a valid array of strings
+    const sanitizedProducts = products.map((p) => {
+      const prodObj = p.toObject ? p.toObject() : p;
+      if (prodObj.images) {
+        if (typeof prodObj.images === 'string') {
+          prodObj.images = [prodObj.images];
+        } else if (!Array.isArray(prodObj.images)) {
+          prodObj.images = [];
+        }
+      } else {
+        prodObj.images = [];
+      }
+      return prodObj;
+    });
+
     res.status(200).json({
       success: true,
-      products,
+      products: sanitizedProducts,
       page: Number(page),
       pages: Math.ceil(totalProducts / Number(limit)),
       totalProducts,
@@ -77,12 +93,28 @@ export const getProducts = async (req, res) => {
 // Get single product
 export const getProductById = async (req, res) => {
   try {
+    if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
     const product = await Product.findById(req.params.id).populate('categoryId', 'name').populate('sizes.size');
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
     const prodObj = product.toObject ? product.toObject() : product;
+
+    // Ensure images field is always a valid array of strings
+    if (prodObj.images) {
+      if (typeof prodObj.images === 'string') {
+        prodObj.images = [prodObj.images];
+      } else if (!Array.isArray(prodObj.images)) {
+        prodObj.images = [];
+      }
+    } else {
+      prodObj.images = [];
+    }
+
     if (!prodObj.tabConfig) {
       prodObj.tabConfig = {
         descriptionEnabled: true,
@@ -123,6 +155,20 @@ export const createProduct = async (req, res) => {
         imageUrls.push(result.secure_url);
       }
     }
+
+    // Support retaining any pre-selected image URLs if passed
+    let existingUrls = [];
+    if (req.body.remainingImages) {
+      try {
+        const parsed = Array.isArray(req.body.remainingImages)
+          ? req.body.remainingImages
+          : JSON.parse(req.body.remainingImages);
+        if (Array.isArray(parsed)) existingUrls = parsed;
+      } catch (err) {
+        console.error('Error parsing remainingImages in createProduct:', err);
+      }
+    }
+    const finalImages = [...new Set([...existingUrls, ...imageUrls])];
 
     // parse sizes
     let parsedSizes = [];
@@ -172,7 +218,7 @@ export const createProduct = async (req, res) => {
       salePrice: Number(salePrice),
       benefit,
       description,
-      images: imageUrls,
+      images: finalImages,
       sizes: parsedSizes,
       qty: Number(qty) || 0,
       status: 'active',
@@ -274,24 +320,32 @@ export const updateProduct = async (req, res) => {
     Object.keys(updates).forEach((key) => updates[key] === undefined && delete updates[key]);
 
     // Handle Image upload / updates
-    let updatedImages = [...product.images];
+    let updatedImages = Array.isArray(product.images)
+      ? [...product.images]
+      : (product.images ? [product.images] : []);
 
     // If remainingImages is sent as a JSON string or array, parse it
-    if (req.body.remainingImages) {
+    if (req.body.remainingImages !== undefined) {
       try {
         const remaining = Array.isArray(req.body.remainingImages)
           ? req.body.remainingImages
           : JSON.parse(req.body.remainingImages);
 
+        const remainingArr = Array.isArray(remaining) ? remaining : [];
+
         // Find images to delete
-        const toDelete = product.images.filter((img) => !remaining.includes(img));
+        const toDelete = updatedImages.filter((img) => !remainingArr.includes(img));
         for (const img of toDelete) {
           const publicId = extractPublicId(img);
           if (publicId) {
-            await deleteFromCloudinary(publicId);
+            try {
+              await deleteFromCloudinary(publicId);
+            } catch (delErr) {
+              console.error('Cloudinary deletion warning:', delErr?.message || delErr);
+            }
           }
         }
-        updatedImages = remaining;
+        updatedImages = remainingArr;
       } catch (err) {
         console.error('Error parsing remainingImages:', err);
       }
@@ -305,7 +359,8 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    updates.images = updatedImages;
+    // Preserve order and prevent duplicates
+    updates.images = [...new Set(updatedImages)];
 
     product = await Product.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.status(200).json({ success: true, product });

@@ -22,7 +22,11 @@ import {
   FiCheck,
   FiX,
   FiFileText,
-  FiEdit3
+  FiEdit3,
+  FiUploadCloud,
+  FiAlertCircle,
+  FiArrowLeft,
+  FiArrowRight
 } from "react-icons/fi";
 import { API_BASE as API_BASE_CONFIG } from "../config";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -133,6 +137,100 @@ export default function AdminApp() {
   const [videoLink, setVideoLink] = useState("");
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerFile, setBannerFile] = useState(null);
+
+  // Product Multiple Images States
+  const [existingProductImages, setExistingProductImages] = useState([]);
+  const [newProductFiles, setNewProductFiles] = useState([]);
+  const [newProductPreviews, setNewProductPreviews] = useState([]);
+  const [productImageError, setProductImageError] = useState("");
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Handle Product Images Selection
+  const handleProductFilesSelected = (filesList) => {
+    if (!filesList || filesList.length === 0) return;
+    setProductImageError("");
+
+    const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit
+
+    const filesToAdd = [];
+    const previewsToAdd = [];
+    const errorMsgs = [];
+
+    Array.from(filesList).forEach((file) => {
+      const isValidFormat =
+        validFormats.includes(file.type.toLowerCase()) ||
+        /\.(jpe?g|png|webp)$/i.test(file.name);
+
+      if (!isValidFormat) {
+        errorMsgs.push(`"${file.name}" has an unsupported format. Only JPG, JPEG, PNG, and WEBP are allowed.`);
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        errorMsgs.push(`"${file.name}" exceeds 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+        return;
+      }
+
+      // Avoid duplicate file names of exact same size
+      const exists = newProductFiles.some(
+        (f) => f.name === file.name && f.size === file.size
+      );
+      if (!exists) {
+        filesToAdd.push(file);
+        previewsToAdd.push(URL.createObjectURL(file));
+      }
+    });
+
+    if (errorMsgs.length > 0) {
+      setProductImageError(errorMsgs.join(" "));
+    }
+
+    if (filesToAdd.length > 0) {
+      setNewProductFiles((prev) => [...prev, ...filesToAdd]);
+      setNewProductPreviews((prev) => [...prev, ...previewsToAdd]);
+    }
+  };
+
+  const removeExistingProductImage = (indexToRemove) => {
+    setExistingProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const removeNewProductImage = (indexToRemove) => {
+    if (newProductPreviews[indexToRemove]) {
+      try {
+        URL.revokeObjectURL(newProductPreviews[indexToRemove]);
+      } catch (e) {}
+    }
+    setNewProductFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setNewProductPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const moveExistingImage = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= existingProductImages.length) return;
+    setExistingProductImages((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
+
+  const moveNewImage = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= newProductFiles.length) return;
+    setNewProductFiles((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+    setNewProductPreviews((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
 
   // Refund / Cancel States
   const [cancelReason, setCancelReason] = useState("");
@@ -252,6 +350,17 @@ export default function AdminApp() {
       }
     }
   }, [selectedTabImageProductId, products]);
+ 
+  // Lock body scroll and isolate mouse-wheel events when any admin modal is active
+  useEffect(() => {
+    if (modalType) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [modalType]);
 
   const API_BASE = `${API_BASE_CONFIG}`;
 
@@ -833,6 +942,9 @@ export default function AdminApp() {
   // Product CRUD
   const saveProduct = async (e) => {
     e.preventDefault();
+    setProductImageError("");
+    setIsSavingProduct(true);
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("description", description);
@@ -846,21 +958,14 @@ export default function AdminApp() {
     formData.append("tabConfig", JSON.stringify(tabConfig));
     formData.append("ingredients", JSON.stringify(ingredients));
 
-    // Append remaining images state on edit
+    // Append remaining images state on edit (preserves existing images and handles removals)
     if (editingItem) {
-      if (imageFiles && imageFiles.length > 0) {
-        // If new images are chosen, replace old images entirely
-        formData.append("remainingImages", JSON.stringify([]));
-      } else {
-        // If no new images are chosen, keep all current images
-        formData.append("remainingImages", JSON.stringify(editingItem.images || []));
-      }
+      formData.append("remainingImages", JSON.stringify(existingProductImages));
     }
 
-    // Append multiple files safely converting FileList
-    if (imageFiles) {
-      const filesArray = Array.from(imageFiles);
-      for (const file of filesArray) {
+    // Append multiple newly selected files
+    if (newProductFiles && newProductFiles.length > 0) {
+      for (const file of newProductFiles) {
         formData.append("images", file);
       }
     }
@@ -872,17 +977,29 @@ export default function AdminApp() {
 
     try {
       const res = await authFetch(url, { method, body: formData });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        newProductPreviews.forEach((previewUrl) => {
+          try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+        });
+        setExistingProductImages([]);
+        setNewProductFiles([]);
+        setNewProductPreviews([]);
+        setProductImageError("");
         setEditingItem(null);
         setModalType("");
         fetchTabContent("products");
       } else {
-        const data = await res.json();
-        alert(data.message || "Failed to save product.");
+        const errorMsg = data.message || "Failed to save product.";
+        setProductImageError(errorMsg);
+        alert(errorMsg);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error saving product:", err);
+      setProductImageError("An error occurred while saving the product.");
       alert("Error saving product.");
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -1091,6 +1208,19 @@ export default function AdminApp() {
         description: ing.description || "",
       })));
       setImageFiles([]);
+
+      // Initialize multiple product images state
+      newProductPreviews.forEach((previewUrl) => {
+        try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+      });
+      const currentImgs = item && item.images
+        ? (Array.isArray(item.images) ? [...item.images] : (typeof item.images === 'string' ? [item.images] : []))
+        : [];
+      setExistingProductImages(currentImgs);
+      setNewProductFiles([]);
+      setNewProductPreviews([]);
+      setProductImageError("");
+      setIsSavingProduct(false);
     } else if (type === "stock") {
       setQty(item ? item.qty : "");
       setDescription(""); // Reason field
@@ -3688,55 +3818,106 @@ export default function AdminApp() {
       {/* --- CRUD MODALS / OVERLAYS (GLASSMORPHIC STYLING) --- */}
       {modalType && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          className="modal position-fixed top-0 start-0 w-100 h-100 admin-modal-backdrop"
+          data-lenis-prevent="true"
+          data-lenis-prevent-wheel="true"
+          data-lenis-prevent-touch="true"
           style={{
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "rgba(0,0,0,0.75)",
             backdropFilter: "blur(4px)",
-            zIndex: 9999
+            zIndex: 9999,
+            overflow: "hidden",
+            padding: "16px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setModalType("");
+            }
           }}
         >
           <div
-            className="card p-4 border-0 shadow-lg"
+            className="card border-0 shadow-lg admin-modal-card edit-product-modal"
+            data-lenis-prevent="true"
+            data-lenis-prevent-wheel="true"
+            data-lenis-prevent-touch="true"
             style={{
-              maxWidth: "550px",
-              width: "90%",
+              maxWidth: modalType === "product" ? "880px" : "550px",
+              width: "100%",
               backgroundColor: "#ffffff",
               borderRadius: "16px",
               border: "1px solid #f1f5f9",
+              margin: "auto",
+              display: "flex",
+              flexDirection: "column",
               maxHeight: "90vh",
-              overflowY: "auto"
+              height: modalType === "product" ? "90vh" : "auto",
+              overflow: "hidden",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="d-flex justify-content-between mb-4">
-              <h4 className="font-instrument_serif text-capitalize fw-bold" style={{ color: "#0f172a" }}>{editingItem ? "Edit" : "Create"} {modalType}</h4>
-              <button className="btn btn-close-popup border-0 p-0 fs-20" style={{ color: "#0f172a" }} onClick={() => setModalType("")}>×</button>
+            {/* Modal Header (Fixed at top of modal) */}
+            <div
+              className="admin-modal-header edit-product-modal-header d-flex justify-content-between align-items-center p-4 border-bottom bg-white"
+              style={{
+                flexShrink: 0,
+                borderTopLeftRadius: "16px",
+                borderTopRightRadius: "16px",
+              }}
+            >
+              <div>
+                <h4 className="font-instrument_serif text-capitalize fw-bold mb-0" style={{ color: "#0f172a" }}>
+                  {editingItem ? "Edit" : "Create"} {modalType}
+                </h4>
+                {modalType === "product" && (
+                  <small className="text-muted">
+                    {editingItem ? `Editing: ${editingItem.name || "Product"}` : "Create a new product in the store"}
+                  </small>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-close-popup border-0 p-0 fs-20"
+                style={{ color: "#0f172a", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                onClick={() => setModalType("")}
+                title="Close"
+              >
+                ×
+              </button>
             </div>
 
-            {/* Category Form */}
-            {modalType === "category" && (
-              <form onSubmit={saveCategory}>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
-                  <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
-                </div>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
-                  <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
-                </div>
-                <div className="mb-4">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
-                  <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
-                </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Category
-                </button>
-              </form>
-            )}
-
-            {/* Product Form */}
-            {modalType === "product" && (
-              <form onSubmit={saveProduct}>
-                <div className="row">
+            {/* Modal Body / Forms */}
+            {modalType === "product" ? (
+              <form
+                id="productModalForm"
+                onSubmit={saveProduct}
+                className="d-flex flex-column flex-grow-1"
+                data-lenis-prevent="true"
+                style={{
+                  minHeight: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  flex: "1 1 0%",
+                }}
+              >
+                {/* Scrollable Body */}
+                <div
+                  className="admin-modal-scrollable edit-product-modal-body p-4"
+                  data-lenis-prevent="true"
+                  data-lenis-prevent-wheel="true"
+                  data-lenis-prevent-touch="true"
+                  style={{
+                    flex: "1 1 auto",
+                    minHeight: 0,
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
+                  <div className="row">
                   <div className="col-12 col-md-6 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Name</label>
                     <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -3827,6 +4008,279 @@ export default function AdminApp() {
                       {sizes.length === 0 && <span className="text-muted small">No sizes available.</span>}
                     </div>
                   </div>
+
+                  {/* --- Product Images Gallery & Upload Section --- */}
+                  <div className="col-12 mb-4">
+                    <div className="card border-0 shadow-sm" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #cbd5e1" }}>
+                      <div className="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <FiImage size={20} className="text-primary" />
+                          <div>
+                            <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Upload Product Images</h6>
+                            <small className="text-muted">Upload product photos. The 1st image will be the primary main image in customer details.</small>
+                          </div>
+                        </div>
+                        <span className="badge bg-primary text-white" style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "20px" }}>
+                          Total Images: {existingProductImages.length + newProductFiles.length}
+                        </span>
+                      </div>
+
+                      <div className="card-body p-3">
+                        {/* Upload Dropzone / Button */}
+                        <div
+                          className="p-4 text-center rounded border border-2 border-dashed mb-3"
+                          style={{
+                            borderColor: "#94a3b8",
+                            backgroundColor: "#f8fafc",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease"
+                          }}
+                          onClick={() => document.getElementById("productImagesFileInput")?.click()}
+                          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                              handleProductFilesSelected(e.dataTransfer.files);
+                            }
+                          }}
+                        >
+                          <FiUploadCloud size={40} className="text-primary mb-2" />
+                          <div className="fw-bold" style={{ color: "#0f172a", fontSize: "15px" }}>
+                            Upload Product Images
+                          </div>
+                          <p className="small text-muted mb-2">
+                            Click to browse or drag &amp; drop images here (Select multiple images at once)
+                          </p>
+                          <div className="d-flex justify-content-center gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary px-3 py-1 d-inline-flex align-items-center gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                document.getElementById("productImagesFileInput")?.click();
+                              }}
+                            >
+                              <FiPlus size={14} /> Browse from Computer
+                            </button>
+                          </div>
+                          <small className="text-secondary d-block mt-2" style={{ fontSize: "11px" }}>
+                            Supported Formats: JPG, JPEG, PNG, WEBP • Max 10MB per image
+                          </small>
+                          <input
+                            type="file"
+                            id="productImagesFileInput"
+                            multiple
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleProductFilesSelected(e.target.files);
+                                e.target.value = "";
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Validation / Status Messages */}
+                        {productImageError && (
+                          <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <FiAlertCircle size={16} className="flex-shrink-0" />
+                            <span>{productImageError}</span>
+                          </div>
+                        )}
+
+                        {isSavingProduct && (
+                          <div className="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span>Uploading product images to Cloudinary and saving... Please wait.</span>
+                          </div>
+                        )}
+
+                        {/* 1. Existing Uploaded Images (when editing or previously saved) */}
+                        {existingProductImages.length > 0 && (
+                          <div className="mb-3">
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                              <span className="small fw-bold" style={{ color: "#0f172a" }}>
+                                Existing Uploaded Images ({existingProductImages.length})
+                              </span>
+                              <small className="text-muted">Saved on server</small>
+                            </div>
+                            <div className="row g-2">
+                              {existingProductImages.map((imgUrl, idx) => (
+                                <div key={idx} className="col-6 col-sm-4 col-md-3">
+                                  <div
+                                    className="position-relative border rounded p-1 bg-white shadow-sm h-100 d-flex flex-column"
+                                    style={{ borderColor: idx === 0 ? "#3b82f6" : "#e2e8f0" }}
+                                  >
+                                    <div style={{ position: "relative", width: "100%", paddingTop: "100%", borderRadius: "6px", overflow: "hidden", background: "#f1f5f9" }}>
+                                      <img
+                                        src={imgUrl}
+                                        alt={`Product ${idx + 1}`}
+                                        style={{
+                                          position: "absolute",
+                                          top: 0,
+                                          left: 0,
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover"
+                                        }}
+                                        onError={(e) => { e.target.src = "/assets/images/products/serum_product.png"; }}
+                                      />
+                                      {idx === 0 && (
+                                        <span
+                                          className="badge bg-primary text-white position-absolute top-0 start-0 m-1"
+                                          style={{ fontSize: "10px", zIndex: 2 }}
+                                        >
+                                          ★ Main Image
+                                        </span>
+                                      )}
+                                      <span
+                                        className="badge bg-dark bg-opacity-75 text-white position-absolute bottom-0 start-0 m-1"
+                                        style={{ fontSize: "10px", zIndex: 2 }}
+                                      >
+                                        #{idx + 1}
+                                      </span>
+                                    </div>
+                                    <div className="d-flex align-items-center justify-content-between mt-1 px-1">
+                                      <div className="d-flex gap-1">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-light p-1"
+                                          style={{ fontSize: "11px", lineHeight: 1 }}
+                                          disabled={idx === 0}
+                                          onClick={() => moveExistingImage(idx, idx - 1)}
+                                          title="Move Earlier"
+                                        >
+                                          <FiArrowLeft size={12} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-light p-1"
+                                          style={{ fontSize: "11px", lineHeight: 1 }}
+                                          disabled={idx === existingProductImages.length - 1}
+                                          onClick={() => moveExistingImage(idx, idx + 1)}
+                                          title="Move Later"
+                                        >
+                                          <FiArrowRight size={12} />
+                                        </button>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-danger p-1"
+                                        style={{ fontSize: "11px", lineHeight: 1 }}
+                                        onClick={() => removeExistingProductImage(idx)}
+                                        title="Remove this image"
+                                      >
+                                        <FiTrash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. Newly Selected Images Previews */}
+                        {newProductFiles.length > 0 && (
+                          <div className="mb-2">
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                              <span className="small fw-bold text-success">
+                                Newly Selected Images to Upload ({newProductFiles.length})
+                              </span>
+                              <small className="text-muted">Will be uploaded upon saving</small>
+                            </div>
+                            <div className="row g-2">
+                              {newProductFiles.map((file, idx) => (
+                                <div key={idx} className="col-6 col-sm-4 col-md-3">
+                                  <div className="position-relative border border-success rounded p-1 bg-white shadow-sm h-100 d-flex flex-column">
+                                    <div style={{ position: "relative", width: "100%", paddingTop: "100%", borderRadius: "6px", overflow: "hidden", background: "#f1f5f9" }}>
+                                      <img
+                                        src={newProductPreviews[idx]}
+                                        alt={file.name}
+                                        style={{
+                                          position: "absolute",
+                                          top: 0,
+                                          left: 0,
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover"
+                                        }}
+                                      />
+                                      <span
+                                        className="badge bg-success text-white position-absolute top-0 start-0 m-1"
+                                        style={{ fontSize: "10px", zIndex: 2 }}
+                                      >
+                                        New
+                                      </span>
+                                      {existingProductImages.length === 0 && idx === 0 && (
+                                        <span
+                                          className="badge bg-primary text-white position-absolute top-0 end-0 m-1"
+                                          style={{ fontSize: "10px", zIndex: 2 }}
+                                        >
+                                          ★ Main
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="mt-1 px-1">
+                                      <div className="text-truncate small fw-bold" style={{ fontSize: "11px" }} title={file.name}>
+                                        {file.name}
+                                      </div>
+                                      <div className="d-flex align-items-center justify-content-between">
+                                        <span className="text-muted" style={{ fontSize: "10px" }}>
+                                          {(file.size / 1024).toFixed(0)} KB
+                                        </span>
+                                        <div className="d-flex gap-1 align-items-center">
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-light p-1"
+                                            style={{ fontSize: "10px", lineHeight: 1 }}
+                                            disabled={idx === 0}
+                                            onClick={() => moveNewImage(idx, idx - 1)}
+                                            title="Move Earlier"
+                                          >
+                                            <FiArrowLeft size={11} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-light p-1"
+                                            style={{ fontSize: "10px", lineHeight: 1 }}
+                                            disabled={idx === newProductFiles.length - 1}
+                                            onClick={() => moveNewImage(idx, idx + 1)}
+                                            title="Move Later"
+                                          >
+                                            <FiArrowRight size={11} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-danger p-1"
+                                            style={{ fontSize: "10px", lineHeight: 1 }}
+                                            onClick={() => removeNewProductImage(idx)}
+                                            title="Remove before saving"
+                                          >
+                                            <FiTrash2 size={11} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Helper when no images chosen yet */}
+                        {existingProductImages.length === 0 && newProductFiles.length === 0 && (
+                          <div className="text-center p-2 text-muted small">
+                            No product images uploaded or selected yet.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* --- Product Details Tab Management Section --- */}
                   <div className="col-12 mb-3">
                     <div className="card border-0 shadow-sm" style={{ background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
@@ -4006,16 +4460,94 @@ export default function AdminApp() {
                       />
                     </div>
                   </div>
-                  <div className="col-12 mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Images Upload (Multiple files)</label>
-                    <input type="file" className="form-control" multiple onChange={(e) => setImageFiles(e.target.files)} />
+                </div>
+                <div style={{ height: "16px" }}></div>
+                </div>
+
+                {/* Fixed / Sticky Footer with Save and Cancel buttons */}
+                <div
+                  className="admin-modal-footer edit-product-modal-footer d-flex align-items-center justify-content-between px-4 py-3 bg-white border-top"
+                  data-lenis-prevent="true"
+                  style={{
+                    flexShrink: 0,
+                    borderBottomLeftRadius: "16px",
+                    borderBottomRightRadius: "16px",
+                    boxShadow: "0 -4px 12px rgba(0,0,0,0.05)",
+                    zIndex: 10,
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "12px" }}>
+                      Total Images: {existingProductImages.length + newProductFiles.length}
+                    </span>
+                    {isSavingProduct && (
+                      <span className="small text-primary d-inline-flex align-items-center gap-1">
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        Saving product...
+                      </span>
+                    )}
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary px-4 py-2"
+                      style={{ borderRadius: "8px", fontWeight: 500 }}
+                      onClick={() => setModalType("")}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2"
+                      style={{ borderRadius: "8px", fontWeight: 600, minWidth: "150px", justifyContent: "center" }}
+                      disabled={isSavingProduct}
+                    >
+                      {isSavingProduct ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm" role="status"></span>
+                          Saving Product...
+                        </>
+                      ) : (
+                        editingItem ? "Update Product" : "Save Product"
+                      )}
+                    </button>
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Product
-                </button>
               </form>
-            )}
+            ) : (
+              <div
+                className="admin-modal-scrollable p-4"
+                data-lenis-prevent="true"
+                data-lenis-prevent-wheel="true"
+                data-lenis-prevent-touch="true"
+                style={{
+                  flex: "1 1 auto",
+                  minHeight: 0,
+                  overflowY: "auto",
+                  overscrollBehavior: "contain",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                {/* Category Form */}
+                {modalType === "category" && (
+                  <form onSubmit={saveCategory}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
+                      <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </div>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
+                      <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
+                      <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Save Category
+                    </button>
+                  </form>
+                )}
 
             {/* Size Form */}
             {modalType === "size" && (
@@ -4282,6 +4814,8 @@ export default function AdminApp() {
                 </div>
               );
             })()}
+              </div>
+            )}
           </div>
         </div>
       )}

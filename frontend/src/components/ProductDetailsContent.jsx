@@ -21,6 +21,8 @@ export default function ProductDetailsContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [mainSwiper, setMainSwiper] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function ProductDetailsContent() {
   const [selectedSize, setSelectedSize] = useState("");
   const [buyNowLoading, setBuyNowLoading] = useState(false);
 
-  const productId = searchParams.get("id") || localStorage.getItem("selectedProductId");
+  const productId = searchParams.get("id")?.trim() || localStorage.getItem("selectedProductId")?.trim();
 
   useEffect(() => {
     if (!productId) {
@@ -160,7 +162,9 @@ export default function ProductDetailsContent() {
     ? Math.round(((displayMrpPrice - displaySalePrice) / displayMrpPrice) * 100)
     : 0;
 
-  const productImages = product.images.length > 0 ? product.images : ["assets/images/products/serum_product.png"];
+  const productImages = (product?.images && Array.isArray(product.images) && product.images.length > 0)
+    ? product.images
+    : (typeof product?.images === "string" && product.images ? [product.images] : ["/assets/images/products/serum_product.png"]);
 
   return (
     <>
@@ -170,47 +174,75 @@ export default function ProductDetailsContent() {
             {/* Left side: Images Slider */}
             <div className="col-md-6">
               <div className="tf-product-media-wrap sticky-top">
-                <div className="product-thumbs-slider style-row row_left">
-                  <div className="flat-wrap-media-product">
+                <div className={`product-thumbs-slider style-row row_left ${productImages.length <= 1 ? "single-image-gallery" : ""}`}>
+                  <div className="flat-wrap-media-product" style={productImages.length <= 1 ? { width: "100%", maxWidth: "100%" } : {}}>
                     <Swiper
                       modules={[Navigation, Thumbs]}
-                      thumbs={{ swiper: thumbsSwiper }}
+                      thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
                       navigation={{
                         nextEl: ".thumbs-next",
                         prevEl: ".thumbs-prev",
                       }}
+                      onSwiper={setMainSwiper}
+                      onSlideChange={(swiper) => setActiveImageIndex(swiper.activeIndex)}
                       className="tf-product-media-main"
                     >
                       {productImages.map((img, idx) => (
                         <SwiperSlide key={idx}>
                           <a href={img} className="item" onClick={(e) => e.preventDefault()}>
-                            <img src={img} className="tf-image-zoom" alt={product.name} />
+                            <img
+                              src={img}
+                              className="tf-image-zoom"
+                              alt={`${product.name} - ${idx + 1}`}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/assets/images/products/serum_product.png";
+                              }}
+                            />
                           </a>
                         </SwiperSlide>
                       ))}
                     </Swiper>
                   </div>
-                  <Swiper
-                    direction="vertical"
-                    slidesPerView={5}
-                    spaceBetween={10}
-                    watchSlidesProgress
-                    onSwiper={setThumbsSwiper}
-                    modules={[Thumbs]}
-                    className="tf-product-media-thumbs"
-                    breakpoints={{
-                      320: { direction: "horizontal", slidesPerView: 4 },
-                      768: { direction: "vertical", slidesPerView: 5 }
-                    }}
-                  >
-                    {productImages.map((img, idx) => (
-                      <SwiperSlide key={idx}>
-                        <div className="item">
-                          <img src={img} alt="" />
-                        </div>
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
+                  {productImages.length > 1 && (
+                    <Swiper
+                      direction="vertical"
+                      slidesPerView={5}
+                      spaceBetween={10}
+                      watchSlidesProgress
+                      onSwiper={setThumbsSwiper}
+                      modules={[Thumbs]}
+                      className="tf-product-media-thumbs"
+                      breakpoints={{
+                        320: { direction: "horizontal", slidesPerView: 4 },
+                        768: { direction: "vertical", slidesPerView: 5 }
+                      }}
+                    >
+                      {productImages.map((img, idx) => (
+                        <SwiperSlide key={idx}>
+                          <div
+                            className={`item ${activeImageIndex === idx ? "active" : ""}`}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                              setActiveImageIndex(idx);
+                              if (mainSwiper && !mainSwiper.destroyed) {
+                                mainSwiper.slideTo(idx);
+                              }
+                            }}
+                          >
+                            <img
+                              src={img}
+                              alt={`${product.name} thumbnail ${idx + 1}`}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/assets/images/products/serum_product.png";
+                              }}
+                            />
+                          </div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                  )}
                 </div>
               </div>
             </div>

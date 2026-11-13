@@ -23,8 +23,8 @@ router.get('/:id/tab-images', getProductTabImages);
 router.get('/:id', getProductById);
 
 // Admin-only routes
-router.post('/', protect, admin, upload.array('images', 5), createProduct);
-router.put('/:id', protect, admin, upload.array('images', 5), updateProduct);
+router.post('/', protect, admin, upload.array('images', 20), createProduct);
+router.put('/:id', protect, admin, upload.array('images', 20), updateProduct);
 router.delete('/:id', protect, admin, deleteProduct);
 router.patch('/:id/stock', protect, admin, updateStock);
 router.get('/:id/stock-history', protect, admin, getStockHistory);

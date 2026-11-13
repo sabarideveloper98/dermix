@@ -77,6 +77,7 @@ createRoot(document.getElementById("root")).render(
             <Route path="/ProductDetails" element={<ProductDetails />} />
 
             {/* Admin Portal Routes */}
+            <Route path="/admin" element={<AdminApp />} />
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>
         </BrowserRouter>

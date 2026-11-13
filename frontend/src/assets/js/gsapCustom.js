@@ -266,7 +266,7 @@
             smoothWheel: true,
             prevent: (node) => {
                 return node.closest(
-                    '.modal, .offcanvas, .offcanvas-backdrop'
+                    '.modal, .offcanvas, .offcanvas-backdrop, .admin-modal-backdrop, .admin-modal-card, .admin-modal-scrollable, .edit-product-modal, .edit-product-modal-body, [data-lenis-prevent]'
                 );
             }
         });
