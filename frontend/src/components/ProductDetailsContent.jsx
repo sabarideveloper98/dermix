@@ -32,6 +32,13 @@ export default function ProductDetailsContent() {
 
   const productId = searchParams.get("id")?.trim() || localStorage.getItem("selectedProductId")?.trim();
 
+  const [openSection, setOpenSection] = useState(null);
+
+  const toggleSection = (section) => {
+    setOpenSection((prev) => prev === section ? null : section);
+  };
+
+
   useEffect(() => {
     if (!productId) {
       setLoading(false);
@@ -277,9 +284,9 @@ export default function ProductDetailsContent() {
 
                     {product.benefit && (
                       <ul className="product-infor-list-tag">
-                        <li>
+                        <li className="span_high">
                           <i className="icon icon-Check"></i>
-                          <span className="text-body-s fw-normal">{product.benefit}</span>
+                          <span className="text-body-s fw-normal ">{product.benefit}</span>
                         </li>
                       </ul>
                     )}
@@ -384,10 +391,61 @@ export default function ProductDetailsContent() {
                     </div>
                   )}
 
+                                    
                   <div className="tf-product-description mt-30">
-                    <h6 className="title mb-8 font-instrument_serif text-body-l">Description</h6>
-                    <div className="cl-text-5 text-body-s ck-content" dangerouslySetInnerHTML={{ __html: product.description }}></div>
+
+                  
+
+                  {/* Product Description */}
+                  <div className="product-accordion-item">
+                    <button
+                      type="button"
+                      className="product-accordion-header"
+                      onClick={() => toggleSection("description")}
+                    >
+                      <span>Product Description</span>
+                      <span className="accordion-icon">
+                        {openSection === "description" ? "−" : "+"}
+                      </span>
+                    </button>
+
+                    {openSection === "description" && (
+                      <div className="product-accordion-content cl-text-5 text-body-s ck-content">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: product.description || ""
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {/* Ingredients & Benefits */}
+                  <div className="product-accordion-item">
+                    <button
+                      type="button"
+                      className="product-accordion-header"
+                      onClick={() => toggleSection("ingredients")}
+                    >
+                      <span>Why Choose Dermfix</span>
+                      <span className="accordion-icon">
+                        {openSection === "ingredients" ? "−" : "+"}
+                      </span>
+                    </button>
+
+                    {openSection === "ingredients" && (
+                      <div className="product-accordion-content cl-text-5 text-body-s ck-content">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: product.ingredients || ""
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  </div>
+
                 </div>
               </div>
             </div>
