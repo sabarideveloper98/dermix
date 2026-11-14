@@ -8,6 +8,7 @@ import {
   trackOrder,
   getOrderTracking,
   calculateShippingRate,
+  retryShiprocketSync,
 } from '../controllers/order.controller.js';
 import { protect, admin, protectOptional } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
@@ -30,7 +31,8 @@ router.get('/', protect, getMyOrders);
 router.get('/:id', protect, getOrderById);
 router.get('/:id/shiprocket-tracking', protect, getOrderTracking);
 
-// Admin-only route to update status
+// Admin-only routes
 router.put('/:id/status', protect, admin, updateOrderStatus);
+router.post('/:id/sync-shiprocket', protect, admin, retryShiprocketSync);
 
 export default router;

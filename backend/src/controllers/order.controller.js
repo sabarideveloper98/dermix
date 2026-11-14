@@ -4,7 +4,7 @@ import Product from '../models/Product.js';
 import Address from '../models/Address.js';
 import User from '../models/User.js';
 import StockHistory from '../models/StockHistory.js';
-import { getShiprocketTracking, createShiprocketOrder, getShippingRate } from '../services/shiprocket.service.js';
+import { getShiprocketTracking, createShiprocketOrder, getShippingRate, syncOrderToShiprocket } from '../services/shiprocket.service.js';
 import mongoose from 'mongoose';
 
 // Place Order
@@ -148,60 +148,10 @@ export const createOrder = async (req, res) => {
       deliveryStatus: 'Pending',
     });
 
-    // 5.5 Push Order to Shiprocket as COD
-    try {
-      const address = await Address.findById(finalAddressId);
-      const currentUser = await User.findById(userId) || req.user;
-
-      const shiprocketItems = orderProducts.map(async (item) => {
-        const prod = await Product.findById(item.productId);
-        return {
-          name: prod.name,
-          sku: prod.sku || prod._id.toString().substring(0, 8),
-          units: item.quantity,
-          selling_price: item.price,
-          discount: 0,
-          tax: 0,
-          hsn: 441122
-        };
-      });
-
-      const resolvedItems = await Promise.all(shiprocketItems);
-
-      const shiprocketPayload = {
-        order_id: order.orderNumber,
-        order_date: now.toISOString().split('T')[0],
-        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
-        billing_customer_name: address.firstName || currentUser?.name?.split(' ')[0] || "Customer",
-        billing_last_name: address.lastName || (currentUser?.name?.split(' ')[1] || ''),
-        billing_address: address.street1,
-        billing_address_2: address.street2 || "",
-        billing_city: address.district,
-        billing_pincode: address.pincode,
-        billing_state: address.state,
-        billing_country: "India",
-        billing_email: currentUser?.email || "customer@example.com",
-        billing_phone: currentUser?.mobile || "9999999999",
-        shipping_is_billing: true,
-        order_items: resolvedItems,
-        payment_method: "Prepaid",  //COD
-        sub_total: finalTotalPrice,
-        length: 10,
-        breadth: 10,
-        height: 10,
-        weight: 0.5
-      };
-
-      const srResponse = await createShiprocketOrder(shiprocketPayload);
-      if (srResponse && srResponse.order_id) {
-        order.shiprocketOrderId = srResponse.order_id.toString();
-        order.shiprocketShipmentId = srResponse.shipment_id ? srResponse.shipment_id.toString() : '';
-        order.shiprocketAwbCode = srResponse.awb_code ? srResponse.awb_code.toString() : '';
-        await order.save();
-      }
-    } catch (srError) {
-      console.error("Failed to push COD order to Shiprocket:", srError);
-    }
+    // 5.5 Automatically Sync Order to Shiprocket Portal (asynchronous, non-blocking)
+    syncOrderToShiprocket(order._id).catch((srError) => {
+      console.error("Failed to push COD order to Shiprocket:", srError.message);
+    });
 
     // 6. Clear user's cart in database
     const existingCart = await Cart.findOne({ userId });
@@ -355,5 +305,44 @@ export const trackOrder = async (req, res) => {
   } catch (error) {
     console.error('Track order error:', error);
     res.status(500).json({ success: false, message: 'Server error tracking order' });
+  }
+};
+
+/**
+ * Admin: Retry Shiprocket Synchronization
+ * Endpoint: POST /api/orders/:id/sync-shiprocket
+ */
+export const retryShiprocketSync = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    const result = await syncOrderToShiprocket(order._id, { forceRetry: true, throwOnError: true });
+
+    const updatedOrder = await Order.findById(order._id)
+      .populate('userId', 'name email mobile')
+      .populate('addressId')
+      .populate('products.productId');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order successfully synced to Shiprocket portal',
+      order: updatedOrder,
+      shiprocketOrderId: result.order.shiprocketOrderId,
+      shiprocketShipmentId: result.order.shiprocketShipmentId,
+    });
+  } catch (error) {
+    console.error('Shiprocket Retry Sync Error:', error.message);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to sync order to Shiprocket',
+    });
   }
 };

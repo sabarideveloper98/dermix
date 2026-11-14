@@ -120,6 +120,29 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    shiprocketChannelOrderId: {
+      type: String,
+      default: '',
+    },
+    shiprocketStatus: {
+      type: String,
+      default: '',
+    },
+    shiprocketSyncStatus: {
+      type: String,
+      enum: ['PENDING', 'SYNCING', 'SUCCESS', 'FAILED'],
+      default: 'PENDING',
+    },
+    shiprocketSyncedAt: {
+      type: Date,
+    },
+    shiprocketSyncError: {
+      type: String,
+      default: '',
+    },
+    shiprocketResponse: {
+      type: mongoose.Schema.Types.Mixed,
+    },
     razorpay_order_id: {
       type: String,
       default: '',

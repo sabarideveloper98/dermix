@@ -8,6 +8,7 @@ import User from "../models/User.js";
 import Product from "../models/Product.js";
 import StockHistory from "../models/StockHistory.js";
 import { sendEmail } from "../utils/email.js";
+import { syncOrderToShiprocket } from "../services/shiprocket.service.js";
 
 /**
  * Controller: Process Checkout Workflow (fetch-products -> generate -> test-checkout)
@@ -382,6 +383,13 @@ export async function verifyPaymentAndOrder(req, res) {
       await existingOrder.save();
     }
 
+    // Trigger automatic Shiprocket Portal synchronization (non-blocking, idempotent)
+    if (isSuccess && existingOrder && existingOrder.shiprocketSyncStatus !== "SUCCESS") {
+      syncOrderToShiprocket(existingOrder._id).catch((syncErr) => {
+        console.error("Auto Shiprocket sync background error:", syncErr.message);
+      });
+    }
+
     // 5. Build structured products list for display
     let displayProducts = [];
     if (shiprocketOrder?.cart_data?.items?.length) {
@@ -603,6 +611,9 @@ export async function handleOrderWebhook(req, res) {
     // 4. Create Order (idempotently check first)
     const existing = await Order.findOne({ shiprocketOrderId });
     if (existing) {
+      if (existing.paymentStatus === "Paid" && existing.shiprocketSyncStatus !== "SUCCESS") {
+        syncOrderToShiprocket(existing._id).catch((e) => console.error("Webhook existing sync error:", e.message));
+      }
       return res.status(200).json({
         success: true,
         message: "Order already ingested",
@@ -645,6 +656,13 @@ export async function handleOrderWebhook(req, res) {
       } catch (emailErr) {
         console.warn("Confirmation email warning:", emailErr.message);
       }
+    }
+
+    // 6. Automatically sync order to Shiprocket Portal asynchronously if payment is confirmed
+    if (paymentSuccess) {
+      syncOrderToShiprocket(newOrder._id).catch((syncErr) => {
+        console.error("Auto Shiprocket sync webhook error:", syncErr.message);
+      });
     }
 
     return res.status(200).json({

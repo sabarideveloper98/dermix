@@ -22,7 +22,13 @@ import {
   FiCheck,
   FiX,
   FiFileText,
-  FiEdit3
+  FiEdit3,
+  FiUploadCloud,
+  FiAlertCircle,
+  FiArrowLeft,
+  FiArrowRight,
+  FiMonitor,
+  FiSmartphone
 } from "react-icons/fi";
 import { API_BASE as API_BASE_CONFIG } from "../config";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -32,9 +38,6 @@ import {
   Essentials,
   Bold,
   Italic,
-  Underline,
-  Strikethrough,
-  Alignment,
   Font,
   Paragraph,
   List,
@@ -124,7 +127,6 @@ export default function AdminApp() {
   // Temporary item inputs
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [whyChooseDermfix, setWhyChooseDermfix] = useState("");
   const [benefit, setBenefit] = useState("");
   const [mrpPrice, setMrpPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -134,26 +136,200 @@ export default function AdminApp() {
   const [images, setImages] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
   const [videoTitle, setVideoTitle] = useState("");
+  const [videoLink, setVideoLink] = useState("");
+  // Home Banner States
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerDescription, setBannerDescription] = useState("");
   const [bannerButtonText, setBannerButtonText] = useState("");
   const [bannerButtonLink, setBannerButtonLink] = useState("");
   const [bannerDisplayOrder, setBannerDisplayOrder] = useState(0);
+
+  // Desktop Banner Image States
   const [desktopBannerFile, setDesktopBannerFile] = useState(null);
   const [desktopBannerPreview, setDesktopBannerPreview] = useState("");
   const [existingDesktopBanner, setExistingDesktopBanner] = useState("");
   const [removeDesktopBanner, setRemoveDesktopBanner] = useState(false);
+
+  // Mobile Banner Image States
   const [mobileBannerFile, setMobileBannerFile] = useState(null);
   const [mobileBannerPreview, setMobileBannerPreview] = useState("");
   const [existingMobileBanner, setExistingMobileBanner] = useState("");
   const [removeMobileBanner, setRemoveMobileBanner] = useState(false);
+
   const [bannerError, setBannerError] = useState("");
   const [isSavingBanner, setIsSavingBanner] = useState(false);
+
+  // Desktop Banner Handlers
+  const handleDesktopBannerSelected = (file) => {
+    if (!file) return;
+    setBannerError("");
+    const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const isValidFormat =
+      validFormats.includes(file.type?.toLowerCase() || "") ||
+      /\.(jpe?g|png|webp)$/i.test(file.name);
+
+    if (!isValidFormat) {
+      setBannerError("Desktop banner must be in JPG, JPEG, PNG, or WEBP format.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setBannerError("Desktop banner exceeds 10MB limit.");
+      return;
+    }
+
+    if (desktopBannerPreview) {
+      URL.revokeObjectURL(desktopBannerPreview);
+    }
+    setDesktopBannerFile(file);
+    setDesktopBannerPreview(URL.createObjectURL(file));
+    setRemoveDesktopBanner(false);
+  };
+
+  const handleRemoveDesktopBanner = () => {
+    if (desktopBannerPreview) {
+      URL.revokeObjectURL(desktopBannerPreview);
+    }
+    setDesktopBannerFile(null);
+    setDesktopBannerPreview("");
+    setRemoveDesktopBanner(true);
+    setExistingDesktopBanner("");
+  };
+
+  // Mobile Banner Handlers
+  const handleMobileBannerSelected = (file) => {
+    if (!file) return;
+    setBannerError("");
+    const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const isValidFormat =
+      validFormats.includes(file.type?.toLowerCase() || "") ||
+      /\.(jpe?g|png|webp)$/i.test(file.name);
+
+    if (!isValidFormat) {
+      setBannerError("Mobile banner must be in JPG, JPEG, PNG, or WEBP format.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setBannerError("Mobile banner exceeds 10MB limit.");
+      return;
+    }
+
+    if (mobileBannerPreview) {
+      URL.revokeObjectURL(mobileBannerPreview);
+    }
+    setMobileBannerFile(file);
+    setMobileBannerPreview(URL.createObjectURL(file));
+    setRemoveMobileBanner(false);
+  };
+
+  const handleRemoveMobileBanner = () => {
+    if (mobileBannerPreview) {
+      URL.revokeObjectURL(mobileBannerPreview);
+    }
+    setMobileBannerFile(null);
+    setMobileBannerPreview("");
+    setRemoveMobileBanner(true);
+    setExistingMobileBanner("");
+  };
+
+  // Product Multiple Images States
+  const [existingProductImages, setExistingProductImages] = useState([]);
+  const [newProductFiles, setNewProductFiles] = useState([]);
+  const [newProductPreviews, setNewProductPreviews] = useState([]);
+  const [productImageError, setProductImageError] = useState("");
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Handle Product Images Selection
+  const handleProductFilesSelected = (filesList) => {
+    if (!filesList || filesList.length === 0) return;
+    setProductImageError("");
+
+    const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit
+
+    const filesToAdd = [];
+    const previewsToAdd = [];
+    const errorMsgs = [];
+
+    Array.from(filesList).forEach((file) => {
+      const isValidFormat =
+        validFormats.includes(file.type.toLowerCase()) ||
+        /\.(jpe?g|png|webp)$/i.test(file.name);
+
+      if (!isValidFormat) {
+        errorMsgs.push(`"${file.name}" has an unsupported format. Only JPG, JPEG, PNG, and WEBP are allowed.`);
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        errorMsgs.push(`"${file.name}" exceeds 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+        return;
+      }
+
+      // Avoid duplicate file names of exact same size
+      const exists = newProductFiles.some(
+        (f) => f.name === file.name && f.size === file.size
+      );
+      if (!exists) {
+        filesToAdd.push(file);
+        previewsToAdd.push(URL.createObjectURL(file));
+      }
+    });
+
+    if (errorMsgs.length > 0) {
+      setProductImageError(errorMsgs.join(" "));
+    }
+
+    if (filesToAdd.length > 0) {
+      setNewProductFiles((prev) => [...prev, ...filesToAdd]);
+      setNewProductPreviews((prev) => [...prev, ...previewsToAdd]);
+    }
+  };
+
+  const removeExistingProductImage = (indexToRemove) => {
+    setExistingProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const removeNewProductImage = (indexToRemove) => {
+    if (newProductPreviews[indexToRemove]) {
+      try {
+        URL.revokeObjectURL(newProductPreviews[indexToRemove]);
+      } catch (e) { }
+    }
+    setNewProductFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setNewProductPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const moveExistingImage = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= existingProductImages.length) return;
+    setExistingProductImages((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
+
+  const moveNewImage = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= newProductFiles.length) return;
+    setNewProductFiles((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+    setNewProductPreviews((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
 
   // Refund / Cancel States
   const [cancelReason, setCancelReason] = useState("");
   const [refundAmountInput, setRefundAmountInput] = useState("");
   const [refundReason, setRefundReason] = useState("");
+  const [isSyncingShiprocket, setIsSyncingShiprocket] = useState(false);
 
   // Size specific inputs
   const [sizeName, setSizeName] = useState("");
@@ -182,7 +358,6 @@ export default function AdminApp() {
   // Product Content Management States
   const [selectedContentProductId, setSelectedContentProductId] = useState("");
   const [contentDescription, setContentDescription] = useState("");
-  const [contentWhyChooseDermfix, setContentWhyChooseDermfix] = useState("");
   const [contentIngredients, setContentIngredients] = useState([]);
   const [contentTabConfig, setContentTabConfig] = useState({
     descriptionEnabled: true,
@@ -204,7 +379,6 @@ export default function AdminApp() {
       if (prod) {
         if (!selectedContentProductId) setSelectedContentProductId(prod._id);
         setContentDescription(prod.description || "");
-        setContentWhyChooseDermfix(prod.whyChooseDermfix || "");
         setContentTabConfig({
           descriptionEnabled: prod.tabConfig?.descriptionEnabled !== false,
           ingredientsEnabled: prod.tabConfig?.ingredientsEnabled !== false,
@@ -271,17 +445,7 @@ export default function AdminApp() {
     }
   }, [selectedTabImageProductId, products]);
 
-  const API_BASE = `${API_BASE_CONFIG}`;
-
-  // Check role & load initial dashboard stats
-  useEffect(() => {
-    if (user && user.role === "admin") {
-      fetchDashboardStats();
-      fetchTabContent(activeTab);
-    }
-  }, [user, activeTab]);
-
-  // Lock background body scrolling when any admin modal is open
+  // Lock body scroll and isolate mouse-wheel events when any admin modal is active
   useEffect(() => {
     if (modalType) {
       const originalOverflow = document.body.style.overflow;
@@ -291,6 +455,16 @@ export default function AdminApp() {
       };
     }
   }, [modalType]);
+
+  const API_BASE = `${API_BASE_CONFIG}`;
+
+  // Check role & load initial dashboard stats
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      fetchDashboardStats();
+      fetchTabContent(activeTab);
+    }
+  }, [user, activeTab]);
 
   const fetchDashboardStats = async () => {
     try {
@@ -434,7 +608,6 @@ export default function AdminApp() {
     try {
       const formData = new FormData();
       formData.append("description", contentDescription);
-      formData.append("whyChooseDermfix", contentWhyChooseDermfix || "");
       formData.append("ingredients", JSON.stringify(validIngredients));
       formData.append("tabConfig", JSON.stringify(contentTabConfig));
 
@@ -483,7 +656,6 @@ export default function AdminApp() {
         setProducts(prev => prev.map(p => p._id === selectedContentProductId ? {
           ...p,
           description: contentDescription,
-          whyChooseDermfix: contentWhyChooseDermfix,
           tabConfig: contentTabConfig,
           ingredients: validIngredients,
           keyIngredients: validIngredients,
@@ -660,7 +832,7 @@ export default function AdminApp() {
         const data = await res.json();
         if (res.ok && data.success) setCustomers(data.customers);
       } else if (tab === "banners") {
-        const res = await fetch(`${API_BASE}/banners?admin=true&_t=${Date.now()}`);
+        const res = await fetch(`${API_BASE}/banners?admin=true`);
         const data = await res.json();
         if (res.ok && data.success) setBanners(data.banners);
       } else if (tab === "videos") {
@@ -746,6 +918,31 @@ export default function AdminApp() {
       }
     } catch (err) {
       alert("Error processing refund");
+    }
+  };
+
+  const handleRetryShiprocketSync = async (orderId) => {
+    setIsSyncingShiprocket(true);
+    try {
+      const res = await authFetch(`${API_BASE}/orders/${orderId}/sync-shiprocket`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message || "Order successfully synced to Shiprocket portal!");
+        if (data.order) {
+          setEditingItem(data.order);
+        }
+        fetchTabContent("orders");
+      } else {
+        alert(data.message || "Failed to sync order to Shiprocket");
+        fetchTabContent("orders");
+      }
+    } catch (err) {
+      console.error("Retry Shiprocket sync error:", err);
+      alert(err.message || "Network error syncing with Shiprocket");
+    } finally {
+      setIsSyncingShiprocket(false);
     }
   };
 
@@ -864,10 +1061,12 @@ export default function AdminApp() {
   // Product CRUD
   const saveProduct = async (e) => {
     e.preventDefault();
+    setProductImageError("");
+    setIsSavingProduct(true);
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("description", description);
-    formData.append("whyChooseDermfix", whyChooseDermfix || "");
     formData.append("benefit", benefit);
     formData.append("mrpPrice", mrpPrice);
     formData.append("salePrice", salePrice);
@@ -878,21 +1077,14 @@ export default function AdminApp() {
     formData.append("tabConfig", JSON.stringify(tabConfig));
     formData.append("ingredients", JSON.stringify(ingredients));
 
-    // Append remaining images state on edit
+    // Append remaining images state on edit (preserves existing images and handles removals)
     if (editingItem) {
-      if (imageFiles && imageFiles.length > 0) {
-        // If new images are chosen, replace old images entirely
-        formData.append("remainingImages", JSON.stringify([]));
-      } else {
-        // If no new images are chosen, keep all current images
-        formData.append("remainingImages", JSON.stringify(editingItem.images || []));
-      }
+      formData.append("remainingImages", JSON.stringify(existingProductImages));
     }
 
-    // Append multiple files safely converting FileList
-    if (imageFiles) {
-      const filesArray = Array.from(imageFiles);
-      for (const file of filesArray) {
+    // Append multiple newly selected files
+    if (newProductFiles && newProductFiles.length > 0) {
+      for (const file of newProductFiles) {
         formData.append("images", file);
       }
     }
@@ -904,17 +1096,29 @@ export default function AdminApp() {
 
     try {
       const res = await authFetch(url, { method, body: formData });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        newProductPreviews.forEach((previewUrl) => {
+          try { URL.revokeObjectURL(previewUrl); } catch (e) { }
+        });
+        setExistingProductImages([]);
+        setNewProductFiles([]);
+        setNewProductPreviews([]);
+        setProductImageError("");
         setEditingItem(null);
         setModalType("");
         fetchTabContent("products");
       } else {
-        const data = await res.json();
-        alert(data.message || "Failed to save product.");
+        const errorMsg = data.message || "Failed to save product.";
+        setProductImageError(errorMsg);
+        alert(errorMsg);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error saving product:", err);
+      setProductImageError("An error occurred while saving the product.");
       alert("Error saving product.");
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -980,72 +1184,26 @@ export default function AdminApp() {
   // Home Banner CRUD
   const saveBanner = async (e) => {
     e.preventDefault();
-    setBannerError("");
-
-    if (!bannerTitle.trim()) {
-      setBannerError("Banner title is required.");
-      return;
-    }
-
-    const hasDesktop = desktopBannerFile || (!removeDesktopBanner && existingDesktopBanner);
-    const hasMobile = mobileBannerFile || (!removeMobileBanner && existingMobileBanner);
-
-    if (!hasDesktop && !hasMobile) {
-      setBannerError("Please provide at least one banner image (Desktop or Mobile).");
-      return;
-    }
-
-    setIsSavingBanner(true);
     const formData = new FormData();
-    formData.append("title", bannerTitle.trim());
-    formData.append("description", bannerDescription ? bannerDescription.trim() : "");
-    formData.append("buttonText", bannerButtonText ? bannerButtonText.trim() : "");
-    formData.append("buttonLink", bannerButtonLink ? bannerButtonLink.trim() : "");
-    formData.append("displayOrder", bannerDisplayOrder !== undefined ? bannerDisplayOrder : 0);
-    if (editingItem?.status) {
-      formData.append("status", editingItem.status);
+    formData.append("title", bannerTitle);
+    if (bannerFile) {
+      formData.append("image", bannerFile);
     }
 
-    if (desktopBannerFile && (desktopBannerFile instanceof File || desktopBannerFile.size !== undefined)) {
-      formData.append("desktopImage", desktopBannerFile);
-    } else if (removeDesktopBanner) {
-      formData.append("removeDesktopImage", "true");
-    }
-
-    if (mobileBannerFile && (mobileBannerFile instanceof File || mobileBannerFile.size !== undefined)) {
-      formData.append("mobileImage", mobileBannerFile);
-    } else if (removeMobileBanner) {
-      formData.append("removeMobileImage", "true");
-    }
-
-    const bannerId = editingItem?._id || editingItem?.id;
-    const url = bannerId
-      ? `${API_BASE}/admin/banners/${bannerId}`
+    const url = editingItem
+      ? `${API_BASE}/admin/banners/${editingItem._id}`
       : `${API_BASE}/admin/banners`;
-    const method = bannerId ? "PUT" : "POST";
+    const method = editingItem ? "PUT" : "POST";
 
     try {
       const res = await authFetch(url, { method, body: formData });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success !== false) {
-        if (data.banner) {
-          setBanners((prev) =>
-            bannerId
-              ? prev.map((b) => (b._id === bannerId || b.id === bannerId ? data.banner : b))
-              : [data.banner, ...prev]
-          );
-        }
+      if (res.ok) {
         setEditingItem(null);
         setModalType("");
         fetchTabContent("banners");
-      } else {
-        setBannerError(data.message || data.error || "Failed to save banner. Please check the inputs and try again.");
       }
     } catch (err) {
       console.error(err);
-      setBannerError("An unexpected error occurred while saving the banner.");
-    } finally {
-      setIsSavingBanner(false);
     }
   };
 
@@ -1139,7 +1297,6 @@ export default function AdminApp() {
     } else if (type === "product") {
       setName(item ? item.name : "");
       setDescription(item ? item.description : "");
-      setWhyChooseDermfix(item ? (item.whyChooseDermfix || "") : "");
       setBenefit(item ? item.benefit || "" : "");
       setMrpPrice(item ? item.mrpPrice : "");
       setSalePrice(item ? item.salePrice : "");
@@ -1170,25 +1327,25 @@ export default function AdminApp() {
         description: ing.description || "",
       })));
       setImageFiles([]);
+
+      // Initialize multiple product images state
+      newProductPreviews.forEach((previewUrl) => {
+        try { URL.revokeObjectURL(previewUrl); } catch (e) { }
+      });
+      const currentImgs = item && item.images
+        ? (Array.isArray(item.images) ? [...item.images] : (typeof item.images === 'string' ? [item.images] : []))
+        : [];
+      setExistingProductImages(currentImgs);
+      setNewProductFiles([]);
+      setNewProductPreviews([]);
+      setProductImageError("");
+      setIsSavingProduct(false);
     } else if (type === "stock") {
       setQty(item ? item.qty : "");
       setDescription(""); // Reason field
     } else if (type === "banner") {
       setBannerTitle(item ? item.title : "");
-      setBannerDescription(item ? (item.description || "") : "");
-      setBannerButtonText(item ? (item.buttonText || "") : "");
-      setBannerButtonLink(item ? (item.buttonLink || "") : "");
-      setBannerDisplayOrder(item ? (item.displayOrder ?? 0) : 0);
-      setDesktopBannerFile(null);
-      setDesktopBannerPreview("");
-      setExistingDesktopBanner(item ? (item.desktopImage || item.image || "") : "");
-      setRemoveDesktopBanner(false);
-      setMobileBannerFile(null);
-      setMobileBannerPreview("");
-      setExistingMobileBanner(item ? (item.mobileImage || "") : "");
-      setRemoveMobileBanner(false);
-      setBannerError("");
-      setIsSavingBanner(false);
+      setBannerFile(null);
     } else if (type === "video") {
       setVideoTitle(item ? item.title : "");
       setVideoLink(item ? item.videoLink : "");
@@ -2153,70 +2310,6 @@ export default function AdminApp() {
                               </small>
                               <small className="text-muted">
                                 {contentDescription.replace(/<[^>]*>/g, "").length} characters
-                              </small>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Section 1B: Why Choose Dermfix Management */}
-                      <div className="col-12">
-                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-                            <div>
-                              <div className="d-flex align-items-center gap-2">
-                                <span className="badge rounded-pill px-2 py-1 text-white" style={{ backgroundColor: "#9333ea", fontSize: "11px" }}>Section 1B</span>
-                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Why Choose Dermfix Management</h6>
-                              </div>
-                              <small className="text-muted">
-                                Enter and format "Why Choose Dermfix" rich-text content for this specific product (supports headings, bold, underline, strikethrough, lists, colors, alignment, and links).
-                              </small>
-                            </div>
-                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
-                              Rich Text Formatter
-                            </span>
-                          </div>
-                          <div className="card-body p-3">
-                            <div className="border rounded overflow-hidden" style={{ minHeight: "260px" }}>
-                              <CKEditor
-                                editor={ClassicEditor}
-                                config={{
-                                  licenseKey: "GPL",
-                                  plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
-                                  toolbar: [
-                                    "heading",
-                                    "|",
-                                    "bold",
-                                    "italic",
-                                    "underline",
-                                    "strikethrough",
-                                    "|",
-                                    "fontSize",
-                                    "fontColor",
-                                    "fontBackgroundColor",
-                                    "|",
-                                    "alignment",
-                                    "|",
-                                    "bulletedList",
-                                    "numberedList",
-                                    "insertTable",
-                                    "link",
-                                    "undo",
-                                    "redo",
-                                  ],
-                                }}
-                                data={contentWhyChooseDermfix}
-                                onChange={(event, editor) => {
-                                  setContentWhyChooseDermfix(editor.getData());
-                                }}
-                              />
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center mt-2">
-                              <small className="text-muted">
-                                Saved against product ID: <code>{selectedContentProductId}</code>
-                              </small>
-                              <small className="text-muted">
-                                {contentWhyChooseDermfix.replace(/<[^>]*>/g, "").length} characters
                               </small>
                             </div>
                           </div>
@@ -3530,10 +3623,8 @@ export default function AdminApp() {
                   <table className="table table-premium mb-0">
                     <thead>
                       <tr>
-                        <th>Desktop Banner</th>
-                        <th>Mobile Banner</th>
+                        <th>Image Preview</th>
                         <th>Title</th>
-                        <th>Order</th>
                         <th>Status</th>
                         <th className="text-end">Actions</th>
                       </tr>
@@ -3544,50 +3635,9 @@ export default function AdminApp() {
                         .map((b) => (
                           <tr key={b._id} className="align-middle">
                             <td>
-                              {b.desktopImage || b.image ? (
-                                <div className="d-flex align-items-center gap-2">
-                                  <img
-                                    src={b.desktopImage || b.image}
-                                    alt={`${b.title} desktop`}
-                                    width="110"
-                                    height="50"
-                                    style={{ objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
-                                  />
-                                  <span className="badge bg-light text-dark border" style={{ fontSize: "10px" }}>16:9</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted small">None</span>
-                              )}
+                              <img src={b.image} alt={b.title} width="120" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
                             </td>
-                            <td>
-                              {b.mobileImage ? (
-                                <div className="d-flex align-items-center gap-2">
-                                  <img
-                                    src={b.mobileImage}
-                                    alt={`${b.title} mobile`}
-                                    width="42"
-                                    height="50"
-                                    style={{ objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
-                                  />
-                                  <span className="badge bg-light text-dark border" style={{ fontSize: "10px" }}>Portrait</span>
-                                </div>
-                              ) : (
-                                <span className="badge bg-light text-secondary border" style={{ fontSize: "10px" }} title="Falls back to Desktop image">
-                                  Uses Desktop
-                                </span>
-                              )}
-                            </td>
-                            <td>
-                              <div className="fw-semibold text-dark">{b.title}</div>
-                              {b.description && (
-                                <div className="text-muted small text-truncate" style={{ maxWidth: "220px" }}>
-                                  {b.description}
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              <span className="badge bg-secondary-subtle text-secondary">{b.displayOrder ?? 0}</span>
-                            </td>
+                            <td>{b.title}</td>
                             <td>
                               <button
                                 className={`btn btn-sm ${b.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
@@ -3886,11 +3936,19 @@ export default function AdminApp() {
       {/* --- CRUD MODALS / OVERLAYS (GLASSMORPHIC STYLING) --- */}
       {modalType && (
         <div
-          className="admin-modal-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          className="modal position-fixed top-0 start-0 w-100 h-100 admin-modal-backdrop"
+          data-lenis-prevent="true"
+          data-lenis-prevent-wheel="true"
+          data-lenis-prevent-touch="true"
           style={{
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "rgba(0,0,0,0.75)",
             backdropFilter: "blur(4px)",
-            zIndex: 9999
+            zIndex: 9999,
+            overflow: "hidden",
+            padding: "16px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -3899,1039 +3957,1036 @@ export default function AdminApp() {
           }}
         >
           <div
-            className={`card border-0 shadow-lg admin-modal-card ${modalType === 'product' ? 'edit-product-modal' : ''}`}
+            className="card border-0 shadow-lg admin-modal-card edit-product-modal"
+            data-lenis-prevent="true"
+            data-lenis-prevent-wheel="true"
+            data-lenis-prevent-touch="true"
             style={{
-              maxWidth: modalType === "product" || modalType === "content" || modalType === "banner" ? "860px" : "550px",
-              width: "90%",
+              maxWidth: modalType === "product" ? "880px" : "550px",
+              width: "100%",
               backgroundColor: "#ffffff",
               borderRadius: "16px",
               border: "1px solid #f1f5f9",
-              maxHeight: "90vh",
-              height: (modalType === "product" || modalType === "banner") ? "90vh" : "auto",
+              margin: "auto",
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden"
+              maxHeight: "90vh",
+              height: modalType === "product" ? "90vh" : "auto",
+              overflow: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header (Pinned) */}
+            {/* Modal Header (Fixed at top of modal) */}
             <div
-              className="admin-modal-header edit-product-modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
-              style={{ flexShrink: 0, backgroundColor: "#ffffff" }}
+              className="admin-modal-header edit-product-modal-header d-flex justify-content-between align-items-center p-4 border-bottom bg-white"
+              style={{
+                flexShrink: 0,
+                borderTopLeftRadius: "16px",
+                borderTopRightRadius: "16px",
+              }}
             >
-              <h4 className="font-instrument_serif text-capitalize fw-bold mb-0" style={{ color: "#0f172a" }}>
-                {editingItem ? "Edit" : "Create"} {modalType}
-              </h4>
+              <div>
+                <h4 className="font-instrument_serif text-capitalize fw-bold mb-0" style={{ color: "#0f172a" }}>
+                  {editingItem ? "Edit" : "Create"} {modalType}
+                </h4>
+                {modalType === "product" && (
+                  <small className="text-muted">
+                    {editingItem ? `Editing: ${editingItem.name || "Product"}` : "Create a new product in the store"}
+                  </small>
+                )}
+              </div>
               <button
                 type="button"
                 className="btn btn-close-popup border-0 p-0 fs-20"
-                style={{ color: "#0f172a", lineHeight: 1 }}
+                style={{ color: "#0f172a", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                 onClick={() => setModalType("")}
-                aria-label="Close"
+                title="Close"
               >
                 ×
               </button>
             </div>
 
-            {/* Category Form */}
-            {modalType === "category" && (
-              <form onSubmit={saveCategory} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                  <div className="mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
-                    <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
-                    <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
-                  </div>
-                  <div className="mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
-                    <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
-                  </div>
-                </div>
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
-                  <button type="submit" className="btn btn-primary px-4 py-2">
-                    Save Category
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Product Form */}
-            {modalType === "product" && (
-              <form onSubmit={saveProduct} className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
+            {/* Modal Body / Forms */}
+            {modalType === "product" ? (
+              <form
+                id="productModalForm"
+                onSubmit={saveProduct}
+                className="d-flex flex-column flex-grow-1"
+                data-lenis-prevent="true"
+                style={{
+                  minHeight: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  flex: "1 1 0%",
+                }}
+              >
+                {/* Scrollable Body */}
                 <div
                   className="admin-modal-scrollable edit-product-modal-body p-4"
+                  data-lenis-prevent="true"
+                  data-lenis-prevent-wheel="true"
+                  data-lenis-prevent-touch="true"
                   style={{
                     flex: "1 1 auto",
-                    overflowY: "auto",
                     minHeight: 0,
-                    overscrollBehavior: "contain"
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                    WebkitOverflowScrolling: "touch",
                   }}
                 >
                   <div className="row">
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Name</label>
-                    <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category</label>
-                    <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
-                      <option value="">Select Category</option>
-                      {categories.map((c) => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>MRP Price (₹)</label>
-                    <input type="number" className="form-control" value={mrpPrice} onChange={(e) => setMrpPrice(e.target.value)} required />
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Sale Price (₹)</label>
-                    <input type="number" className="form-control" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} required />
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Initial Stock Qty</label>
-                    <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required disabled={!!editingItem} />
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Benefit tag</label>
-                    <input type="text" className="form-control" placeholder="e.g. Firming, Hydrating" value={benefit} onChange={(e) => setBenefit(e.target.value)} />
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Shipping</label>
-                    <div className="form-check form-switch mt-1">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="shippingPaidSwitch"
-                        checked={isShippingPaid}
-                        onChange={(e) => setIsShippingPaid(e.target.checked)}
-                      />
-                      <label className="form-check-label" htmlFor="shippingPaidSwitch">
-                        {isShippingPaid ? "Paid Shipping" : "Free Shipping"}
-                      </label>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Name</label>
+                      <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
-                  </div>
-                  <div className="col-12 col-md-6 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Sizes</label>
-                    <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                      {sizes.map(s => {
-                        const isSelected = selectedSizes.some(obj => obj.size === s._id);
-                        const selectedObj = selectedSizes.find(obj => obj.size === s._id) || { mrpPrice: '', salePrice: '' };
-                        return (
-                          <div key={s._id} className="form-check mb-2">
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category</label>
+                      <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+                        <option value="">Select Category</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>MRP Price (₹)</label>
+                      <input type="number" className="form-control" value={mrpPrice} onChange={(e) => setMrpPrice(e.target.value)} required />
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Sale Price (₹)</label>
+                      <input type="number" className="form-control" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} required />
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Initial Stock Qty</label>
+                      <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required disabled={!!editingItem} />
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Benefit tag</label>
+                      <input type="text" className="form-control" placeholder="e.g. Firming, Hydrating" value={benefit} onChange={(e) => setBenefit(e.target.value)} />
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Shipping</label>
+                      <div className="form-check form-switch mt-1">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="shippingPaidSwitch"
+                          checked={isShippingPaid}
+                          onChange={(e) => setIsShippingPaid(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="shippingPaidSwitch">
+                          {isShippingPaid ? "Paid Shipping" : "Free Shipping"}
+                        </label>
+                      </div>
+                    </div>
+                    <div className="col-12 col-md-6 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Sizes</label>
+                      <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                        {sizes.map(s => {
+                          const isSelected = selectedSizes.some(obj => obj.size === s._id);
+                          const selectedObj = selectedSizes.find(obj => obj.size === s._id) || { mrpPrice: '', salePrice: '' };
+                          return (
+                            <div key={s._id} className="form-check mb-2">
+                              <input
+                                className="form-check-input mt-2"
+                                type="checkbox"
+                                id={`size-${s._id}`}
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedSizes([...selectedSizes, { size: s._id, mrpPrice: mrpPrice || 0, salePrice: salePrice || 0 }]);
+                                  } else {
+                                    setSelectedSizes(selectedSizes.filter(obj => obj.size !== s._id));
+                                  }
+                                }}
+                              />
+                              <label className="form-check-label d-flex align-items-center w-100" htmlFor={`size-${s._id}`}>
+                                <span style={{ minWidth: '80px' }}>{s.name}</span>
+                                {isSelected && (
+                                  <div className="d-flex ms-auto gap-2 align-items-center flex-wrap">
+                                    <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
+                                      <span className="input-group-text px-1">MRP</span>
+                                      <input type="number" className="form-control px-1" value={selectedObj.mrpPrice} onChange={e => {
+                                        setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, mrpPrice: e.target.value } : obj));
+                                      }} />
+                                    </div>
+                                    <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
+                                      <span className="input-group-text px-1">Sale</span>
+                                      <input type="number" className="form-control px-1" value={selectedObj.salePrice} onChange={e => {
+                                        setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, salePrice: e.target.value } : obj));
+                                      }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </label>
+                            </div>
+                          )
+                        })}
+                        {sizes.length === 0 && <span className="text-muted small">No sizes available.</span>}
+                      </div>
+                    </div>
+
+                    {/* --- Product Images Gallery & Upload Section --- */}
+                    <div className="col-12 mb-4">
+                      <div className="card border-0 shadow-sm" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #cbd5e1" }}>
+                        <div className="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                          <div className="d-flex align-items-center gap-2">
+                            <FiImage size={20} className="text-primary" />
+                            <div>
+                              <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Upload Product Images</h6>
+                              <small className="text-muted">Upload product photos. The 1st image will be the primary main image in customer details.</small>
+                            </div>
+                          </div>
+                          <span className="badge bg-primary text-white" style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "20px" }}>
+                            Total Images: {existingProductImages.length + newProductFiles.length}
+                          </span>
+                        </div>
+
+                        <div className="card-body p-3">
+                          {/* Upload Dropzone / Button */}
+                          <div
+                            className="p-4 text-center rounded border border-2 border-dashed mb-3"
+                            style={{
+                              borderColor: "#94a3b8",
+                              backgroundColor: "#f8fafc",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease"
+                            }}
+                            onClick={() => document.getElementById("productImagesFileInput")?.click()}
+                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                handleProductFilesSelected(e.dataTransfer.files);
+                              }
+                            }}
+                          >
+                            <FiUploadCloud size={40} className="text-primary mb-2" />
+                            <div className="fw-bold" style={{ color: "#0f172a", fontSize: "15px" }}>
+                              Upload Product Images
+                            </div>
+                            <p className="small text-muted mb-2">
+                              Click to browse or drag &amp; drop images here (Select multiple images at once)
+                            </p>
+                            <div className="d-flex justify-content-center gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-primary px-3 py-1 d-inline-flex align-items-center gap-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  document.getElementById("productImagesFileInput")?.click();
+                                }}
+                              >
+                                <FiPlus size={14} /> Browse from Computer
+                              </button>
+                            </div>
+                            <small className="text-secondary d-block mt-2" style={{ fontSize: "11px" }}>
+                              Supported Formats: JPG, JPEG, PNG, WEBP • Max 10MB per image
+                            </small>
                             <input
-                              className="form-check-input mt-2"
-                              type="checkbox"
-                              id={`size-${s._id}`}
-                              checked={isSelected}
+                              type="file"
+                              id="productImagesFileInput"
+                              multiple
+                              accept="image/jpeg,image/png,image/webp,image/jpg"
+                              style={{ display: "none" }}
                               onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedSizes([...selectedSizes, { size: s._id, mrpPrice: mrpPrice || 0, salePrice: salePrice || 0 }]);
-                                } else {
-                                  setSelectedSizes(selectedSizes.filter(obj => obj.size !== s._id));
+                                if (e.target.files) {
+                                  handleProductFilesSelected(e.target.files);
+                                  e.target.value = "";
                                 }
                               }}
                             />
-                            <label className="form-check-label d-flex align-items-center w-100" htmlFor={`size-${s._id}`}>
-                              <span style={{ minWidth: '80px' }}>{s.name}</span>
-                              {isSelected && (
-                                <div className="d-flex ms-auto gap-2 align-items-center flex-wrap">
-                                  <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
-                                    <span className="input-group-text px-1">MRP</span>
-                                    <input type="number" className="form-control px-1" value={selectedObj.mrpPrice} onChange={e => {
-                                      setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, mrpPrice: e.target.value } : obj));
-                                    }} />
-                                  </div>
-                                  <div className="input-group input-group-sm" style={{ minWidth: '100px', flex: 1 }}>
-                                    <span className="input-group-text px-1">Sale</span>
-                                    <input type="number" className="form-control px-1" value={selectedObj.salePrice} onChange={e => {
-                                      setSelectedSizes(selectedSizes.map(obj => obj.size === s._id ? { ...obj, salePrice: e.target.value } : obj));
-                                    }} />
-                                  </div>
-                                </div>
-                              )}
-                            </label>
-                          </div>
-                        )
-                      })}
-                      {sizes.length === 0 && <span className="text-muted small">No sizes available.</span>}
-                    </div>
-                  </div>
-                  {/* --- Product Details Tab Management Section --- */}
-                  <div className="col-12 mb-3">
-                    <div className="card border-0 shadow-sm" style={{ background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                      <div className="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-                        <div>
-                          <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Details Tab Management</h6>
-                          <small className="text-muted">Configure &amp; enable/disable tabs independently on the Product Details page</small>
-                        </div>
-                        <span className="badge bg-primary text-white" style={{ fontSize: "11px" }}>Storefront Tabs</span>
-                      </div>
-                      <div className="card-body p-3">
-                        {/* 1. Description Tab Control */}
-                        <div className="p-3 mb-3 bg-white rounded border">
-                          <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                              <div className="fw-bold" style={{ color: "#0f172a" }}>1. Description Tab</div>
-                              <small className="text-muted">Enable or disable product description tab on customer details page</small>
-                            </div>
-                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                role="switch"
-                                id="descTabToggle"
-                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
-                                checked={tabConfig.descriptionEnabled}
-                                onChange={(e) => setTabConfig(prev => ({ ...prev, descriptionEnabled: e.target.checked }))}
-                              />
-                              <label className="form-check-label fw-bold mb-0" htmlFor="descTabToggle" style={{ color: tabConfig.descriptionEnabled ? "#16a34a" : "#dc2626" }}>
-                                {tabConfig.descriptionEnabled ? "Enabled" : "Disabled"}
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 2. Key Ingredients Tab Control */}
-                        <div className="p-3 mb-3 bg-white rounded border">
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <div>
-                              <div className="fw-bold" style={{ color: "#0f172a" }}>2. Key Ingredients Tab</div>
-                              <small className="text-muted">Enable or disable key ingredients facts and percentage table</small>
-                            </div>
-                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                role="switch"
-                                id="ingredientsTabToggle"
-                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
-                                checked={tabConfig.ingredientsEnabled}
-                                onChange={(e) => setTabConfig(prev => ({ ...prev, ingredientsEnabled: e.target.checked }))}
-                              />
-                              <label className="form-check-label fw-bold mb-0" htmlFor="ingredientsTabToggle" style={{ color: tabConfig.ingredientsEnabled ? "#16a34a" : "#dc2626" }}>
-                                {tabConfig.ingredientsEnabled ? "Enabled" : "Disabled"}
-                              </label>
-                            </div>
                           </div>
 
-                          {/* Key Ingredients Items Configuration */}
-                          <div className="mt-3 pt-3 border-top">
-                            <div className="d-flex align-items-center justify-content-between mb-2">
-                              <label className="small fw-bold text-dark mb-0">Key Ingredients List ({ingredients.length})</label>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                                onClick={() => setIngredients([...ingredients, { name: "", percentage: "", description: "" }])}
-                              >
-                                <FiPlus size={14} /> Add Ingredient
-                              </button>
+                          {/* Validation / Status Messages */}
+                          {productImageError && (
+                            <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                              <FiAlertCircle size={16} className="flex-shrink-0" />
+                              <span>{productImageError}</span>
                             </div>
-                            {ingredients.length === 0 ? (
-                              <div className="text-muted small p-2 bg-light rounded text-center">
-                                No ingredients added yet. Click &quot;+ Add Ingredient&quot; to configure key ingredients.
+                          )}
+
+                          {isSavingProduct && (
+                            <div className="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                              <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+                              <span>Uploading product images to Cloudinary and saving... Please wait.</span>
+                            </div>
+                          )}
+
+                          {/* 1. Existing Uploaded Images (when editing or previously saved) */}
+                          {existingProductImages.length > 0 && (
+                            <div className="mb-3">
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="small fw-bold" style={{ color: "#0f172a" }}>
+                                  Existing Uploaded Images ({existingProductImages.length})
+                                </span>
+                                <small className="text-muted">Saved on server</small>
                               </div>
-                            ) : (
-                              <div className="d-flex flex-column gap-2" style={{ maxHeight: "260px", overflowY: "auto" }}>
-                                {ingredients.map((ing, idx) => (
-                                  <div key={idx} className="p-2 border rounded bg-light">
-                                    <div className="d-flex gap-2 align-items-center mb-1">
-                                      <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        placeholder="Ingredient Name * (e.g. Niacinamide)"
-                                        value={ing.name}
-                                        onChange={(e) => {
-                                          const updated = [...ingredients];
-                                          updated[idx].name = e.target.value;
-                                          setIngredients(updated);
-                                        }}
-                                      />
-                                      <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        style={{ maxWidth: "160px" }}
-                                        placeholder="Percentage (optional)"
-                                        value={ing.percentage}
-                                        onChange={(e) => {
-                                          const updated = [...ingredients];
-                                          updated[idx].percentage = e.target.value;
-                                          setIngredients(updated);
-                                        }}
-                                      />
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() => setIngredients(ingredients.filter((_, i) => i !== idx))}
-                                        title="Remove ingredient"
-                                      >
-                                        <FiTrash2 size={14} />
-                                      </button>
+                              <div className="row g-2">
+                                {existingProductImages.map((imgUrl, idx) => (
+                                  <div key={idx} className="col-6 col-sm-4 col-md-3">
+                                    <div
+                                      className="position-relative border rounded p-1 bg-white shadow-sm h-100 d-flex flex-column"
+                                      style={{ borderColor: idx === 0 ? "#3b82f6" : "#e2e8f0" }}
+                                    >
+                                      <div style={{ position: "relative", width: "100%", paddingTop: "100%", borderRadius: "6px", overflow: "hidden", background: "#f1f5f9" }}>
+                                        <img
+                                          src={imgUrl}
+                                          alt={`Product ${idx + 1}`}
+                                          style={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover"
+                                          }}
+                                          onError={(e) => { e.target.src = "/assets/images/products/serum_product.png"; }}
+                                        />
+                                        {idx === 0 && (
+                                          <span
+                                            className="badge bg-primary text-white position-absolute top-0 start-0 m-1"
+                                            style={{ fontSize: "10px", zIndex: 2 }}
+                                          >
+                                            ★ Main Image
+                                          </span>
+                                        )}
+                                        <span
+                                          className="badge bg-dark bg-opacity-75 text-white position-absolute bottom-0 start-0 m-1"
+                                          style={{ fontSize: "10px", zIndex: 2 }}
+                                        >
+                                          #{idx + 1}
+                                        </span>
+                                      </div>
+                                      <div className="d-flex align-items-center justify-content-between mt-1 px-1">
+                                        <div className="d-flex gap-1">
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-light p-1"
+                                            style={{ fontSize: "11px", lineHeight: 1 }}
+                                            disabled={idx === 0}
+                                            onClick={() => moveExistingImage(idx, idx - 1)}
+                                            title="Move Earlier"
+                                          >
+                                            <FiArrowLeft size={12} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-light p-1"
+                                            style={{ fontSize: "11px", lineHeight: 1 }}
+                                            disabled={idx === existingProductImages.length - 1}
+                                            onClick={() => moveExistingImage(idx, idx + 1)}
+                                            title="Move Later"
+                                          >
+                                            <FiArrowRight size={12} />
+                                          </button>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-outline-danger p-1"
+                                          style={{ fontSize: "11px", lineHeight: 1 }}
+                                          onClick={() => removeExistingProductImage(idx)}
+                                          title="Remove this image"
+                                        >
+                                          <FiTrash2 size={12} />
+                                        </button>
+                                      </div>
                                     </div>
-                                    <input
-                                      type="text"
-                                      className="form-control form-control-sm"
-                                      placeholder="Ingredient description / role (e.g. Skin barrier support)"
-                                      value={ing.description || ""}
-                                      onChange={(e) => {
-                                        const updated = [...ingredients];
-                                        updated[idx].description = e.target.value;
-                                        setIngredients(updated);
-                                      }}
-                                    />
                                   </div>
                                 ))}
                               </div>
-                            )}
-                          </div>
-                        </div>
+                            </div>
+                          )}
 
-                        {/* 3. Customer Reviews Tab Control */}
-                        <div className="p-3 bg-white rounded border">
-                          <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                              <div className="fw-bold" style={{ color: "#0f172a" }}>3. Customer Reviews Tab</div>
-                              <small className="text-muted">Enable or disable customer reviews tab and write-review submissions</small>
+                          {/* 2. Newly Selected Images Previews */}
+                          {newProductFiles.length > 0 && (
+                            <div className="mb-2">
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="small fw-bold text-success">
+                                  Newly Selected Images to Upload ({newProductFiles.length})
+                                </span>
+                                <small className="text-muted">Will be uploaded upon saving</small>
+                              </div>
+                              <div className="row g-2">
+                                {newProductFiles.map((file, idx) => (
+                                  <div key={idx} className="col-6 col-sm-4 col-md-3">
+                                    <div className="position-relative border border-success rounded p-1 bg-white shadow-sm h-100 d-flex flex-column">
+                                      <div style={{ position: "relative", width: "100%", paddingTop: "100%", borderRadius: "6px", overflow: "hidden", background: "#f1f5f9" }}>
+                                        <img
+                                          src={newProductPreviews[idx]}
+                                          alt={file.name}
+                                          style={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover"
+                                          }}
+                                        />
+                                        <span
+                                          className="badge bg-success text-white position-absolute top-0 start-0 m-1"
+                                          style={{ fontSize: "10px", zIndex: 2 }}
+                                        >
+                                          New
+                                        </span>
+                                        {existingProductImages.length === 0 && idx === 0 && (
+                                          <span
+                                            className="badge bg-primary text-white position-absolute top-0 end-0 m-1"
+                                            style={{ fontSize: "10px", zIndex: 2 }}
+                                          >
+                                            ★ Main
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-1 px-1">
+                                        <div className="text-truncate small fw-bold" style={{ fontSize: "11px" }} title={file.name}>
+                                          {file.name}
+                                        </div>
+                                        <div className="d-flex align-items-center justify-content-between">
+                                          <span className="text-muted" style={{ fontSize: "10px" }}>
+                                            {(file.size / 1024).toFixed(0)} KB
+                                          </span>
+                                          <div className="d-flex gap-1 align-items-center">
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-light p-1"
+                                              style={{ fontSize: "10px", lineHeight: 1 }}
+                                              disabled={idx === 0}
+                                              onClick={() => moveNewImage(idx, idx - 1)}
+                                              title="Move Earlier"
+                                            >
+                                              <FiArrowLeft size={11} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-light p-1"
+                                              style={{ fontSize: "10px", lineHeight: 1 }}
+                                              disabled={idx === newProductFiles.length - 1}
+                                              onClick={() => moveNewImage(idx, idx + 1)}
+                                              title="Move Later"
+                                            >
+                                              <FiArrowRight size={11} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-outline-danger p-1"
+                                              style={{ fontSize: "10px", lineHeight: 1 }}
+                                              onClick={() => removeNewProductImage(idx)}
+                                              title="Remove before saving"
+                                            >
+                                              <FiTrash2 size={11} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                role="switch"
-                                id="reviewsTabToggle"
-                                style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
-                                checked={tabConfig.reviewsEnabled}
-                                onChange={(e) => setTabConfig(prev => ({ ...prev, reviewsEnabled: e.target.checked }))}
-                              />
-                              <label className="form-check-label fw-bold mb-0" htmlFor="reviewsTabToggle" style={{ color: tabConfig.reviewsEnabled ? "#16a34a" : "#dc2626" }}>
-                                {tabConfig.reviewsEnabled ? "Enabled" : "Disabled"}
-                              </label>
-                            </div>
-                          </div>
-                          {!tabConfig.reviewsEnabled && (
-                            <div className="mt-2 small text-muted">
-                              Note: When disabled, existing reviews are safely stored and will reappear when re-enabled.
+                          )}
+
+                          {/* Helper when no images chosen yet */}
+                          {existingProductImages.length === 0 && newProductFiles.length === 0 && (
+                            <div className="text-center p-2 text-muted small">
+                              No product images uploaded or selected yet.
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="col-12 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
-                    <div className="border rounded" style={{ minHeight: '200px' }}>
-                      <CKEditor
-                        editor={ClassicEditor}
-                        config={{
-                          licenseKey: 'GPL',
-                          plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
-                          toolbar: ['heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'alignment', '|', 'bulletedList', 'numberedList', '|', 'link', 'insertTable', '|', 'undo', 'redo']
-                        }}
-                        data={description}
-                        onChange={(event, editor) => {
-                          const data = editor.getData();
-                          setDescription(data);
-                        }}
-                      />
+                    {/* --- Product Details Tab Management Section --- */}
+                    <div className="col-12 mb-3">
+                      <div className="card border-0 shadow-sm" style={{ background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        <div className="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
+                          <div>
+                            <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Product Details Tab Management</h6>
+                            <small className="text-muted">Configure &amp; enable/disable tabs independently on the Product Details page</small>
+                          </div>
+                          <span className="badge bg-primary text-white" style={{ fontSize: "11px" }}>Storefront Tabs</span>
+                        </div>
+                        <div className="card-body p-3">
+                          {/* 1. Description Tab Control */}
+                          <div className="p-3 mb-3 bg-white rounded border">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <div>
+                                <div className="fw-bold" style={{ color: "#0f172a" }}>1. Description Tab</div>
+                                <small className="text-muted">Enable or disable product description tab on customer details page</small>
+                              </div>
+                              <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  role="switch"
+                                  id="descTabToggle"
+                                  style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                  checked={tabConfig.descriptionEnabled}
+                                  onChange={(e) => setTabConfig(prev => ({ ...prev, descriptionEnabled: e.target.checked }))}
+                                />
+                                <label className="form-check-label fw-bold mb-0" htmlFor="descTabToggle" style={{ color: tabConfig.descriptionEnabled ? "#16a34a" : "#dc2626" }}>
+                                  {tabConfig.descriptionEnabled ? "Enabled" : "Disabled"}
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 2. Key Ingredients Tab Control */}
+                          <div className="p-3 mb-3 bg-white rounded border">
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                              <div>
+                                <div className="fw-bold" style={{ color: "#0f172a" }}>2. Key Ingredients Tab</div>
+                                <small className="text-muted">Enable or disable key ingredients facts and percentage table</small>
+                              </div>
+                              <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  role="switch"
+                                  id="ingredientsTabToggle"
+                                  style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                  checked={tabConfig.ingredientsEnabled}
+                                  onChange={(e) => setTabConfig(prev => ({ ...prev, ingredientsEnabled: e.target.checked }))}
+                                />
+                                <label className="form-check-label fw-bold mb-0" htmlFor="ingredientsTabToggle" style={{ color: tabConfig.ingredientsEnabled ? "#16a34a" : "#dc2626" }}>
+                                  {tabConfig.ingredientsEnabled ? "Enabled" : "Disabled"}
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Key Ingredients Items Configuration */}
+                            <div className="mt-3 pt-3 border-top">
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <label className="small fw-bold text-dark mb-0">Key Ingredients List ({ingredients.length})</label>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                  onClick={() => setIngredients([...ingredients, { name: "", percentage: "", description: "" }])}
+                                >
+                                  <FiPlus size={14} /> Add Ingredient
+                                </button>
+                              </div>
+                              {ingredients.length === 0 ? (
+                                <div className="text-muted small p-2 bg-light rounded text-center">
+                                  No ingredients added yet. Click &quot;+ Add Ingredient&quot; to configure key ingredients.
+                                </div>
+                              ) : (
+                                <div className="d-flex flex-column gap-2" style={{ maxHeight: "260px", overflowY: "auto" }}>
+                                  {ingredients.map((ing, idx) => (
+                                    <div key={idx} className="p-2 border rounded bg-light">
+                                      <div className="d-flex gap-2 align-items-center mb-1">
+                                        <input
+                                          type="text"
+                                          className="form-control form-control-sm"
+                                          placeholder="Ingredient Name * (e.g. Niacinamide)"
+                                          value={ing.name}
+                                          onChange={(e) => {
+                                            const updated = [...ingredients];
+                                            updated[idx].name = e.target.value;
+                                            setIngredients(updated);
+                                          }}
+                                        />
+                                        <input
+                                          type="text"
+                                          className="form-control form-control-sm"
+                                          style={{ maxWidth: "160px" }}
+                                          placeholder="Percentage (optional)"
+                                          value={ing.percentage}
+                                          onChange={(e) => {
+                                            const updated = [...ingredients];
+                                            updated[idx].percentage = e.target.value;
+                                            setIngredients(updated);
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-outline-danger"
+                                          onClick={() => setIngredients(ingredients.filter((_, i) => i !== idx))}
+                                          title="Remove ingredient"
+                                        >
+                                          <FiTrash2 size={14} />
+                                        </button>
+                                      </div>
+                                      <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Ingredient description / role (e.g. Skin barrier support)"
+                                        value={ing.description || ""}
+                                        onChange={(e) => {
+                                          const updated = [...ingredients];
+                                          updated[idx].description = e.target.value;
+                                          setIngredients(updated);
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. Customer Reviews Tab Control */}
+                          <div className="p-3 bg-white rounded border">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <div>
+                                <div className="fw-bold" style={{ color: "#0f172a" }}>3. Customer Reviews Tab</div>
+                                <small className="text-muted">Enable or disable customer reviews tab and write-review submissions</small>
+                              </div>
+                              <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  role="switch"
+                                  id="reviewsTabToggle"
+                                  style={{ width: "2.5em", height: "1.3em", cursor: "pointer" }}
+                                  checked={tabConfig.reviewsEnabled}
+                                  onChange={(e) => setTabConfig(prev => ({ ...prev, reviewsEnabled: e.target.checked }))}
+                                />
+                                <label className="form-check-label fw-bold mb-0" htmlFor="reviewsTabToggle" style={{ color: tabConfig.reviewsEnabled ? "#16a34a" : "#dc2626" }}>
+                                  {tabConfig.reviewsEnabled ? "Enabled" : "Disabled"}
+                                </label>
+                              </div>
+                            </div>
+                            {!tabConfig.reviewsEnabled && (
+                              <div className="mt-2 small text-muted">
+                                Note: When disabled, existing reviews are safely stored and will reappear when re-enabled.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-12 mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
+                      <div className="border rounded" style={{ minHeight: '200px' }}>
+                        <CKEditor
+                          editor={ClassicEditor}
+                          config={{
+                            licenseKey: 'GPL',
+                            plugins: [Essentials, Bold, Italic, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                            toolbar: ['heading', '|', 'bold', 'italic', 'fontColor', 'fontBackgroundColor', '|', 'bulletedList', 'numberedList', 'insertTable', 'link', 'undo', 'redo']
+                          }}
+                          data={description}
+                          onChange={(event, editor) => {
+                            const data = editor.getData();
+                            setDescription(data);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
+                  <div style={{ height: "16px" }}></div>
+                </div>
 
-                  <div className="col-12 mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Why Choose Dermfix</label>
-                    <div className="border rounded" style={{ minHeight: '200px' }}>
-                      <CKEditor
-                        editor={ClassicEditor}
-                        config={{
-                          licenseKey: 'GPL',
-                          plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
-                          toolbar: ['heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'alignment', '|', 'bulletedList', 'numberedList', '|', 'link', 'insertTable', '|', 'undo', 'redo']
-                        }}
-                        data={whyChooseDermfix}
-                        onChange={(event, editor) => {
-                          const data = editor.getData();
-                          setWhyChooseDermfix(data);
-                        }}
-                      />
-                    </div>
-                    <small className="text-muted d-block mt-1">
-                      Manage product-specific "Why Choose Dermfix" rich-text content displayed dynamically on the product details page.
-                    </small>
+                {/* Fixed / Sticky Footer with Save and Cancel buttons */}
+                <div
+                  className="admin-modal-footer edit-product-modal-footer d-flex align-items-center justify-content-between px-4 py-3 bg-white border-top"
+                  data-lenis-prevent="true"
+                  style={{
+                    flexShrink: 0,
+                    borderBottomLeftRadius: "16px",
+                    borderBottomRightRadius: "16px",
+                    boxShadow: "0 -4px 12px rgba(0,0,0,0.05)",
+                    zIndex: 10,
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "12px" }}>
+                      Total Images: {existingProductImages.length + newProductFiles.length}
+                    </span>
+                    {isSavingProduct && (
+                      <span className="small text-primary d-inline-flex align-items-center gap-1">
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        Saving product...
+                      </span>
+                    )}
                   </div>
-                  <div className="col-12 mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Images Upload (Multiple files)</label>
-                    <input type="file" className="form-control" multiple onChange={(e) => setImageFiles(e.target.files)} />
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary px-4 py-2"
+                      style={{ borderRadius: "8px", fontWeight: 500 }}
+                      onClick={() => setModalType("")}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2"
+                      style={{ borderRadius: "8px", fontWeight: 600, minWidth: "150px", justifyContent: "center" }}
+                      disabled={isSavingProduct}
+                    >
+                      {isSavingProduct ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm" role="status"></span>
+                          Saving Product...
+                        </>
+                      ) : (
+                        editingItem ? "Update Product" : "Save Product"
+                      )}
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              {/* Pinned Footer */}
+              </form>
+            ) : (
               <div
-                className="admin-modal-footer edit-product-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2"
+                className="admin-modal-scrollable p-4"
+                data-lenis-prevent="true"
+                data-lenis-prevent-wheel="true"
+                data-lenis-prevent-touch="true"
                 style={{
-                  flexShrink: 0,
-                  backgroundColor: "#ffffff"
+                  flex: "1 1 auto",
+                  minHeight: 0,
+                  overflowY: "auto",
+                  overscrollBehavior: "contain",
+                  WebkitOverflowScrolling: "touch",
                 }}
               >
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary px-4 py-2"
-                  onClick={() => setModalType("")}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary px-4 py-2"
-                >
-                  {editingItem ? "Update Product" : "Save Product"}
-                </button>
-              </div>
-            </form>
-          )}
-
-            {/* Size Form */}
-            {modalType === "size" && (
-              <form onSubmit={saveSize} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                  <div className="mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Size Name</label>
-                    <input type="text" className="form-control" placeholder="e.g. 50g, Medium" value={sizeName} onChange={(e) => setSizeName(e.target.value)} required />
-                  </div>
-                  <div className="mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Display Order</label>
-                    <input type="number" className="form-control" value={sizeDisplayOrder} onChange={(e) => setSizeDisplayOrder(e.target.value)} />
-                  </div>
-                </div>
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
-                  <button type="submit" className="btn btn-primary px-4 py-2">
-                    Save Size
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Stock Adjustment Form */}
-            {modalType === "stock" && (
-              <form onSubmit={adjustStock} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                  <div className="mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Current/New Total Quantity</label>
-                    <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required />
-                  </div>
-                  <div className="mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Adjustment Reason</label>
-                    <input type="text" className="form-control" placeholder="e.g. Stock replenished, damage clearance" value={description} onChange={(e) => setDescription(e.target.value)} required />
-                  </div>
-                </div>
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
-                  <button type="submit" className="btn btn-primary px-4 py-2">
-                    Apply Inventory Update
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Banner Form */}
-            {modalType === "banner" && (
-              <form onSubmit={saveBanner} className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, overscrollBehavior: "contain" }}>
-                  {bannerError && (
-                    <div className="alert alert-danger py-2 px-3 mb-3 small d-flex align-items-center justify-content-between">
-                      <span>{bannerError}</span>
-                      <button type="button" className="btn-close p-1" onClick={() => setBannerError("")}></button>
+                {/* Category Form */}
+                {modalType === "category" && (
+                  <form onSubmit={saveCategory}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
+                      <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
-                  )}
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
+                      <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
+                      <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Save Category
+                    </button>
+                  </form>
+                )}
 
-                  <div className="row g-3 mb-3">
-                  <div className="col-12 col-md-8">
-                    <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
-                      Banner Headline Title <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. Preventive skin science"
-                      value={bannerTitle}
-                      onChange={(e) => setBannerTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="col-12 col-md-4">
-                    <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
-                      Display Order
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="0"
-                      value={bannerDisplayOrder}
-                      onChange={(e) => setBannerDisplayOrder(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
-                      Subheading / Description <span className="text-muted fw-normal">(Optional)</span>
-                    </label>
-                    <textarea
-                      className="form-control"
-                      rows="2"
-                      placeholder="e.g. Advanced preventive skincare to repair, recover and protect your skin every day."
-                      value={bannerDescription}
-                      onChange={(e) => setBannerDescription(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-12 col-md-6">
-                    <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
-                      Button Text <span className="text-muted fw-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. Shop Now"
-                      value={bannerButtonText}
-                      onChange={(e) => setBannerButtonText(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-12 col-md-6">
-                    <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
-                      Button Link <span className="text-muted fw-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. /ProductDetails"
-                      value={bannerButtonLink}
-                      onChange={(e) => setBannerButtonLink(e.target.value)}
-                    />
-                  </div>
-                </div>
+                {/* Size Form */}
+                {modalType === "size" && (
+                  <form onSubmit={saveSize}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Size Name</label>
+                      <input type="text" className="form-control" placeholder="e.g. 50g, Medium" value={sizeName} onChange={(e) => setSizeName(e.target.value)} required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Display Order</label>
+                      <input type="number" className="form-control" value={sizeDisplayOrder} onChange={(e) => setSizeDisplayOrder(e.target.value)} />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Save Size
+                    </button>
+                  </form>
+                )}
 
-                {/* Separate Desktop & Mobile Image Uploads */}
-                <div className="row g-3 mb-4">
-                  {/* A. Desktop Banner Image */}
-                  <div className="col-12 col-md-6">
-                    <div className="p-3 rounded border bg-light h-100 d-flex flex-column">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <label className="fw-bold mb-0" style={{ color: "#0f172a", fontSize: "13px" }}>
-                          Desktop Banner Image
-                        </label>
-                        <span className="badge bg-secondary-subtle text-secondary border" style={{ fontSize: "10px" }}>
-                          16:9 / Wide
+                {/* Stock Adjustment Form */}
+                {modalType === "stock" && (
+                  <form onSubmit={adjustStock}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Current/New Total Quantity</label>
+                      <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Adjustment Reason</label>
+                      <input type="text" className="form-control" placeholder="e.g. Stock replenished, damage clearance" value={description} onChange={(e) => setDescription(e.target.value)} required />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Apply Inventory Update
+                    </button>
+                  </form>
+                )}
+
+                {/* Banner Form */}
+                {modalType === "banner" && (
+                  <form onSubmit={saveBanner}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Headline Title</label>
+                      <input type="text" className="form-control" value={bannerTitle} onChange={(e) => setBannerTitle(e.target.value)} required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Background Image File</label>
+                      <input type="file" className="form-control" onChange={(e) => setBannerFile(e.target.files[0])} />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Save Banner
+                    </button>
+                  </form>
+                )}
+
+                {/* Instagram Video Form */}
+                {modalType === "video" && (
+                  <form onSubmit={saveVideo}>
+                    <div className="mb-3">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Spotlight Title</label>
+                      <input type="text" className="form-control" placeholder="e.g. Cleansing Routine" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Iframe/Video Embedded Source URL</label>
+                      <input type="url" className="form-control" placeholder="e.g. https://www.youtube.com/embed/dQw4w9WgXcQ" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} required />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100 py-2">
+                      Save Video
+                    </button>
+                  </form>
+                )}
+
+                {/* Order Details Modal */}
+                {modalType === "order-details" && editingItem && (
+                  <div>
+                    <div className="mb-3" style={{ color: "#0f172a" }}>
+                      <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Customer Details</h6>
+                      <p className="mb-1 text-body-s"><strong>Name:</strong> {editingItem.userId?.name || "N/A"}</p>
+                      <p className="mb-1 text-body-s"><strong>Email:</strong> {editingItem.userId?.email || "N/A"}</p>
+                      <p className="mb-0 text-body-s"><strong>Mobile:</strong> {editingItem.userId?.mobile || "N/A"}</p>
+                    </div>
+                    <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                      <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shipping Address</h6>
+                      <p className="mb-0 text-body-s">
+                        {editingItem.addressId?.street1}<br />
+                        {editingItem.addressId?.street2 && <>{editingItem.addressId.street2}<br /></>}
+                        {editingItem.addressId?.district}, {editingItem.addressId?.state} - {editingItem.addressId?.pincode}<br />
+                        {editingItem.addressId?.landmark && <>Landmark: {editingItem.addressId.landmark}</>}
+                      </p>
+                    </div>
+                    <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                      <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Payment & Shipping Summary</h6>
+                      <p className="mb-1 text-body-s"><strong>Total Amount:</strong> ₹{editingItem.totalPrice.toFixed(2)}</p>
+                      <p className="mb-1 text-body-s"><strong>Payment Status:</strong> {editingItem.paymentStatus}</p>
+                      <p className="mb-1 text-body-s"><strong>Delivery Status:</strong> {editingItem.deliveryStatus}</p>
+                      <p className="mb-0 text-body-s"><strong>Transaction ID:</strong> {editingItem.transactionId || "None"}</p>
+                    </div>
+
+                    <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <h6 className="text-uppercase fw-bold mb-0" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shiprocket Synchronization</h6>
+                        <span className={`badge ${
+                          editingItem.shiprocketSyncStatus === 'SUCCESS' || (editingItem.shiprocketOrderId && !editingItem.shiprocketSyncStatus)
+                            ? 'bg-success'
+                            : editingItem.shiprocketSyncStatus === 'FAILED'
+                            ? 'bg-danger'
+                            : 'bg-warning text-dark'
+                        }`} style={{ fontSize: "10px", padding: "4px 8px" }}>
+                          {editingItem.shiprocketSyncStatus || (editingItem.shiprocketOrderId ? 'SUCCESS' : 'PENDING')}
                         </span>
                       </div>
-                      <small className="text-muted mb-3" style={{ fontSize: "11px" }}>
-                        Recommended: 1920×800 px. Formats: JPG, PNG, WEBP.
-                      </small>
 
-                      <input
-                        type="file"
-                        id="desktopBannerInput"
-                        accept="image/png,image/jpeg,image/jpg,image/webp"
-                        style={{ display: "none" }}
-                        onClick={(e) => {
-                          e.target.value = null;
-                        }}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                            if (!validTypes.includes(file.type)) {
-                              setBannerError("Desktop image must be JPG, JPEG, PNG, or WEBP.");
-                              return;
-                            }
-                            setDesktopBannerFile(file);
-                            setDesktopBannerPreview(URL.createObjectURL(file));
-                            setRemoveDesktopBanner(false);
-                            setBannerError("");
-                          }
-                        }}
-                      />
+                      <div className="p-3 rounded mb-2" style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                        <p className="mb-1 text-body-s"><strong>Dermfix Order ID:</strong> {editingItem.orderNumber}</p>
+                        <p className="mb-1 text-body-s"><strong>Shiprocket Order ID:</strong> {editingItem.shiprocketOrderId || <span className="text-muted">Not Synced</span>}</p>
+                        <p className="mb-1 text-body-s"><strong>Shiprocket Shipment ID:</strong> {editingItem.shiprocketShipmentId || <span className="text-muted">N/A</span>}</p>
+                        {editingItem.shiprocketStatus && (
+                          <p className="mb-1 text-body-s"><strong>Shiprocket Status:</strong> {editingItem.shiprocketStatus}</p>
+                        )}
+                        <p className="mb-1 text-body-s"><strong>Last Sync Date:</strong> {editingItem.shiprocketSyncedAt ? new Date(editingItem.shiprocketSyncedAt).toLocaleString() : 'N/A'}</p>
 
-                      {/* Preview or Drop Area */}
-                      {(desktopBannerPreview || (!removeDesktopBanner && existingDesktopBanner)) ? (
-                        <div className="mt-auto">
-                          <div
-                            className="position-relative rounded overflow-hidden border mb-2 bg-dark"
-                            style={{ height: "130px" }}
-                          >
-                            <img
-                              src={desktopBannerPreview || existingDesktopBanner}
-                              alt="Desktop Banner Preview"
-                              className="w-100 h-100"
-                              style={{ objectFit: "cover" }}
-                            />
-                            <div
-                              className="position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center"
-                              style={{ fontSize: "11px" }}
-                            >
-                              <span>{desktopBannerFile ? desktopBannerFile.name : "Active Desktop Image"}</span>
-                              <span className="badge bg-success">Desktop</span>
-                            </div>
+                        {editingItem.shiprocketSyncError && (
+                          <div className="mt-2 p-2 rounded text-danger small" style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca" }}>
+                            <strong>Sync Error:</strong> {editingItem.shiprocketSyncError}
                           </div>
-                          <div className="d-flex gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary flex-grow-1"
-                              onClick={() => document.getElementById("desktopBannerInput")?.click()}
-                            >
-                              Replace Image
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => {
-                                setDesktopBannerFile(null);
-                                setDesktopBannerPreview("");
-                                setRemoveDesktopBanner(true);
-                              }}
-                              title="Remove Desktop Image"
-                            >
-                              <FiTrash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="border border-2 border-dashed rounded p-3 text-center d-flex flex-column align-items-center justify-content-center mt-auto"
-                          style={{
-                            borderColor: "#cbd5e1",
-                            backgroundColor: "#ffffff",
-                            minHeight: "130px",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => document.getElementById("desktopBannerInput")?.click()}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const file = e.dataTransfer.files?.[0];
-                            if (file) {
-                              const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                              if (!validTypes.includes(file.type)) {
-                                setBannerError("Desktop image must be JPG, JPEG, PNG, or WEBP.");
-                                return;
-                              }
-                              setDesktopBannerFile(file);
-                              setDesktopBannerPreview(URL.createObjectURL(file));
-                              setRemoveDesktopBanner(false);
-                              setBannerError("");
-                            }
-                          }}
+                        )}
+                      </div>
+
+                      {editingItem.shiprocketSyncStatus !== 'SUCCESS' && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                          onClick={() => handleRetryShiprocketSync(editingItem._id)}
+                          disabled={isSyncingShiprocket}
                         >
-                          <FiImage size={24} className="text-secondary mb-2" />
-                          <div className="fw-semibold text-dark small">Upload Desktop Banner</div>
-                          <div className="text-muted" style={{ fontSize: "11px" }}>Drag & drop or click to browse</div>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary mt-2 py-1 px-3"
-                            style={{ fontSize: "11px" }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              document.getElementById("desktopBannerInput")?.click();
-                            }}
-                          >
-                            Select File
+                          {isSyncingShiprocket ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                              <span>Syncing to Shiprocket...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🔄</span>
+                              <span>Retry Shiprocket Sync</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                      <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Ordered Products</h6>
+                      <div className="d-grid gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                        {editingItem.products?.map((item) => (
+                          <div key={item._id} className="d-flex align-items-center justify-content-between p-2 rounded" style={{ backgroundColor: "#f8fafc" }}>
+                            <div>
+                              <p className="mb-1 text-body-s fw-semibold">{item.productId?.name || "Product"}</p>
+                              <span className="small" style={{ color: "#64748b" }}>Size: {item.size} x {item.quantity}</span>
+                            </div>
+                            <span className="text-body-s fw-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                      <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Order Actions</h6>
+
+                      {['Pending', 'Processing', 'Confirmed'].includes(editingItem.deliveryStatus) && (
+                        <div className="mb-3 p-3 bg-light rounded border">
+                          <label className="form-label small fw-bold">Cancel Order</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm mb-2"
+                            placeholder="Cancellation Reason..."
+                            value={cancelReason}
+                            onChange={e => setCancelReason(e.target.value)}
+                          />
+                          <button className="btn btn-sm btn-danger w-100" onClick={() => handleCancelOrder(editingItem._id)}>
+                            Cancel Order
                           </button>
                         </div>
                       )}
-                    </div>
-                  </div>
 
-                  {/* B. Mobile Banner Image */}
-                  <div className="col-12 col-md-6">
-                    <div className="p-3 rounded border bg-light h-100 d-flex flex-column">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <label className="fw-bold mb-0" style={{ color: "#0f172a", fontSize: "13px" }}>
-                          Mobile Banner Image
-                        </label>
-                        <span className="badge bg-secondary-subtle text-secondary border" style={{ fontSize: "10px" }}>
-                          Portrait / 9:16
-                        </span>
-                      </div>
-                      <small className="text-muted mb-3" style={{ fontSize: "11px" }}>
-                        Recommended: 768×1024 px. Falls back to desktop if empty.
-                      </small>
-
-                      <input
-                        type="file"
-                        id="mobileBannerInput"
-                        accept="image/png,image/jpeg,image/jpg,image/webp"
-                        style={{ display: "none" }}
-                        onClick={(e) => {
-                          e.target.value = null;
-                        }}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                            if (!validTypes.includes(file.type)) {
-                              setBannerError("Mobile image must be JPG, JPEG, PNG, or WEBP.");
-                              return;
-                            }
-                            setMobileBannerFile(file);
-                            setMobileBannerPreview(URL.createObjectURL(file));
-                            setRemoveMobileBanner(false);
-                            setBannerError("");
-                          }
-                        }}
-                      />
-
-                      {/* Preview or Drop Area */}
-                      {(mobileBannerPreview || (!removeMobileBanner && existingMobileBanner)) ? (
-                        <div className="mt-auto">
-                          <div
-                            className="position-relative rounded overflow-hidden border mb-2 bg-dark"
-                            style={{ height: "130px" }}
-                          >
-                            <img
-                              src={mobileBannerPreview || existingMobileBanner}
-                              alt="Mobile Banner Preview"
-                              className="w-100 h-100"
-                              style={{ objectFit: "contain", backgroundColor: "#0f172a" }}
-                            />
-                            <div
-                              className="position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center"
-                              style={{ fontSize: "11px" }}
-                            >
-                              <span>{mobileBannerFile ? mobileBannerFile.name : "Active Mobile Image"}</span>
-                              <span className="badge bg-info">Mobile</span>
-                            </div>
-                          </div>
-                          <div className="d-flex gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary flex-grow-1"
-                              onClick={() => document.getElementById("mobileBannerInput")?.click()}
-                            >
-                              Replace Image
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => {
-                                setMobileBannerFile(null);
-                                setMobileBannerPreview("");
-                                setRemoveMobileBanner(true);
-                              }}
-                              title="Remove Mobile Image"
-                            >
-                              <FiTrash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="border border-2 border-dashed rounded p-3 text-center d-flex flex-column align-items-center justify-content-center mt-auto"
-                          style={{
-                            borderColor: "#cbd5e1",
-                            backgroundColor: "#ffffff",
-                            minHeight: "130px",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => document.getElementById("mobileBannerInput")?.click()}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const file = e.dataTransfer.files?.[0];
-                            if (file) {
-                              const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                              if (!validTypes.includes(file.type)) {
-                                setBannerError("Mobile image must be JPG, JPEG, PNG, or WEBP.");
-                                return;
-                              }
-                              setMobileBannerFile(file);
-                              setMobileBannerPreview(URL.createObjectURL(file));
-                              setRemoveMobileBanner(false);
-                              setBannerError("");
-                            }
-                          }}
-                        >
-                          <FiImage size={24} className="text-secondary mb-2" />
-                          <div className="fw-semibold text-dark small">Upload Mobile Banner</div>
-                          <div className="text-muted" style={{ fontSize: "11px" }}>Drag & drop or click to browse</div>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary mt-2 py-1 px-3"
-                            style={{ fontSize: "11px" }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              document.getElementById("mobileBannerInput")?.click();
-                            }}
-                          >
-                            Select File
+                      {editingItem.transactionId && !['Refunded', 'Processing'].includes(editingItem.refundStatus) && (
+                        <div className="p-3 bg-light rounded border">
+                          <label className="form-label small fw-bold">Process Refund</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm mb-2"
+                            placeholder="Refund Amount (₹)"
+                            value={refundAmountInput}
+                            onChange={e => setRefundAmountInput(e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            className="form-control form-control-sm mb-2"
+                            placeholder="Refund Reason"
+                            value={refundReason}
+                            onChange={e => setRefundReason(e.target.value)}
+                          />
+                          <button className="btn btn-sm btn-warning w-100" onClick={() => handleProcessRefund(editingItem)}>
+                            Process Refund
                           </button>
                         </div>
                       )}
+
+                      {editingItem.refundStatus && editingItem.refundStatus !== 'None' && (
+                        <div className="mt-2 p-2 bg-light border rounded">
+                          <p className="mb-1 small"><strong>Refund Status:</strong> {editingItem.refundStatus}</p>
+                          <p className="mb-0 small"><strong>Refunded Amount:</strong> ₹{editingItem.refundAmount}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
 
-                </div>
-
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex gap-2 justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary px-4 py-2"
-                    onClick={() => {
+                    <button className="btn btn-secondary w-100 py-10 mt-2" onClick={() => {
                       setModalType("");
-                      setEditingItem(null);
-                      setBannerError("");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
-                    disabled={isSavingBanner}
-                  >
-                    {isSavingBanner ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        Saving Banner...
-                      </>
-                    ) : (
-                      editingItem ? "Update Banner" : "Create Banner"
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
+                      setCancelReason("");
+                      setRefundAmountInput("");
+                      setRefundReason("");
+                    }}>
+                      Close Overview
+                    </button>
+                  </div>
+                )}
 
-            {/* Instagram Video Form */}
-            {modalType === "video" && (
-              <form onSubmit={saveVideo} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                  <div className="mb-3">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Spotlight Title</label>
-                    <input type="text" className="form-control" placeholder="e.g. Cleansing Routine" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} required />
-                  </div>
-                  <div className="mb-4">
-                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Iframe/Video Embedded Source URL</label>
-                    <input type="url" className="form-control" placeholder="e.g. https://www.youtube.com/embed/dQw4w9WgXcQ" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} required />
-                  </div>
-                </div>
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
-                  <button type="submit" className="btn btn-primary px-4 py-2">
-                    Save Video
-                  </button>
-                </div>
-              </form>
-            )}
+                {/* Refund Details Modal */}
+                {modalType === "refund-details" && editingItem && (() => {
+                  const orderAmount = editingItem.orderId?.totalPrice || 0;
+                  const refundCharge = 50;
+                  const refundAmount = Math.max(0, orderAmount - refundCharge);
 
-            {/* Order Details Modal */}
-            {modalType === "order-details" && editingItem && (
-              <div className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
-                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                  <div className="mb-3" style={{ color: "#0f172a" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Customer Details</h6>
-                    <p className="mb-1 text-body-s"><strong>Name:</strong> {editingItem.userId?.name || "N/A"}</p>
-                    <p className="mb-1 text-body-s"><strong>Email:</strong> {editingItem.userId?.email || "N/A"}</p>
-                    <p className="mb-0 text-body-s"><strong>Mobile:</strong> {editingItem.userId?.mobile || "N/A"}</p>
-                  </div>
-                  <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shipping Address</h6>
-                    <p className="mb-0 text-body-s">
-                      {editingItem.addressId?.street1}<br />
-                      {editingItem.addressId?.street2 && <>{editingItem.addressId.street2}<br /></>}
-                      {editingItem.addressId?.district}, {editingItem.addressId?.state} - {editingItem.addressId?.pincode}<br />
-                      {editingItem.addressId?.landmark && <>Landmark: {editingItem.addressId.landmark}</>}
-                    </p>
-                  </div>
-                  <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Payment & Shipping Summary</h6>
-                    <p className="mb-1 text-body-s"><strong>Total Amount:</strong> ₹{editingItem.totalPrice.toFixed(2)}</p>
-                    <p className="mb-1 text-body-s"><strong>Payment Status:</strong> {editingItem.paymentStatus}</p>
-                    <p className="mb-1 text-body-s"><strong>Delivery Status:</strong> {editingItem.deliveryStatus}</p>
-                    <p className="mb-0 text-body-s"><strong>Transaction ID:</strong> {editingItem.transactionId || "None"}</p>
-                  </div>
-                  <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Ordered Products</h6>
-                    <div className="d-grid gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
-                      {editingItem.products?.map((item) => (
-                        <div key={item._id} className="d-flex align-items-center justify-content-between p-2 rounded" style={{ backgroundColor: "#f8fafc" }}>
+                  return (
+                    <div>
+                      <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                        <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
+                        <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
+                        <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
+                        <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
+                        <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
+                        <p className="mb-1 text-body-s"><strong>Original Order Amount:</strong> ₹{orderAmount.toFixed(2)}</p>
+                        <p className="mb-1 text-body-s"><strong>Refund Processing Charge:</strong> ₹{refundCharge.toFixed(2)}</p>
+                        <p className="mb-1 text-body-s"><strong>Refund Amount Sent To Customer:</strong> ₹{refundAmount.toFixed(2)}</p>
+                        {editingItem.status === 'Refunded' && (
+                          <>
+                            <p className="mb-1 text-body-s"><strong>Refund Date:</strong> {editingItem.refundedAt ? new Date(editingItem.refundedAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
+                            <p className="mb-1 text-body-s"><strong>Razorpay Refund ID:</strong> {editingItem.refundId || editingItem.orderId?.refundId || 'N/A'}</p>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                        <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Product & Reason</h6>
+                        <div className="d-flex align-items-center gap-3 mb-2 p-2 bg-light rounded">
+                          {editingItem.productId?.images?.[0] && <img src={editingItem.productId.images[0]} alt="product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />}
                           <div>
-                            <p className="mb-1 text-body-s fw-semibold">{item.productId?.name || "Product"}</p>
-                            <span className="small" style={{ color: "#64748b" }}>Size: {item.size} x {item.quantity}</span>
+                            <p className="mb-0 fw-semibold text-body-s">{editingItem.productId?.name}</p>
                           </div>
-                          <span className="text-body-s fw-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Order Actions</h6>
+                        <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
+                        <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
 
-                    {['Pending', 'Processing', 'Confirmed'].includes(editingItem.deliveryStatus) && (
-                      <div className="mb-3 p-3 bg-light rounded border">
-                        <label className="form-label small fw-bold">Cancel Order</label>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm mb-2"
-                          placeholder="Cancellation Reason..."
-                          value={cancelReason}
+                        {editingItem.images?.length > 0 && (
+                          <div className="mt-2">
+                            <strong className="text-body-s">Customer Uploaded Images:</strong>
+                            <div className="d-flex flex-wrap gap-2 mt-2">
+                              {editingItem.images.map((img, idx) => (
+                                <a href={img} target="_blank" rel="noreferrer" key={idx}>
+                                  <img src={img} alt="Refund Evidence" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mb-4 pt-2" style={{ color: "#0f172a" }}>
+                        <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Admin Actions</h6>
+                        <label className="form-label small fw-bold">Admin Notes (Optional)</label>
+                        <textarea
+                          className="form-control form-control-sm mb-3"
+                          rows="2"
+                          placeholder="Enter notes for this decision..."
+                          value={cancelReason} // reusing state for notes
                           onChange={e => setCancelReason(e.target.value)}
-                        />
-                        <button className="btn btn-sm btn-danger w-100" onClick={() => handleCancelOrder(editingItem._id)}>
-                          Cancel Order
-                        </button>
-                      </div>
-                    )}
+                        ></textarea>
 
-                    {editingItem.transactionId && !['Refunded', 'Processing'].includes(editingItem.refundStatus) && (
-                      <div className="p-3 bg-light rounded border">
-                        <label className="form-label small fw-bold">Process Refund</label>
-                        <input
-                          type="number"
-                          className="form-control form-control-sm mb-2"
-                          placeholder="Refund Amount (₹)"
-                          value={refundAmountInput}
-                          onChange={e => setRefundAmountInput(e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          className="form-control form-control-sm mb-2"
-                          placeholder="Refund Reason"
-                          value={refundReason}
-                          onChange={e => setRefundReason(e.target.value)}
-                        />
-                        <button className="btn btn-sm btn-warning w-100" onClick={() => handleProcessRefund(editingItem)}>
-                          Process Refund
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
+                            if (orderAmount < 50) {
+                              alert("Refund cannot be processed because the order amount is less than the refund charge.");
+                              return;
+                            }
+                            try {
+                              const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'Refunded', adminNotes: cancelReason })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                alert("Marked as refunded!");
+                                setModalType("");
+                                fetchTabContent("refunds");
+                              } else {
+                                alert(data.message || "Error updating status.");
+                              }
+                            } catch (err) {
+                              alert("Error updating status.");
+                            }
+                          }}>Mark Refunded</button>
+                        </div>
                       </div>
-                    )}
 
-                    {editingItem.refundStatus && editingItem.refundStatus !== 'None' && (
-                      <div className="mt-2 p-2 bg-light border rounded">
-                        <p className="mb-1 small"><strong>Refund Status:</strong> {editingItem.refundStatus}</p>
-                        <p className="mb-0 small"><strong>Refunded Amount:</strong> ₹{editingItem.refundAmount}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button className="btn btn-secondary px-4 py-2" onClick={() => {
-                    setModalType("");
-                    setCancelReason("");
-                    setRefundAmountInput("");
-                    setRefundReason("");
-                  }}>
-                    Close Overview
-                  </button>
-                </div>
+                      <button className="btn btn-secondary w-100 py-10" onClick={() => {
+                        setModalType("");
+                        setCancelReason("");
+                      }}>
+                        Close Overview
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             )}
-
-            {/* Refund Details Modal */}
-            {modalType === "refund-details" && editingItem && (() => {
-              const orderAmount = editingItem.orderId?.totalPrice || 0;
-              const refundCharge = 50;
-              const refundAmount = Math.max(0, orderAmount - refundCharge);
-
-              return (
-                <div className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
-                  <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
-                    <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
-                    <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
-                    <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
-                    <p className="mb-1 text-body-s"><strong>Customer:</strong> {editingItem.customerId?.name} ({editingItem.customerId?.email})</p>
-                    <p className="mb-1 text-body-s"><strong>Status:</strong> <span className={`badge bg-${editingItem.status === 'Approved' || editingItem.status === 'Refunded' ? 'success' : editingItem.status === 'Rejected' ? 'danger' : 'warning'}`}>{editingItem.status}</span></p>
-                    <p className="mb-1 text-body-s"><strong>Original Order Amount:</strong> ₹{orderAmount.toFixed(2)}</p>
-                    <p className="mb-1 text-body-s"><strong>Refund Processing Charge:</strong> ₹{refundCharge.toFixed(2)}</p>
-                    <p className="mb-1 text-body-s"><strong>Refund Amount Sent To Customer:</strong> ₹{refundAmount.toFixed(2)}</p>
-                    {editingItem.status === 'Refunded' && (
-                      <>
-                        <p className="mb-1 text-body-s"><strong>Refund Date:</strong> {editingItem.refundedAt ? new Date(editingItem.refundedAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
-                        <p className="mb-1 text-body-s"><strong>Razorpay Refund ID:</strong> {editingItem.refundId || editingItem.orderId?.refundId || 'N/A'}</p>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Product & Reason</h6>
-                    <div className="d-flex align-items-center gap-3 mb-2 p-2 bg-light rounded">
-                      {editingItem.productId?.images?.[0] && <img src={editingItem.productId.images[0]} alt="product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />}
-                      <div>
-                        <p className="mb-0 fw-semibold text-body-s">{editingItem.productId?.name}</p>
-                      </div>
-                    </div>
-                    <p className="mb-1 text-body-s"><strong>Reason:</strong> {editingItem.reason}</p>
-                    <p className="mb-1 text-body-s"><strong>Comments:</strong> {editingItem.comments || 'N/A'}</p>
-
-                    {editingItem.images?.length > 0 && (
-                      <div className="mt-2">
-                        <strong className="text-body-s">Customer Uploaded Images:</strong>
-                        <div className="d-flex flex-wrap gap-2 mt-2">
-                          {editingItem.images.map((img, idx) => (
-                            <a href={img} target="_blank" rel="noreferrer" key={idx}>
-                              <img src={img} alt="Refund Evidence" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-4 pt-2" style={{ color: "#0f172a" }}>
-                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Admin Actions</h6>
-                    <label className="form-label small fw-bold">Admin Notes (Optional)</label>
-                    <textarea
-                      className="form-control form-control-sm mb-3"
-                      rows="2"
-                      placeholder="Enter notes for this decision..."
-                      value={cancelReason} // reusing state for notes
-                      onChange={e => setCancelReason(e.target.value)}
-                    ></textarea>
-
-                    <div className="d-flex gap-2">
-                      <button className="btn btn-sm btn-info text-white flex-fill" onClick={async () => {
-                        if (orderAmount < 50) {
-                          alert("Refund cannot be processed because the order amount is less than the refund charge.");
-                          return;
-                        }
-                        try {
-                          const res = await authFetch(`${API_BASE}/admin/refunds/${editingItem._id}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'Refunded', adminNotes: cancelReason })
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            alert("Marked as refunded!");
-                            setModalType("");
-                            fetchTabContent("refunds");
-                          } else {
-                            alert(data.message || "Error updating status.");
-                          }
-                        } catch (err) {
-                          alert("Error updating status.");
-                        }
-                      }}>Mark Refunded</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
-                  <button className="btn btn-secondary px-4 py-2" onClick={() => {
-                    setModalType("");
-                    setCancelReason("");
-                  }}>
-                    Close Overview
-                  </button>
-                </div>
-              </div>
-            );
-            })()}
           </div>
         </div>
       )}

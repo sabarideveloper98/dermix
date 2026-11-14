@@ -10,7 +10,7 @@ import Address from '../models/Address.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { sendEmail } from '../utils/email.js';
-import { createShiprocketOrder, getShippingRate } from '../services/shiprocket.service.js';
+import { syncOrderToShiprocket, getShippingRate } from '../services/shiprocket.service.js';
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -223,58 +223,10 @@ export const verifyPayment = async (req, res) => {
       status: 'Success',
     });
 
-    // 8.5 Push Order to Shiprocket
-    try {
-      const shiprocketItems = orderProducts.map(async (item) => {
-        const prod = await Product.findById(item.productId);
-        return {
-          name: prod.name,
-          sku: prod.sku || prod._id.toString().substring(0, 8),
-          units: item.quantity,
-          selling_price: item.price,
-          discount: 0,
-          tax: 0,
-          hsn: 441122
-        };
-      });
-
-      const resolvedItems = await Promise.all(shiprocketItems);
-
-      const shiprocketPayload = {
-        order_id: order.orderNumber,
-        order_date: now.toISOString().split('T')[0],
-        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
-        billing_customer_name: address.firstName || currentUser.name.split(' ')[0],
-        billing_last_name: address.lastName || (currentUser.name.split(' ')[1] || ''),
-        billing_address: address.street1,
-        billing_address_2: address.street2 || "",
-        billing_city: address.district,
-        billing_pincode: address.pincode,
-        billing_state: address.state,
-        billing_country: "India",
-        billing_email: currentUser.email,
-        billing_phone: currentUser.mobile || "9999999999",
-        shipping_is_billing: true,
-        order_items: resolvedItems,
-        payment_method: "Prepaid",
-        sub_total: finalAmount,
-        length: 10,
-        breadth: 10,
-        height: 10,
-        weight: 0.5
-      };
-
-      const srResponse = await createShiprocketOrder(shiprocketPayload);
-      if (srResponse && srResponse.order_id) {
-        order.shiprocketOrderId = srResponse.order_id.toString();
-        order.shiprocketShipmentId = srResponse.shipment_id ? srResponse.shipment_id.toString() : '';
-        order.shiprocketAwbCode = srResponse.awb_code ? srResponse.awb_code.toString() : '';
-        await order.save();
-      }
-    } catch (srError) {
-      console.error("Failed to push order to Shiprocket:", srError);
-      // We don't block the checkout flow if Shiprocket fails, just log it.
-    }
+    // 8.5 Automatically Sync Order to Shiprocket Portal (asynchronous, non-blocking)
+    syncOrderToShiprocket(order._id).catch((srError) => {
+      console.error("Failed to push order to Shiprocket:", srError.message);
+    });
 
     // 9. Update product stock levels and save StockHistory logs
     for (const item of orderProducts) {
