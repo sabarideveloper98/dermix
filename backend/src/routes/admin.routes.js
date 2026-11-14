@@ -36,10 +36,26 @@ router.get('/customers', protect, admin, getCustomers);
 router.patch('/customers/:id/status', protect, admin, toggleCustomerStatus);
 router.get('/orders', protect, admin, getAdminOrders);
 
+// Banner Upload Middleware explicitly configuring expected desktopImage, mobileImage, and legacy image fields
+const bannerUpload = (req, res, next) => {
+  upload.fields([
+    { name: 'desktopImage', maxCount: 1 },
+    { name: 'mobileImage', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) {
+      console.error('Multer banner upload error:', err);
+      return res.status(400).json({ success: false, message: err.message || 'File upload error' });
+    }
+    next();
+  });
+};
+
 // Banner Management (Admin)
 router.get('/banners', protect, admin, getBanners);
-router.post('/banners', protect, admin, upload.single('image'), createBanner);
-router.put('/banners/:id', protect, admin, upload.single('image'), updateBanner);
+router.post('/banners', protect, admin, bannerUpload, createBanner);
+router.put('/banners/:id', protect, admin, bannerUpload, updateBanner);
+router.patch('/banners/:id', protect, admin, bannerUpload, updateBanner);
 router.delete('/banners/:id', protect, admin, deleteBanner);
 
 // Instagram Video Management (Admin)

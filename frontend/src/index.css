@@ -164,4 +164,15 @@
   flex-shrink: 0 !important;
 }
 
+/* --- Hero Slider Picture & Responsive Banner Styles --- */
+.slideshow-v02 .sld-image picture {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
 
+.slideshow-v02 .sld-image picture img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}

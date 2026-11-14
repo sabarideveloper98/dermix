@@ -18,7 +18,7 @@ export default function HeroSlider() {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await fetch(`${API_BASE}/banners`);
+        const res = await fetch(`${API_BASE}/banners?_t=${Date.now()}`);
         const data = await res.json();
         if (res.ok && data.success && data.banners.length > 0) {
           setBanners(data.banners);
@@ -31,7 +31,7 @@ export default function HeroSlider() {
   }, []);
 
   // Standard fallback slider if no banners seeded
-  const slides = banners.length > 0 ? banners : [{ _id: "default", title: "Preventive skin science", image: slider101 }];
+  const slides = banners.length > 0 ? banners : [{ _id: "default", title: "Preventive skin science", image: slider101, desktopImage: slider101, mobileImage: slider101 }];
 
   return (
     <div className="tf-slideshow style-2 tf-btn-swiper-main">
@@ -57,12 +57,18 @@ export default function HeroSlider() {
           <SwiperSlide key={slide._id}>
             <div className="slideshow-v02">
               <div className="sld-image">
-                <img
-                  className="scale-item scale-item-1"
-                  loading="lazy"
-                  src={slide.image || slider101}
-                  alt={slide.title}
-                />
+                <picture className="w-100 h-100 d-block">
+                  <source
+                    media="(max-width: 767px)"
+                    srcSet={slide.mobileImage || slide.desktopImage || slide.image || slider101}
+                  />
+                  <img
+                    className="scale-item scale-item-1"
+                    loading="lazy"
+                    src={slide.desktopImage || slide.mobileImage || slide.image || slider101}
+                    alt={slide.title || "Homepage banner"}
+                  />
+                </picture>
               </div>
 
               <div className="sld-content">

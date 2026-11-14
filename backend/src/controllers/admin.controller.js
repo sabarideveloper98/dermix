@@ -130,7 +130,19 @@ export const getBanners = async (req, res) => {
       filter.status = 'active';
     }
 
-    const banners = await Banner.find(filter).sort({ createdAt: -1 });
+    const rawBanners = await Banner.find(filter).sort({ displayOrder: 1, createdAt: -1 });
+    const banners = rawBanners.map((b) => {
+      const doc = b.toObject ? b.toObject() : b;
+      const desktop = doc.desktopImage || doc.image || '';
+      const mobile = doc.mobileImage || '';
+      return {
+        ...doc,
+        desktopImage: desktop,
+        mobileImage: mobile,
+        image: doc.image || desktop || mobile || '',
+      };
+    });
+
     res.status(200).json({ success: true, banners });
   } catch (error) {
     console.error('Get banners error:', error);
@@ -140,19 +152,63 @@ export const getBanners = async (req, res) => {
 
 // Banner Management - Create Banner
 export const createBanner = async (req, res) => {
-  const { title } = req.body;
+  const { title, description, buttonText, buttonLink, displayOrder, status } = req.body;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload a banner image' });
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Banner title is required' });
     }
 
-    const result = await uploadBuffer(req.file.buffer, 'banners');
+    const files = req.files || [];
+    let desktopFile = null;
+    let mobileFile = null;
+    let legacyFile = req.file || null;
+
+    if (Array.isArray(files)) {
+      desktopFile = files.find((f) => f.fieldname === 'desktopImage') || null;
+      mobileFile = files.find((f) => f.fieldname === 'mobileImage') || null;
+      legacyFile = legacyFile || files.find((f) => f.fieldname === 'image') || null;
+    } else if (typeof files === 'object') {
+      desktopFile = files.desktopImage?.[0] || null;
+      mobileFile = files.mobileImage?.[0] || null;
+      legacyFile = legacyFile || files.image?.[0] || null;
+    }
+
+    if (!desktopFile && !mobileFile && !legacyFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload at least one banner image (Desktop or Mobile)',
+      });
+    }
+
+    let desktopImageUrl = '';
+    let mobileImageUrl = '';
+
+    if (desktopFile) {
+      const result = await uploadBuffer(desktopFile.buffer, 'banners');
+      desktopImageUrl = result.secure_url;
+    }
+
+    if (mobileFile) {
+      const result = await uploadBuffer(mobileFile.buffer, 'banners');
+      mobileImageUrl = result.secure_url;
+    }
+
+    if (legacyFile && !desktopImageUrl && !mobileImageUrl) {
+      const result = await uploadBuffer(legacyFile.buffer, 'banners');
+      desktopImageUrl = result.secure_url;
+    }
 
     const banner = await Banner.create({
-      title,
-      image: result.secure_url,
-      status: 'active',
+      title: title.trim(),
+      description: description ? description.trim() : '',
+      buttonText: buttonText ? buttonText.trim() : '',
+      buttonLink: buttonLink ? buttonLink.trim() : '',
+      displayOrder: displayOrder !== undefined && displayOrder !== '' ? Number(displayOrder) : 0,
+      desktopImage: desktopImageUrl,
+      mobileImage: mobileImageUrl,
+      image: desktopImageUrl || mobileImageUrl || '',
+      status: status || 'active',
     });
 
     res.status(201).json({ success: true, banner });
@@ -162,37 +218,133 @@ export const createBanner = async (req, res) => {
   }
 };
 
-// Banner Management - Update Banner status or title
+// Banner Management - Update Banner
 export const updateBanner = async (req, res) => {
-  const { title, status } = req.body;
+  const {
+    title,
+    description,
+    buttonText,
+    buttonLink,
+    displayOrder,
+    status,
+    removeDesktopImage,
+    removeMobileImage,
+  } = req.body;
 
   try {
-    let banner = await Banner.findById(req.params.id);
+    const banner = await Banner.findById(req.params.id);
     if (!banner) {
       return res.status(404).json({ success: false, message: 'Banner not found' });
     }
 
-    const updates = { title, status };
+    const updates = {};
+    if (title !== undefined) updates.title = title.trim();
+    if (description !== undefined) updates.description = description.trim();
+    if (buttonText !== undefined) updates.buttonText = buttonText.trim();
+    if (buttonLink !== undefined) updates.buttonLink = buttonLink.trim();
+    if (displayOrder !== undefined && displayOrder !== '') updates.displayOrder = Number(displayOrder);
+    if (status !== undefined) updates.status = status;
 
-    if (req.file) {
-      const result = await uploadBuffer(req.file.buffer, 'banners');
-      updates.image = result.secure_url;
+    const files = req.files || [];
+    let desktopFile = null;
+    let mobileFile = null;
+    let legacyFile = req.file || null;
 
-      // Delete old image
-      const oldPublicId = extractPublicId(banner.image);
+    if (Array.isArray(files)) {
+      desktopFile = files.find((f) => f.fieldname === 'desktopImage') || null;
+      mobileFile = files.find((f) => f.fieldname === 'mobileImage') || null;
+      legacyFile = legacyFile || files.find((f) => f.fieldname === 'image') || null;
+    } else if (typeof files === 'object') {
+      desktopFile = files.desktopImage?.[0] || null;
+      mobileFile = files.mobileImage?.[0] || null;
+      legacyFile = legacyFile || files.image?.[0] || null;
+    }
+
+    // Handle Desktop Banner Image
+    if (desktopFile) {
+      const result = await uploadBuffer(desktopFile.buffer, 'banners');
+      updates.desktopImage = result.secure_url;
+
+      const oldPublicId = extractPublicId(banner.desktopImage || banner.image);
       if (oldPublicId) {
-        await deleteFromCloudinary(oldPublicId);
+        try {
+          await deleteFromCloudinary(oldPublicId);
+        } catch (delErr) {
+          console.warn('Failed to delete old desktop banner from Cloudinary:', delErr.message);
+        }
+      }
+    } else if (removeDesktopImage === 'true' || removeDesktopImage === true) {
+      const oldPublicId = extractPublicId(banner.desktopImage);
+      if (oldPublicId) {
+        try {
+          await deleteFromCloudinary(oldPublicId);
+        } catch (delErr) {
+          console.warn('Failed to delete desktop banner from Cloudinary:', delErr.message);
+        }
+      }
+      updates.desktopImage = '';
+    }
+
+    // Handle Mobile Banner Image
+    if (mobileFile) {
+      const result = await uploadBuffer(mobileFile.buffer, 'banners');
+      updates.mobileImage = result.secure_url;
+
+      const oldPublicId = extractPublicId(banner.mobileImage);
+      if (oldPublicId) {
+        try {
+          await deleteFromCloudinary(oldPublicId);
+        } catch (delErr) {
+          console.warn('Failed to delete old mobile banner from Cloudinary:', delErr.message);
+        }
+      }
+    } else if (removeMobileImage === 'true' || removeMobileImage === true) {
+      const oldPublicId = extractPublicId(banner.mobileImage);
+      if (oldPublicId) {
+        try {
+          await deleteFromCloudinary(oldPublicId);
+        } catch (delErr) {
+          console.warn('Failed to delete mobile banner from Cloudinary:', delErr.message);
+        }
+      }
+      updates.mobileImage = '';
+    }
+
+    // Handle legacy single-image file if provided
+    if (legacyFile && !desktopFile) {
+      const result = await uploadBuffer(legacyFile.buffer, 'banners');
+      updates.image = result.secure_url;
+      if (!updates.desktopImage && !banner.desktopImage) {
+        updates.desktopImage = result.secure_url;
       }
     }
 
-    // Filter out undefined
-    Object.keys(updates).forEach((key) => updates[key] === undefined && delete updates[key]);
+    // Preserve existing desktopImage if banner only had legacy image field
+    if (updates.desktopImage === undefined && !banner.desktopImage && banner.image) {
+      updates.desktopImage = banner.image;
+    }
 
-    banner = await Banner.findByIdAndUpdate(req.params.id, updates, { new: true });
-    res.status(200).json({ success: true, banner });
+    // Maintain legacy image field synchronized with current active banner
+    const effectiveDesktop = updates.desktopImage !== undefined ? updates.desktopImage : (banner.desktopImage || banner.image || '');
+    const effectiveMobile = updates.mobileImage !== undefined ? updates.mobileImage : (banner.mobileImage || '');
+    updates.image = effectiveDesktop || effectiveMobile || banner.image || '';
+
+    const updatedBanner = await Banner.findByIdAndUpdate(req.params.id, updates, { new: true });
+
+    const doc = updatedBanner.toObject ? updatedBanner.toObject() : updatedBanner;
+    const desktop = doc.desktopImage || doc.image || '';
+    const mobile = doc.mobileImage || '';
+    const formattedBanner = {
+      ...doc,
+      desktopImage: desktop,
+      mobileImage: mobile,
+      image: doc.image || desktop || mobile || '',
+    };
+
+    res.status(200).json({ success: true, banner: formattedBanner });
   } catch (error) {
     console.error('Update banner error:', error);
-    res.status(500).json({ success: false, message: 'Server error updating banner' });
+    res.status(500).json({ success: false, message: error.message || 'Server error updating banner' });
   }
 };
 
@@ -204,9 +356,19 @@ export const deleteBanner = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Banner not found' });
     }
 
-    const publicId = extractPublicId(banner.image);
-    if (publicId) {
-      await deleteFromCloudinary(publicId);
+    const urlsToDelete = Array.from(
+      new Set([banner.desktopImage, banner.mobileImage, banner.image].filter(Boolean))
+    );
+
+    for (const url of urlsToDelete) {
+      const publicId = extractPublicId(url);
+      if (publicId) {
+        try {
+          await deleteFromCloudinary(publicId);
+        } catch (delErr) {
+          console.warn('Failed to delete banner image from Cloudinary:', delErr.message);
+        }
+      }
     }
 
     await Banner.deleteOne({ _id: req.params.id });
