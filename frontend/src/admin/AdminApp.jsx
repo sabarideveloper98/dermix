@@ -32,6 +32,9 @@ import {
   Essentials,
   Bold,
   Italic,
+  Underline,
+  Strikethrough,
+  Alignment,
   Font,
   Paragraph,
   List,
@@ -121,6 +124,7 @@ export default function AdminApp() {
   // Temporary item inputs
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [whyChooseDermfix, setWhyChooseDermfix] = useState("");
   const [benefit, setBenefit] = useState("");
   const [mrpPrice, setMrpPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -178,6 +182,7 @@ export default function AdminApp() {
   // Product Content Management States
   const [selectedContentProductId, setSelectedContentProductId] = useState("");
   const [contentDescription, setContentDescription] = useState("");
+  const [contentWhyChooseDermfix, setContentWhyChooseDermfix] = useState("");
   const [contentIngredients, setContentIngredients] = useState([]);
   const [contentTabConfig, setContentTabConfig] = useState({
     descriptionEnabled: true,
@@ -199,6 +204,7 @@ export default function AdminApp() {
       if (prod) {
         if (!selectedContentProductId) setSelectedContentProductId(prod._id);
         setContentDescription(prod.description || "");
+        setContentWhyChooseDermfix(prod.whyChooseDermfix || "");
         setContentTabConfig({
           descriptionEnabled: prod.tabConfig?.descriptionEnabled !== false,
           ingredientsEnabled: prod.tabConfig?.ingredientsEnabled !== false,
@@ -274,6 +280,17 @@ export default function AdminApp() {
       fetchTabContent(activeTab);
     }
   }, [user, activeTab]);
+
+  // Lock background body scrolling when any admin modal is open
+  useEffect(() => {
+    if (modalType) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [modalType]);
 
   const fetchDashboardStats = async () => {
     try {
@@ -417,6 +434,7 @@ export default function AdminApp() {
     try {
       const formData = new FormData();
       formData.append("description", contentDescription);
+      formData.append("whyChooseDermfix", contentWhyChooseDermfix || "");
       formData.append("ingredients", JSON.stringify(validIngredients));
       formData.append("tabConfig", JSON.stringify(contentTabConfig));
 
@@ -465,6 +483,7 @@ export default function AdminApp() {
         setProducts(prev => prev.map(p => p._id === selectedContentProductId ? {
           ...p,
           description: contentDescription,
+          whyChooseDermfix: contentWhyChooseDermfix,
           tabConfig: contentTabConfig,
           ingredients: validIngredients,
           keyIngredients: validIngredients,
@@ -848,6 +867,7 @@ export default function AdminApp() {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("description", description);
+    formData.append("whyChooseDermfix", whyChooseDermfix || "");
     formData.append("benefit", benefit);
     formData.append("mrpPrice", mrpPrice);
     formData.append("salePrice", salePrice);
@@ -1119,6 +1139,7 @@ export default function AdminApp() {
     } else if (type === "product") {
       setName(item ? item.name : "");
       setDescription(item ? item.description : "");
+      setWhyChooseDermfix(item ? (item.whyChooseDermfix || "") : "");
       setBenefit(item ? item.benefit || "" : "");
       setMrpPrice(item ? item.mrpPrice : "");
       setSalePrice(item ? item.salePrice : "");
@@ -2132,6 +2153,70 @@ export default function AdminApp() {
                               </small>
                               <small className="text-muted">
                                 {contentDescription.replace(/<[^>]*>/g, "").length} characters
+                              </small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 1B: Why Choose Dermfix Management */}
+                      <div className="col-12">
+                        <div className="card border-0 shadow-sm" style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge rounded-pill px-2 py-1 text-white" style={{ backgroundColor: "#9333ea", fontSize: "11px" }}>Section 1B</span>
+                                <h6 className="mb-0 fw-bold" style={{ color: "#0f172a" }}>Why Choose Dermfix Management</h6>
+                              </div>
+                              <small className="text-muted">
+                                Enter and format "Why Choose Dermfix" rich-text content for this specific product (supports headings, bold, underline, strikethrough, lists, colors, alignment, and links).
+                              </small>
+                            </div>
+                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                              Rich Text Formatter
+                            </span>
+                          </div>
+                          <div className="card-body p-3">
+                            <div className="border rounded overflow-hidden" style={{ minHeight: "260px" }}>
+                              <CKEditor
+                                editor={ClassicEditor}
+                                config={{
+                                  licenseKey: "GPL",
+                                  plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                                  toolbar: [
+                                    "heading",
+                                    "|",
+                                    "bold",
+                                    "italic",
+                                    "underline",
+                                    "strikethrough",
+                                    "|",
+                                    "fontSize",
+                                    "fontColor",
+                                    "fontBackgroundColor",
+                                    "|",
+                                    "alignment",
+                                    "|",
+                                    "bulletedList",
+                                    "numberedList",
+                                    "insertTable",
+                                    "link",
+                                    "undo",
+                                    "redo",
+                                  ],
+                                }}
+                                data={contentWhyChooseDermfix}
+                                onChange={(event, editor) => {
+                                  setContentWhyChooseDermfix(editor.getData());
+                                }}
+                              />
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-2">
+                              <small className="text-muted">
+                                Saved against product ID: <code>{selectedContentProductId}</code>
+                              </small>
+                              <small className="text-muted">
+                                {contentWhyChooseDermfix.replace(/<[^>]*>/g, "").length} characters
                               </small>
                             </div>
                           </div>
@@ -3801,55 +3886,92 @@ export default function AdminApp() {
       {/* --- CRUD MODALS / OVERLAYS (GLASSMORPHIC STYLING) --- */}
       {modalType && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          className="admin-modal-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: "rgba(0,0,0,0.7)",
             backdropFilter: "blur(4px)",
             zIndex: 9999
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setModalType("");
+            }
+          }}
         >
           <div
-            className="card p-4 border-0 shadow-lg"
+            className={`card border-0 shadow-lg admin-modal-card ${modalType === 'product' ? 'edit-product-modal' : ''}`}
             style={{
-              maxWidth: modalType === "product" || modalType === "content" || modalType === "banner" ? "820px" : "550px",
+              maxWidth: modalType === "product" || modalType === "content" || modalType === "banner" ? "860px" : "550px",
               width: "90%",
               backgroundColor: "#ffffff",
               borderRadius: "16px",
               border: "1px solid #f1f5f9",
               maxHeight: "90vh",
-              overflowY: "auto"
+              height: (modalType === "product" || modalType === "banner") ? "90vh" : "auto",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="d-flex justify-content-between mb-4">
-              <h4 className="font-instrument_serif text-capitalize fw-bold" style={{ color: "#0f172a" }}>{editingItem ? "Edit" : "Create"} {modalType}</h4>
-              <button className="btn btn-close-popup border-0 p-0 fs-20" style={{ color: "#0f172a" }} onClick={() => setModalType("")}>×</button>
+            {/* Modal Header (Pinned) */}
+            <div
+              className="admin-modal-header edit-product-modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+              style={{ flexShrink: 0, backgroundColor: "#ffffff" }}
+            >
+              <h4 className="font-instrument_serif text-capitalize fw-bold mb-0" style={{ color: "#0f172a" }}>
+                {editingItem ? "Edit" : "Create"} {modalType}
+              </h4>
+              <button
+                type="button"
+                className="btn btn-close-popup border-0 p-0 fs-20"
+                style={{ color: "#0f172a", lineHeight: 1 }}
+                onClick={() => setModalType("")}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
 
             {/* Category Form */}
             {modalType === "category" && (
-              <form onSubmit={saveCategory}>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
-                  <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
+              <form onSubmit={saveCategory} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                  <div className="mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Name</label>
+                    <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
+                  <div className="mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
+                    <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
+                  </div>
+                  <div className="mb-4">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
+                    <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Description</label>
-                  <textarea className="form-control" rows="3" value={description} onChange={(e) => setDescription(e.target.value)} required></textarea>
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
+                  <button type="submit" className="btn btn-primary px-4 py-2">
+                    Save Category
+                  </button>
                 </div>
-                <div className="mb-4">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Category Image File</label>
-                  <input type="file" className="form-control" onChange={(e) => setImageFiles(e.target.files)} />
-                </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Category
-                </button>
               </form>
             )}
 
             {/* Product Form */}
             {modalType === "product" && (
-              <form onSubmit={saveProduct}>
-                <div className="row">
+              <form onSubmit={saveProduct} className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div
+                  className="admin-modal-scrollable edit-product-modal-body p-4"
+                  style={{
+                    flex: "1 1 auto",
+                    overflowY: "auto",
+                    minHeight: 0,
+                    overscrollBehavior: "contain"
+                  }}
+                >
+                  <div className="row">
                   <div className="col-12 col-md-6 mb-3">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Name</label>
                     <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -4108,8 +4230,8 @@ export default function AdminApp() {
                         editor={ClassicEditor}
                         config={{
                           licenseKey: 'GPL',
-                          plugins: [Essentials, Bold, Italic, Font, Paragraph, List, Heading, Table, Undo, CKLink],
-                          toolbar: ['heading', '|', 'bold', 'italic', 'fontColor', 'fontBackgroundColor', '|', 'bulletedList', 'numberedList', 'insertTable', 'link', 'undo', 'redo']
+                          plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                          toolbar: ['heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'alignment', '|', 'bulletedList', 'numberedList', '|', 'link', 'insertTable', '|', 'undo', 'redo']
                         }}
                         data={description}
                         onChange={(event, editor) => {
@@ -4119,62 +4241,116 @@ export default function AdminApp() {
                       />
                     </div>
                   </div>
+
+                  <div className="col-12 mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Why Choose Dermfix</label>
+                    <div className="border rounded" style={{ minHeight: '200px' }}>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={{
+                          licenseKey: 'GPL',
+                          plugins: [Essentials, Bold, Italic, Underline, Strikethrough, Alignment, Font, Paragraph, List, Heading, Table, Undo, CKLink],
+                          toolbar: ['heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'alignment', '|', 'bulletedList', 'numberedList', '|', 'link', 'insertTable', '|', 'undo', 'redo']
+                        }}
+                        data={whyChooseDermfix}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setWhyChooseDermfix(data);
+                        }}
+                      />
+                    </div>
+                    <small className="text-muted d-block mt-1">
+                      Manage product-specific "Why Choose Dermfix" rich-text content displayed dynamically on the product details page.
+                    </small>
+                  </div>
                   <div className="col-12 mb-4">
                     <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Product Images Upload (Multiple files)</label>
                     <input type="file" className="form-control" multiple onChange={(e) => setImageFiles(e.target.files)} />
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Product
+              </div>
+
+              {/* Pinned Footer */}
+              <div
+                className="admin-modal-footer edit-product-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2"
+                style={{
+                  flexShrink: 0,
+                  backgroundColor: "#ffffff"
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary px-4 py-2"
+                  onClick={() => setModalType("")}
+                >
+                  Cancel
                 </button>
-              </form>
-            )}
+                <button
+                  type="submit"
+                  className="btn btn-primary px-4 py-2"
+                >
+                  {editingItem ? "Update Product" : "Save Product"}
+                </button>
+              </div>
+            </form>
+          )}
 
             {/* Size Form */}
             {modalType === "size" && (
-              <form onSubmit={saveSize}>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Size Name</label>
-                  <input type="text" className="form-control" placeholder="e.g. 50g, Medium" value={sizeName} onChange={(e) => setSizeName(e.target.value)} required />
+              <form onSubmit={saveSize} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                  <div className="mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Size Name</label>
+                    <input type="text" className="form-control" placeholder="e.g. 50g, Medium" value={sizeName} onChange={(e) => setSizeName(e.target.value)} required />
+                  </div>
+                  <div className="mb-4">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Display Order</label>
+                    <input type="number" className="form-control" value={sizeDisplayOrder} onChange={(e) => setSizeDisplayOrder(e.target.value)} />
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Display Order</label>
-                  <input type="number" className="form-control" value={sizeDisplayOrder} onChange={(e) => setSizeDisplayOrder(e.target.value)} />
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
+                  <button type="submit" className="btn btn-primary px-4 py-2">
+                    Save Size
+                  </button>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Size
-                </button>
               </form>
             )}
 
             {/* Stock Adjustment Form */}
             {modalType === "stock" && (
-              <form onSubmit={adjustStock}>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Current/New Total Quantity</label>
-                  <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required />
+              <form onSubmit={adjustStock} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                  <div className="mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Current/New Total Quantity</label>
+                    <input type="number" className="form-control" value={qty} onChange={(e) => setQty(e.target.value)} required />
+                  </div>
+                  <div className="mb-4">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Adjustment Reason</label>
+                    <input type="text" className="form-control" placeholder="e.g. Stock replenished, damage clearance" value={description} onChange={(e) => setDescription(e.target.value)} required />
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Adjustment Reason</label>
-                  <input type="text" className="form-control" placeholder="e.g. Stock replenished, damage clearance" value={description} onChange={(e) => setDescription(e.target.value)} required />
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
+                  <button type="submit" className="btn btn-primary px-4 py-2">
+                    Apply Inventory Update
+                  </button>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Apply Inventory Update
-                </button>
               </form>
             )}
 
             {/* Banner Form */}
             {modalType === "banner" && (
-              <form onSubmit={saveBanner}>
-                {bannerError && (
-                  <div className="alert alert-danger py-2 px-3 mb-3 small d-flex align-items-center justify-content-between">
-                    <span>{bannerError}</span>
-                    <button type="button" className="btn-close p-1" onClick={() => setBannerError("")}></button>
-                  </div>
-                )}
+              <form onSubmit={saveBanner} className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, overscrollBehavior: "contain" }}>
+                  {bannerError && (
+                    <div className="alert alert-danger py-2 px-3 mb-3 small d-flex align-items-center justify-content-between">
+                      <span>{bannerError}</span>
+                      <button type="button" className="btn-close p-1" onClick={() => setBannerError("")}></button>
+                    </div>
+                  )}
 
-                <div className="row g-3 mb-3">
+                  <div className="row g-3 mb-3">
                   <div className="col-12 col-md-8">
                     <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
                       Banner Headline Title <span className="text-danger">*</span>
@@ -4497,7 +4673,9 @@ export default function AdminApp() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 justify-content-end border-top pt-3">
+                </div>
+
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex gap-2 justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
                   <button
                     type="button"
                     className="btn btn-outline-secondary px-4 py-2"
@@ -4529,118 +4707,127 @@ export default function AdminApp() {
 
             {/* Instagram Video Form */}
             {modalType === "video" && (
-              <form onSubmit={saveVideo}>
-                <div className="mb-3">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Spotlight Title</label>
-                  <input type="text" className="form-control" placeholder="e.g. Cleansing Routine" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} required />
+              <form onSubmit={saveVideo} className="d-flex flex-column" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                  <div className="mb-3">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Spotlight Title</label>
+                    <input type="text" className="form-control" placeholder="e.g. Cleansing Routine" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} required />
+                  </div>
+                  <div className="mb-4">
+                    <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Iframe/Video Embedded Source URL</label>
+                    <input type="url" className="form-control" placeholder="e.g. https://www.youtube.com/embed/dQw4w9WgXcQ" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} required />
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Iframe/Video Embedded Source URL</label>
-                  <input type="url" className="form-control" placeholder="e.g. https://www.youtube.com/embed/dQw4w9WgXcQ" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} required />
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end gap-2" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button type="button" className="btn btn-outline-secondary px-4 py-2" onClick={() => setModalType("")}>Cancel</button>
+                  <button type="submit" className="btn btn-primary px-4 py-2">
+                    Save Video
+                  </button>
                 </div>
-                <button type="submit" className="btn btn-primary w-100 py-2">
-                  Save Video
-                </button>
               </form>
             )}
 
             {/* Order Details Modal */}
             {modalType === "order-details" && editingItem && (
-              <div>
-                <div className="mb-3" style={{ color: "#0f172a" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Customer Details</h6>
-                  <p className="mb-1 text-body-s"><strong>Name:</strong> {editingItem.userId?.name || "N/A"}</p>
-                  <p className="mb-1 text-body-s"><strong>Email:</strong> {editingItem.userId?.email || "N/A"}</p>
-                  <p className="mb-0 text-body-s"><strong>Mobile:</strong> {editingItem.userId?.mobile || "N/A"}</p>
-                </div>
-                <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shipping Address</h6>
-                  <p className="mb-0 text-body-s">
-                    {editingItem.addressId?.street1}<br />
-                    {editingItem.addressId?.street2 && <>{editingItem.addressId.street2}<br /></>}
-                    {editingItem.addressId?.district}, {editingItem.addressId?.state} - {editingItem.addressId?.pincode}<br />
-                    {editingItem.addressId?.landmark && <>Landmark: {editingItem.addressId.landmark}</>}
-                  </p>
-                </div>
-                <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Payment & Shipping Summary</h6>
-                  <p className="mb-1 text-body-s"><strong>Total Amount:</strong> ₹{editingItem.totalPrice.toFixed(2)}</p>
-                  <p className="mb-1 text-body-s"><strong>Payment Status:</strong> {editingItem.paymentStatus}</p>
-                  <p className="mb-1 text-body-s"><strong>Delivery Status:</strong> {editingItem.deliveryStatus}</p>
-                  <p className="mb-0 text-body-s"><strong>Transaction ID:</strong> {editingItem.transactionId || "None"}</p>
-                </div>
-                <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Ordered Products</h6>
-                  <div className="d-grid gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
-                    {editingItem.products?.map((item) => (
-                      <div key={item._id} className="d-flex align-items-center justify-content-between p-2 rounded" style={{ backgroundColor: "#f8fafc" }}>
-                        <div>
-                          <p className="mb-1 text-body-s fw-semibold">{item.productId?.name || "Product"}</p>
-                          <span className="small" style={{ color: "#64748b" }}>Size: {item.size} x {item.quantity}</span>
+              <div className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
+                <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                  <div className="mb-3" style={{ color: "#0f172a" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Customer Details</h6>
+                    <p className="mb-1 text-body-s"><strong>Name:</strong> {editingItem.userId?.name || "N/A"}</p>
+                    <p className="mb-1 text-body-s"><strong>Email:</strong> {editingItem.userId?.email || "N/A"}</p>
+                    <p className="mb-0 text-body-s"><strong>Mobile:</strong> {editingItem.userId?.mobile || "N/A"}</p>
+                  </div>
+                  <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Shipping Address</h6>
+                    <p className="mb-0 text-body-s">
+                      {editingItem.addressId?.street1}<br />
+                      {editingItem.addressId?.street2 && <>{editingItem.addressId.street2}<br /></>}
+                      {editingItem.addressId?.district}, {editingItem.addressId?.state} - {editingItem.addressId?.pincode}<br />
+                      {editingItem.addressId?.landmark && <>Landmark: {editingItem.addressId.landmark}</>}
+                    </p>
+                  </div>
+                  <div className="mb-3 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Payment & Shipping Summary</h6>
+                    <p className="mb-1 text-body-s"><strong>Total Amount:</strong> ₹{editingItem.totalPrice.toFixed(2)}</p>
+                    <p className="mb-1 text-body-s"><strong>Payment Status:</strong> {editingItem.paymentStatus}</p>
+                    <p className="mb-1 text-body-s"><strong>Delivery Status:</strong> {editingItem.deliveryStatus}</p>
+                    <p className="mb-0 text-body-s"><strong>Transaction ID:</strong> {editingItem.transactionId || "None"}</p>
+                  </div>
+                  <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Ordered Products</h6>
+                    <div className="d-grid gap-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                      {editingItem.products?.map((item) => (
+                        <div key={item._id} className="d-flex align-items-center justify-content-between p-2 rounded" style={{ backgroundColor: "#f8fafc" }}>
+                          <div>
+                            <p className="mb-1 text-body-s fw-semibold">{item.productId?.name || "Product"}</p>
+                            <span className="small" style={{ color: "#64748b" }}>Size: {item.size} x {item.quantity}</span>
+                          </div>
+                          <span className="text-body-s fw-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
-                        <span className="text-body-s fw-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
+                    <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Order Actions</h6>
+
+                    {['Pending', 'Processing', 'Confirmed'].includes(editingItem.deliveryStatus) && (
+                      <div className="mb-3 p-3 bg-light rounded border">
+                        <label className="form-label small fw-bold">Cancel Order</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm mb-2"
+                          placeholder="Cancellation Reason..."
+                          value={cancelReason}
+                          onChange={e => setCancelReason(e.target.value)}
+                        />
+                        <button className="btn btn-sm btn-danger w-100" onClick={() => handleCancelOrder(editingItem._id)}>
+                          Cancel Order
+                        </button>
                       </div>
-                    ))}
+                    )}
+
+                    {editingItem.transactionId && !['Refunded', 'Processing'].includes(editingItem.refundStatus) && (
+                      <div className="p-3 bg-light rounded border">
+                        <label className="form-label small fw-bold">Process Refund</label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm mb-2"
+                          placeholder="Refund Amount (₹)"
+                          value={refundAmountInput}
+                          onChange={e => setRefundAmountInput(e.target.value)}
+                        />
+                        <input
+                          type="text"
+                          className="form-control form-control-sm mb-2"
+                          placeholder="Refund Reason"
+                          value={refundReason}
+                          onChange={e => setRefundReason(e.target.value)}
+                        />
+                        <button className="btn btn-sm btn-warning w-100" onClick={() => handleProcessRefund(editingItem)}>
+                          Process Refund
+                        </button>
+                      </div>
+                    )}
+
+                    {editingItem.refundStatus && editingItem.refundStatus !== 'None' && (
+                      <div className="mt-2 p-2 bg-light border rounded">
+                        <p className="mb-1 small"><strong>Refund Status:</strong> {editingItem.refundStatus}</p>
+                        <p className="mb-0 small"><strong>Refunded Amount:</strong> ₹{editingItem.refundAmount}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="mb-4 border-top pt-3" style={{ color: "#0f172a", borderColor: "#f1f5f9" }}>
-                  <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Order Actions</h6>
 
-                  {['Pending', 'Processing', 'Confirmed'].includes(editingItem.deliveryStatus) && (
-                    <div className="mb-3 p-3 bg-light rounded border">
-                      <label className="form-label small fw-bold">Cancel Order</label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm mb-2"
-                        placeholder="Cancellation Reason..."
-                        value={cancelReason}
-                        onChange={e => setCancelReason(e.target.value)}
-                      />
-                      <button className="btn btn-sm btn-danger w-100" onClick={() => handleCancelOrder(editingItem._id)}>
-                        Cancel Order
-                      </button>
-                    </div>
-                  )}
-
-                  {editingItem.transactionId && !['Refunded', 'Processing'].includes(editingItem.refundStatus) && (
-                    <div className="p-3 bg-light rounded border">
-                      <label className="form-label small fw-bold">Process Refund</label>
-                      <input
-                        type="number"
-                        className="form-control form-control-sm mb-2"
-                        placeholder="Refund Amount (₹)"
-                        value={refundAmountInput}
-                        onChange={e => setRefundAmountInput(e.target.value)}
-                      />
-                      <input
-                        type="text"
-                        className="form-control form-control-sm mb-2"
-                        placeholder="Refund Reason"
-                        value={refundReason}
-                        onChange={e => setRefundReason(e.target.value)}
-                      />
-                      <button className="btn btn-sm btn-warning w-100" onClick={() => handleProcessRefund(editingItem)}>
-                        Process Refund
-                      </button>
-                    </div>
-                  )}
-
-                  {editingItem.refundStatus && editingItem.refundStatus !== 'None' && (
-                    <div className="mt-2 p-2 bg-light border rounded">
-                      <p className="mb-1 small"><strong>Refund Status:</strong> {editingItem.refundStatus}</p>
-                      <p className="mb-0 small"><strong>Refunded Amount:</strong> ₹{editingItem.refundAmount}</p>
-                    </div>
-                  )}
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button className="btn btn-secondary px-4 py-2" onClick={() => {
+                    setModalType("");
+                    setCancelReason("");
+                    setRefundAmountInput("");
+                    setRefundReason("");
+                  }}>
+                    Close Overview
+                  </button>
                 </div>
-
-                <button className="btn btn-secondary w-100 py-10 mt-2" onClick={() => {
-                  setModalType("");
-                  setCancelReason("");
-                  setRefundAmountInput("");
-                  setRefundReason("");
-                }}>
-                  Close Overview
-                </button>
               </div>
             )}
 
@@ -4651,8 +4838,9 @@ export default function AdminApp() {
               const refundAmount = Math.max(0, orderAmount - refundCharge);
 
               return (
-                <div>
-                  <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
+                <div className="d-flex flex-column h-100" style={{ minHeight: 0, overflow: "hidden" }}>
+                  <div className="admin-modal-scrollable p-4" style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}>
+                    <div className="mb-3 border-bottom pb-3" style={{ color: "#0f172a" }}>
                     <h6 className="block mb-2 text-uppercase fw-bold" style={{ fontSize: "11px", letterSpacing: "1px", color: "#9333ea" }}>Refund Overview</h6>
                     <p className="mb-1 text-body-s"><strong>Refund ID:</strong> {editingItem._id}</p>
                     <p className="mb-1 text-body-s"><strong>Order No:</strong> {editingItem.orderId?.orderNumber}</p>
@@ -4731,15 +4919,18 @@ export default function AdminApp() {
                       }}>Mark Refunded</button>
                     </div>
                   </div>
+                </div>
 
-                  <button className="btn btn-secondary w-100 py-10" onClick={() => {
+                <div className="admin-modal-footer px-4 py-3 border-top d-flex justify-content-end" style={{ flexShrink: 0, backgroundColor: "#ffffff" }}>
+                  <button className="btn btn-secondary px-4 py-2" onClick={() => {
                     setModalType("");
                     setCancelReason("");
                   }}>
                     Close Overview
                   </button>
                 </div>
-              );
+              </div>
+            );
             })()}
           </div>
         </div>

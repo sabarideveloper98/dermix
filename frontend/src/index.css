@@ -108,19 +108,23 @@
   justify-content: center !important;
 }
 
-.admin-modal-card,
-.edit-product-modal {
+.admin-modal-card {
   max-height: 90vh !important;
-  height: 90vh !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   overscroll-behavior: contain !important;
 }
 
+.edit-product-modal {
+  height: 90vh !important;
+}
+
 .admin-modal-header,
 .edit-product-modal-header {
   flex-shrink: 0 !important;
+  background-color: #ffffff !important;
+  z-index: 10 !important;
 }
 
 .admin-modal-scrollable,
@@ -162,6 +166,15 @@
 .admin-modal-footer,
 .edit-product-modal-footer {
   flex-shrink: 0 !important;
+  background-color: #ffffff !important;
+  z-index: 10 !important;
+}
+
+.admin-modal-scrollable .ck-editor__editable,
+.edit-product-modal-body .ck-editor__editable {
+  min-height: 180px !important;
+  max-height: 350px !important;
+  overflow-y: auto !important;
 }
 
 /* --- Hero Slider Picture & Responsive Banner Styles --- */
@@ -176,3 +189,107 @@
   height: 100% !important;
   object-fit: cover !important;
 }
+
+/* Rich Text Content Formatting (CKEditor) */
+.ck-content {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.ck-content h1,
+.ck-content h2,
+.ck-content h3,
+.ck-content h4,
+.ck-content h5,
+.ck-content h6 {
+  color: #0f172a;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ck-content h1 { font-size: 2rem; }
+.ck-content h2 { font-size: 1.75rem; }
+.ck-content h3 { font-size: 1.5rem; }
+.ck-content h4 { font-size: 1.25rem; }
+.ck-content h5 { font-size: 1.1rem; }
+.ck-content h6 { font-size: 1rem; }
+
+.ck-content p {
+  margin-bottom: 0.75rem;
+}
+
+.ck-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.75rem !important;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ck-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.75rem !important;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ck-content li {
+  margin-bottom: 0.25rem;
+  display: list-item !important;
+}
+
+.ck-content strong,
+.ck-content b {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ck-content em,
+.ck-content i {
+  font-style: italic;
+}
+
+.ck-content u {
+  text-decoration: underline;
+}
+
+.ck-content s,
+.ck-content strike {
+  text-decoration: line-through;
+}
+
+.ck-content a {
+  color: #9333ea;
+  text-decoration: underline;
+}
+
+.ck-content a:hover {
+  color: #7e22ce;
+}
+
+.ck-content blockquote {
+  border-left: 4px solid #9333ea;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #64748b;
+  font-style: italic;
+}
+
+.ck-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ck-content table td,
+.ck-content table th {
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+}
+
+.ck-content table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+}
+

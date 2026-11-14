@@ -30,6 +30,11 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    whyChooseDermfix: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     images: {
       type: [String], // Array of Cloudinary Image URLs
       default: [],

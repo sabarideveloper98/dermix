@@ -3,6 +3,7 @@ import Product from '../models/Product.js';
 import StockHistory from '../models/StockHistory.js';
 import Category from '../models/Category.js';
 import { uploadBuffer, deleteFromCloudinary, extractPublicId } from '../utils/cloudinary.js';
+import { sanitizeHtml } from '../utils/sanitizeHtml.js';
 
 // Get products (public lists active, supports pagination, filtering, search)
 export const getProducts = async (req, res) => {
@@ -129,6 +130,7 @@ export const getProductById = async (req, res) => {
     if (!prodObj.ingredients) {
       prodObj.ingredients = [];
     }
+    prodObj.whyChooseDermfix = prodObj.whyChooseDermfix || '';
 
     res.status(200).json({ success: true, product: prodObj });
   } catch (error) {
@@ -139,7 +141,7 @@ export const getProductById = async (req, res) => {
 
 // Create Product (Admin)
 export const createProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, qty, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, whyChooseDermfix, qty, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
 
   try {
     // Validate category exists
@@ -218,6 +220,7 @@ export const createProduct = async (req, res) => {
       salePrice: Number(salePrice),
       benefit,
       description,
+      whyChooseDermfix: sanitizeHtml(whyChooseDermfix || ''),
       images: finalImages,
       sizes: parsedSizes,
       qty: Number(qty) || 0,
@@ -247,7 +250,7 @@ export const createProduct = async (req, res) => {
 
 // Update Product (Admin)
 export const updateProduct = async (req, res) => {
-  const { name, categoryId, mrpPrice, salePrice, benefit, description, status, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
+  const { name, categoryId, mrpPrice, salePrice, benefit, description, whyChooseDermfix, status, sizes, isShippingPaid, tabConfig, ingredients } = req.body;
 
   try {
     let product = await Product.findById(req.params.id);
@@ -307,6 +310,7 @@ export const updateProduct = async (req, res) => {
       salePrice: salePrice ? Number(salePrice) : undefined,
       benefit,
       description,
+      whyChooseDermfix: whyChooseDermfix !== undefined ? sanitizeHtml(whyChooseDermfix) : undefined,
       status,
       sizes: parsedSizes,
       isShippingPaid: isShippingPaid !== undefined ? (isShippingPaid === 'true' || isShippingPaid === true) : undefined,
@@ -467,7 +471,7 @@ export const toggleProductStatus = async (req, res) => {
 
 // Update Product Content (Description & Key Ingredients & Ingredients Image) - Admin
 export const updateProductContent = async (req, res) => {
-  const { description, ingredients } = req.body;
+  const { description, whyChooseDermfix, ingredients } = req.body;
 
   try {
     let product = await Product.findById(req.params.id);
@@ -478,6 +482,10 @@ export const updateProductContent = async (req, res) => {
     const updates = {};
     if (description !== undefined) {
       updates.description = description;
+    }
+
+    if (whyChooseDermfix !== undefined) {
+      updates.whyChooseDermfix = sanitizeHtml(whyChooseDermfix);
     }
 
     if (req.body.tabConfig !== undefined) {

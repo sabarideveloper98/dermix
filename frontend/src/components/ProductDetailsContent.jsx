@@ -14,6 +14,14 @@ import ProductDetailsTabs from "./ProductDetailsTabs";
 import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
 
 import { API_BASE } from "../config";
+import DOMPurify from "dompurify";
+
+const sanitizeHtmlContent = (html) => {
+  if (!html) return "";
+  return DOMPurify.sanitize(html, {
+    ADD_ATTR: ['target', 'rel'],
+  });
+};
 
 export default function ProductDetailsContent() {
   const { addToCart } = useCart();
@@ -420,29 +428,31 @@ export default function ProductDetailsContent() {
                     )}
                   </div>
 
-                  {/* Ingredients & Benefits */}
-                  <div className="product-accordion-item">
-                    <button
-                      type="button"
-                      className="product-accordion-header"
-                      onClick={() => toggleSection("ingredients")}
-                    >
-                      <span>Why Choose Dermfix</span>
-                      <span className="accordion-icon">
-                        {openSection === "ingredients" ? "−" : "+"}
-                      </span>
-                    </button>
+                  {/* Why Choose Dermfix Accordion Item */}
+                  {product.whyChooseDermfix && (
+                    <div className="product-accordion-item">
+                      <button
+                        type="button"
+                        className="product-accordion-header"
+                        onClick={() => toggleSection("whyChooseDermfix")}
+                      >
+                        <span>Why Choose Dermfix</span>
+                        <span className="accordion-icon">
+                          {openSection === "whyChooseDermfix" ? "−" : "+"}
+                        </span>
+                      </button>
 
-                    {openSection === "ingredients" && (
-                      <div className="product-accordion-content cl-text-5 text-body-s ck-content">
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: product.ingredients || ""
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                      {openSection === "whyChooseDermfix" && (
+                        <div className="product-accordion-content cl-text-5 text-body-s ck-content">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtmlContent(product.whyChooseDermfix)
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   </div>
 
@@ -452,6 +462,34 @@ export default function ProductDetailsContent() {
           </div>
         </div>
       </section>
+
+      {/* Dynamic Why Choose Dermfix Section */}
+      {product?.whyChooseDermfix && (
+        <section className="why-choose-dermfix-section flat-spacing" style={{ backgroundColor: "#f9f6f0", padding: "60px 0" }}>
+          <div className="container">
+            <div className="text-center mb-4">
+              <span className="sub-title text-uppercase font-cursive" style={{ color: "#9800e4", letterSpacing: "1.5px", fontSize: "14px", fontWeight: 600 }}>
+                Formulated For Visible Results
+              </span>
+              <h2 className="title font-instrument_serif fw-normal" style={{ fontSize: "38px", color: "#0f172a", marginTop: "8px", marginBottom: "0" }}>
+                Why Choose Dermfix
+              </h2>
+            </div>
+            <div
+              className="ck-content cl-text-5 mx-auto bg-white p-4 p-md-5 rounded shadow-sm"
+              style={{
+                maxWidth: "880px",
+                border: "1px solid #f1f5f9",
+                lineHeight: "1.8",
+                fontSize: "15px"
+              }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHtmlContent(product.whyChooseDermfix)
+              }}
+            />
+          </div>
+        </section>
+      )}
 
       <ProductDetailsTabs product={product} />
 
