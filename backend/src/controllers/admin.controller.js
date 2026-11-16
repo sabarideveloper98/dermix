@@ -165,12 +165,12 @@ export const createBanner = async (req, res) => {
     let legacyFile = req.file || null;
 
     if (Array.isArray(files)) {
-      desktopFile = files.find((f) => f.fieldname === 'desktopImage') || null;
-      mobileFile = files.find((f) => f.fieldname === 'mobileImage') || null;
+      desktopFile = files.find((f) => f.fieldname === 'desktopImage' || f.fieldname === 'desktopBanner') || null;
+      mobileFile = files.find((f) => f.fieldname === 'mobileImage' || f.fieldname === 'mobileBanner') || null;
       legacyFile = legacyFile || files.find((f) => f.fieldname === 'image') || null;
     } else if (typeof files === 'object') {
-      desktopFile = files.desktopImage?.[0] || null;
-      mobileFile = files.mobileImage?.[0] || null;
+      desktopFile = files.desktopImage?.[0] || files.desktopBanner?.[0] || null;
+      mobileFile = files.mobileImage?.[0] || files.mobileBanner?.[0] || null;
       legacyFile = legacyFile || files.image?.[0] || null;
     }
 
@@ -251,14 +251,26 @@ export const updateBanner = async (req, res) => {
     let legacyFile = req.file || null;
 
     if (Array.isArray(files)) {
-      desktopFile = files.find((f) => f.fieldname === 'desktopImage') || null;
-      mobileFile = files.find((f) => f.fieldname === 'mobileImage') || null;
+      desktopFile = files.find((f) => f.fieldname === 'desktopImage' || f.fieldname === 'desktopBanner') || null;
+      mobileFile = files.find((f) => f.fieldname === 'mobileImage' || f.fieldname === 'mobileBanner') || null;
       legacyFile = legacyFile || files.find((f) => f.fieldname === 'image') || null;
     } else if (typeof files === 'object') {
-      desktopFile = files.desktopImage?.[0] || null;
-      mobileFile = files.mobileImage?.[0] || null;
+      desktopFile = files.desktopImage?.[0] || files.desktopBanner?.[0] || null;
+      mobileFile = files.mobileImage?.[0] || files.mobileBanner?.[0] || null;
       legacyFile = legacyFile || files.image?.[0] || null;
     }
+
+    const shouldRemoveDesktop =
+      removeDesktopImage === 'true' ||
+      removeDesktopImage === true ||
+      req.body.removeDesktopBanner === 'true' ||
+      req.body.removeDesktopBanner === true;
+
+    const shouldRemoveMobile =
+      removeMobileImage === 'true' ||
+      removeMobileImage === true ||
+      req.body.removeMobileBanner === 'true' ||
+      req.body.removeMobileBanner === true;
 
     // Handle Desktop Banner Image
     if (desktopFile) {
@@ -273,7 +285,7 @@ export const updateBanner = async (req, res) => {
           console.warn('Failed to delete old desktop banner from Cloudinary:', delErr.message);
         }
       }
-    } else if (removeDesktopImage === 'true' || removeDesktopImage === true) {
+    } else if (shouldRemoveDesktop) {
       const oldPublicId = extractPublicId(banner.desktopImage);
       if (oldPublicId) {
         try {
@@ -298,7 +310,7 @@ export const updateBanner = async (req, res) => {
           console.warn('Failed to delete old mobile banner from Cloudinary:', delErr.message);
         }
       }
-    } else if (removeMobileImage === 'true' || removeMobileImage === true) {
+    } else if (shouldRemoveMobile) {
       const oldPublicId = extractPublicId(banner.mobileImage);
       if (oldPublicId) {
         try {

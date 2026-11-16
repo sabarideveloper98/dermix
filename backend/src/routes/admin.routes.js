@@ -36,11 +36,13 @@ router.get('/customers', protect, admin, getCustomers);
 router.patch('/customers/:id/status', protect, admin, toggleCustomerStatus);
 router.get('/orders', protect, admin, getAdminOrders);
 
-// Banner Upload Middleware explicitly configuring expected desktopImage, mobileImage, and legacy image fields
+// Banner Upload Middleware explicitly configuring expected desktop and mobile banner fields
 const bannerUpload = (req, res, next) => {
   upload.fields([
     { name: 'desktopImage', maxCount: 1 },
+    { name: 'desktopBanner', maxCount: 1 },
     { name: 'mobileImage', maxCount: 1 },
+    { name: 'mobileBanner', maxCount: 1 },
     { name: 'image', maxCount: 1 },
   ])(req, res, (err) => {
     if (err) {

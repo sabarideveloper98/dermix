@@ -832,7 +832,7 @@ export default function AdminApp() {
         const data = await res.json();
         if (res.ok && data.success) setCustomers(data.customers);
       } else if (tab === "banners") {
-        const res = await fetch(`${API_BASE}/banners?admin=true`);
+        const res = await fetch(`${API_BASE}/banners?admin=true&_t=${Date.now()}`);
         const data = await res.json();
         if (res.ok && data.success) setBanners(data.banners);
       } else if (tab === "videos") {
@@ -1184,10 +1184,46 @@ export default function AdminApp() {
   // Home Banner CRUD
   const saveBanner = async (e) => {
     e.preventDefault();
+    setBannerError("");
+
+    if (!bannerTitle || !bannerTitle.trim()) {
+      setBannerError("Banner headline title is required.");
+      return;
+    }
+
+    // Require at least one banner image (desktop or mobile) when creating
+    if (!editingItem && !desktopBannerFile && !mobileBannerFile && !existingDesktopBanner && !existingMobileBanner && !bannerFile) {
+      setBannerError("Please upload at least one banner image (Desktop or Mobile).");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("title", bannerTitle);
-    if (bannerFile) {
+    formData.append("title", bannerTitle.trim());
+    formData.append("description", (bannerDescription || "").trim());
+    formData.append("buttonText", (bannerButtonText || "").trim());
+    formData.append("buttonLink", (bannerButtonLink || "").trim());
+    formData.append("displayOrder", bannerDisplayOrder !== undefined ? bannerDisplayOrder : 0);
+
+    // Desktop Image from local computer
+    if (desktopBannerFile) {
+      formData.append("desktopImage", desktopBannerFile);
+    } else if (bannerFile) {
       formData.append("image", bannerFile);
+    }
+
+    // Mobile Image from local computer
+    if (mobileBannerFile) {
+      formData.append("mobileImage", mobileBannerFile);
+    }
+
+    // Explicit removal flags when editing
+    if (removeDesktopBanner) {
+      formData.append("removeDesktopImage", "true");
+      formData.append("removeDesktopBanner", "true");
+    }
+    if (removeMobileBanner) {
+      formData.append("removeMobileImage", "true");
+      formData.append("removeMobileBanner", "true");
     }
 
     const url = editingItem
@@ -1195,15 +1231,47 @@ export default function AdminApp() {
       : `${API_BASE}/admin/banners`;
     const method = editingItem ? "PUT" : "POST";
 
+    setIsSavingBanner(true);
     try {
       const res = await authFetch(url, { method, body: formData });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success !== false) {
+        if (data.banner) {
+          if (editingItem) {
+            setBanners((prev) =>
+              prev.map((b) => (b._id === data.banner._id ? data.banner : b))
+            );
+          } else {
+            setBanners((prev) => [data.banner, ...prev]);
+          }
+        }
         setEditingItem(null);
         setModalType("");
+        if (desktopBannerPreview) URL.revokeObjectURL(desktopBannerPreview);
+        if (mobileBannerPreview) URL.revokeObjectURL(mobileBannerPreview);
+        setDesktopBannerFile(null);
+        setDesktopBannerPreview("");
+        setRemoveDesktopBanner(false);
+        setExistingDesktopBanner("");
+        setMobileBannerFile(null);
+        setMobileBannerPreview("");
+        setRemoveMobileBanner(false);
+        setExistingMobileBanner("");
+        setBannerFile(null);
         fetchTabContent("banners");
+        alert(editingItem ? "Banner updated successfully!" : "Banner saved successfully!");
+      } else {
+        const errorMsg = data.message || "Failed to save banner";
+        setBannerError(errorMsg);
+        alert(errorMsg);
       }
     } catch (err) {
       console.error(err);
+      const errorMsg = err.message || "Error saving banner";
+      setBannerError(errorMsg);
+      alert(errorMsg);
+    } finally {
+      setIsSavingBanner(false);
     }
   };
 
@@ -1344,8 +1412,24 @@ export default function AdminApp() {
       setQty(item ? item.qty : "");
       setDescription(""); // Reason field
     } else if (type === "banner") {
-      setBannerTitle(item ? item.title : "");
+      setBannerTitle(item ? (item.title || "") : "");
+      setBannerDescription(item ? (item.description || "") : "");
+      setBannerButtonText(item ? (item.buttonText || "") : "");
+      setBannerButtonLink(item ? (item.buttonLink || "") : "");
+      setBannerDisplayOrder(item && item.displayOrder !== undefined ? item.displayOrder : 0);
+      setExistingDesktopBanner(item ? (item.desktopImage || item.image || "") : "");
+      setExistingMobileBanner(item ? (item.mobileImage || "") : "");
+      if (desktopBannerPreview) URL.revokeObjectURL(desktopBannerPreview);
+      if (mobileBannerPreview) URL.revokeObjectURL(mobileBannerPreview);
+      setDesktopBannerFile(null);
+      setDesktopBannerPreview("");
+      setRemoveDesktopBanner(false);
+      setMobileBannerFile(null);
+      setMobileBannerPreview("");
+      setRemoveMobileBanner(false);
       setBannerFile(null);
+      setBannerError("");
+      setIsSavingBanner(false);
     } else if (type === "video") {
       setVideoTitle(item ? item.title : "");
       setVideoLink(item ? item.videoLink : "");
@@ -3623,8 +3707,10 @@ export default function AdminApp() {
                   <table className="table table-premium mb-0">
                     <thead>
                       <tr>
-                        <th>Image Preview</th>
-                        <th>Title</th>
+                        <th>Desktop Banner</th>
+                        <th>Mobile Banner</th>
+                        <th>Headline Title</th>
+                        <th>Order</th>
                         <th>Status</th>
                         <th className="text-end">Actions</th>
                       </tr>
@@ -3635,9 +3721,38 @@ export default function AdminApp() {
                         .map((b) => (
                           <tr key={b._id} className="align-middle">
                             <td>
-                              <img src={b.image} alt={b.title} width="120" height="50" style={{ objectFit: "cover", borderRadius: "4px" }} />
+                              {(b.desktopImage || b.image) ? (
+                                <img
+                                  src={b.desktopImage || b.image}
+                                  alt={b.title}
+                                  width="120"
+                                  height="50"
+                                  style={{ objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
+                                />
+                              ) : (
+                                <span className="badge bg-light text-secondary border">No Desktop</span>
+                              )}
                             </td>
-                            <td>{b.title}</td>
+                            <td>
+                              {b.mobileImage ? (
+                                <img
+                                  src={b.mobileImage}
+                                  alt="Mobile banner"
+                                  width="35"
+                                  height="50"
+                                  style={{ objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
+                                />
+                              ) : (
+                                <span className="badge bg-light text-muted border">None</span>
+                              )}
+                            </td>
+                            <td>
+                              <div className="fw-semibold" style={{ color: "#0f172a" }}>{b.title}</div>
+                              {b.description && <div className="text-muted small text-truncate" style={{ maxWidth: "200px" }}>{b.description}</div>}
+                            </td>
+                            <td>
+                              <span className="badge bg-light text-dark border">{b.displayOrder ?? 0}</span>
+                            </td>
                             <td>
                               <button
                                 className={`btn btn-sm ${b.status === 'active' ? 'btn-success' : 'btn-secondary'}`}
@@ -3962,7 +4077,7 @@ export default function AdminApp() {
             data-lenis-prevent-wheel="true"
             data-lenis-prevent-touch="true"
             style={{
-              maxWidth: modalType === "product" ? "880px" : "550px",
+              maxWidth: modalType === "product" ? "880px" : (modalType === "banner" ? "740px" : "550px"),
               width: "100%",
               backgroundColor: "#ffffff",
               borderRadius: "16px",
@@ -4704,17 +4819,263 @@ export default function AdminApp() {
                 {/* Banner Form */}
                 {modalType === "banner" && (
                   <form onSubmit={saveBanner}>
+                    {bannerError && (
+                      <div className="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2 px-3" role="alert">
+                        <FiAlertCircle className="flex-shrink-0" />
+                        <span className="small">{bannerError}</span>
+                      </div>
+                    )}
+
                     <div className="mb-3">
-                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Headline Title</label>
-                      <input type="text" className="form-control" value={bannerTitle} onChange={(e) => setBannerTitle(e.target.value)} required />
+                      <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
+                        Banner Headline Title <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Preventive skin science"
+                        value={bannerTitle}
+                        onChange={(e) => setBannerTitle(e.target.value)}
+                        required
+                      />
                     </div>
+
+                    <div className="mb-3">
+                      <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
+                        Subtitle / Description <span className="text-muted fw-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. India's First Preventive Dermatology Range"
+                        value={bannerDescription}
+                        onChange={(e) => setBannerDescription(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="row g-3 mb-3">
+                      <div className="col-md-6">
+                        <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
+                          Button Text <span className="text-muted fw-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. Shop Now"
+                          value={bannerButtonText}
+                          onChange={(e) => setBannerButtonText(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
+                          Button Link <span className="text-muted fw-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. /shop"
+                          value={bannerButtonLink}
+                          onChange={(e) => setBannerButtonLink(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
                     <div className="mb-4">
-                      <label className="small block mb-2 fw-bold" style={{ color: "#0f172a" }}>Banner Background Image File</label>
-                      <input type="file" className="form-control" onChange={(e) => setBannerFile(e.target.files[0])} />
+                      <label className="small block mb-1 fw-bold" style={{ color: "#0f172a" }}>
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        style={{ maxWidth: "160px" }}
+                        value={bannerDisplayOrder}
+                        onChange={(e) => setBannerDisplayOrder(Number(e.target.value))}
+                        min="0"
+                      />
+                      <small className="text-muted">Lower numbers appear first on the storefront hero slider.</small>
                     </div>
-                    <button type="submit" className="btn btn-primary w-100 py-2">
-                      Save Banner
-                    </button>
+
+                    {/* Desktop Banner Image Upload Option */}
+                    <div className="mb-4 p-3 border rounded-3" style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}>
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <label className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ color: "#0f172a", fontSize: "14px" }}>
+                          <FiMonitor size={18} className="text-primary" />
+                          <span>Desktop Banner Image (Desktop File Upload)</span>
+                        </label>
+                        <span className="badge bg-primary-subtle text-primary border border-primary-subtle small">Desktop</span>
+                      </div>
+                      <p className="text-muted small mb-3">
+                        Upload high-resolution landscape banner for desktop/laptop displays. Recommended: 1920×800px. Supports JPG, JPEG, PNG, WEBP (Max 10MB).
+                      </p>
+
+                      {desktopBannerPreview || (existingDesktopBanner && !removeDesktopBanner) ? (
+                        <div className="d-flex flex-column gap-2">
+                          <div
+                            className="position-relative border rounded overflow-hidden"
+                            style={{ height: "140px", backgroundColor: "#0f172a", border: "1px solid #cbd5e1" }}
+                          >
+                            <img
+                              src={desktopBannerPreview || existingDesktopBanner}
+                              alt="Desktop Banner Preview"
+                              className="w-100 h-100"
+                              style={{ objectFit: "cover" }}
+                            />
+                            <div className="position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75 text-white small d-flex justify-content-between align-items-center">
+                              <span>{desktopBannerFile ? desktopBannerFile.name : "Current Desktop Image"}</span>
+                              {desktopBannerFile && (
+                                <span>{(desktopBannerFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="d-flex gap-2">
+                            <label className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
+                              <FiUploadCloud size={14} /> Replace Desktop Image
+                              <input
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                onChange={(e) => handleDesktopBannerSelected(e.target.files[0])}
+                                hidden
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2"
+                              onClick={handleRemoveDesktopBanner}
+                            >
+                              <FiTrash2 size={14} /> Remove Desktop Image
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className="border border-2 border-dashed rounded p-3 text-center bg-white"
+                          style={{ borderColor: "#cbd5e1", borderRadius: "10px" }}
+                        >
+                          <FiMonitor size={32} className="text-secondary mb-2" />
+                          <h6 className="fw-semibold mb-1" style={{ color: "#334155", fontSize: "14px" }}>
+                            Select Desktop Banner File
+                          </h6>
+                          <p className="text-muted small mb-2">
+                            Choose a desktop banner file from your local computer (JPG, JPEG, PNG, WEBP up to 10MB)
+                          </p>
+                          <label
+                            className="btn btn-sm btn-primary d-inline-flex align-items-center gap-2 px-3 py-2"
+                            style={{ cursor: "pointer", fontWeight: 600 }}
+                          >
+                            <FiPlus size={16} /> Choose Desktop File from Computer
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                              onChange={(e) => handleDesktopBannerSelected(e.target.files[0])}
+                              hidden
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mobile Banner Image Upload Option */}
+                    <div className="mb-4 p-3 border rounded-3" style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}>
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <label className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ color: "#0f172a", fontSize: "14px" }}>
+                          <FiSmartphone size={18} className="text-success" />
+                          <span>Mobile Banner Image (Mobile File Upload)</span>
+                        </label>
+                        <span className="badge bg-success-subtle text-success border border-success-subtle small">Mobile</span>
+                      </div>
+                      <p className="text-muted small mb-3">
+                        Upload portrait/vertical banner tailored for mobile screens. Recommended: 750×1000px. Supports JPG, JPEG, PNG, WEBP (Max 10MB).
+                      </p>
+
+                      {mobileBannerPreview || (existingMobileBanner && !removeMobileBanner) ? (
+                        <div className="d-flex flex-column gap-2">
+                          <div
+                            className="position-relative border rounded overflow-hidden"
+                            style={{ height: "160px", width: "120px", backgroundColor: "#0f172a", border: "1px solid #cbd5e1" }}
+                          >
+                            <img
+                              src={mobileBannerPreview || existingMobileBanner}
+                              alt="Mobile Banner Preview"
+                              className="w-100 h-100"
+                              style={{ objectFit: "cover" }}
+                            />
+                            <div className="position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75 text-white small text-truncate" style={{ fontSize: "11px" }}>
+                              {mobileBannerFile ? mobileBannerFile.name : "Current Mobile"}
+                            </div>
+                          </div>
+
+                          <div className="d-flex gap-2">
+                            <label className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
+                              <FiUploadCloud size={14} /> Replace Mobile Image
+                              <input
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                onChange={(e) => handleMobileBannerSelected(e.target.files[0])}
+                                hidden
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2"
+                              onClick={handleRemoveMobileBanner}
+                            >
+                              <FiTrash2 size={14} /> Remove Mobile Image
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className="border border-2 border-dashed rounded p-3 text-center bg-white"
+                          style={{ borderColor: "#cbd5e1", borderRadius: "10px" }}
+                        >
+                          <FiSmartphone size={32} className="text-secondary mb-2" />
+                          <h6 className="fw-semibold mb-1" style={{ color: "#334155", fontSize: "14px" }}>
+                            Select Mobile Banner File (Optional)
+                          </h6>
+                          <p className="text-muted small mb-2">
+                            Choose a mobile banner file from your local computer (JPG, JPEG, PNG, WEBP up to 10MB)
+                          </p>
+                          <label
+                            className="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-2 px-3 py-2"
+                            style={{ cursor: "pointer", fontWeight: 600 }}
+                          >
+                            <FiPlus size={16} /> Choose Mobile File from Computer
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                              onChange={(e) => handleMobileBannerSelected(e.target.files[0])}
+                              hidden
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-top">
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary px-4 py-2"
+                        onClick={() => setModalType("")}
+                        disabled={isSavingBanner}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2"
+                        disabled={isSavingBanner}
+                      >
+                        {isSavingBanner ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            Saving Banner...
+                          </>
+                        ) : (
+                          editingItem ? "Update Banner" : "Save Banner"
+                        )}
+                      </button>
+                    </div>
                   </form>
                 )}
 
