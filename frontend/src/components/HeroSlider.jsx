@@ -71,12 +71,12 @@ export default function HeroSlider() {
                 </picture>
               </div>
 
-              <div className="sld-content">
+              <div className="sld-content" style={{height:"78vh"}}>
                 <div className="container">
                   <div className="row gy-24">
                     <div className="col-sm-7 col-md-8">
                       <div className="sld-content_inner wow fadeInUp">
-                        <div className="sld__tag text-has_dot fade-item fade-item-1">
+                        {/* <div className="sld__tag text-has_dot fade-item fade-item-1">
                           <img src={dermfix_log} style={{ width: "25%" }} alt="logo" />
                         </div>
                         <div className="sld__tag text-has_dot fade-item fade-item-1 slider_top_head">
@@ -115,10 +115,10 @@ export default function HeroSlider() {
                             <img src={shield} alt="feature" />
                             <h6>Support <br /> Even Tone</h6>
                           </div>
-                        </div>
+                        </div> */}
 
                         <div className="group-btn gap-12 flex-wrap fade-item fade-item-4 mt-5">
-                          <Link to="/ProductDetails" className="tf-btn">
+                          {/* <Link to="/ProductDetails" className="tf-btn">
                             Shop Now
                             <i className="icon icon-ShoppingBag"></i>
                           </Link>
@@ -126,7 +126,7 @@ export default function HeroSlider() {
                           <Link to="/ProductDetails" className="tf-btn btn-trans">
                             Explore Collection
                             <i className="icon icon-ArrowRight"></i>
-                          </Link>
+                          </Link> */}
                         </div>
                       </div>
                     </div>

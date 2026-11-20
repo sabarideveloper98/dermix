@@ -9894,8 +9894,8 @@ button.animate-btn::after,
     content: "";
     position: absolute;
     inset: 0;
-    backdrop-filter: blur(2px);
-    background: rgba(115, 115, 115, 0.2);
+    /* backdrop-filter: blur(2px);
+    background: rgba(115, 115, 115, 0.2); */
   }
   .slideshow-v02 .sld-image img {
     object-position: left;

@@ -24,7 +24,20 @@
   <!-- Shiprocket Headless Checkout (Fastrr) -->
   <link rel="stylesheet" href="https://checkout-ui.shiprocket.com/assets/styles/shopify.css">
   <link rel="stylesheet" href="https://fastrr-boost-ui.pickrr.com/assets/styles/shopify.css">
-
+<style>
+  @media (max-width: 575px) {
+  .slideshow-v02 .sld-image::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(0) ;
+    background: unset;
+  }
+  .slideshow-v02 .sld-image img {
+    object-position: left;
+  }
+}
+</style>
   <!-- Meta Pixel Code -->
 <script>
   !function(f,b,e,v,n,t,s)
@@ -42,6 +55,14 @@
   src="https://www.facebook.com/tr?id=1123830780429320&ev=PageView&noscript=1"
   /></noscript>
   <!-- End Meta Pixel Code -->
+  
+
+  <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-ZBHGQSTZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
 </head>
 
 <body>
