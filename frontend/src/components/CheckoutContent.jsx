@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { calculateCartTotals } from "../utils/cartCalculations";
 
 import { API_BASE as API_BASE_CONFIG } from "../config";
 
@@ -9,6 +10,13 @@ export default function CheckoutContent() {
   const { user, authFetch } = useAuth();
   const { cart, clearCart, updateCartItem, removeFromCart } = useCart();
   const navigate = useNavigate();
+
+  // Unified cart calculation for checkout
+  const {
+    resolvedItems,
+    subtotal: cartSubtotal,
+    totalCount: checkoutItemCount,
+  } = useMemo(() => calculateCartTotals(cart), [cart]);
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -254,7 +262,7 @@ export default function CheckoutContent() {
       if (user) {
         payload = {
           addressId: selectedAddressId,
-          amount: cart.totalAmount + shippingCost,
+          amount: cartSubtotal + shippingCost,
           items: cart.items
         };
       } else {
@@ -542,44 +550,43 @@ export default function CheckoutContent() {
           <div className="content-right sticky-top">
             <h4 className="font-instrument_serif mb-24">Order Summary</h4>
             <ul className="list-order-product">
-              {cart.items.map((item) => {
-                const prod = item.productId;
+              {resolvedItems.map((item) => {
+                const prod = item.productId || item.product;
                 if (!prod) return null;
-
-                let itemSalePrice = prod.salePrice;
-                if (prod.sizes && prod.sizes.length > 0) {
-                  const sizeObj = prod.sizes.find(s => (s.size ? s.size.name : s.name) === item.size);
-                  if (sizeObj && sizeObj.salePrice) {
-                    itemSalePrice = sizeObj.salePrice;
-                  }
-                }
+                const prodId = prod._id || prod.id;
+                const imageSrc =
+                  (Array.isArray(prod.images) && prod.images[0]) ||
+                  prod.image ||
+                  "assets/images/products/serum_product.png";
 
                 return (
-                  <li key={`${prod._id}-${item.size}`} className="order-item">
-                    <Link to={`/ProductDetails?id=${prod._id}`} className="img-prd">
+                  <li key={`${prodId}-${item.size}`} className="order-item">
+                    <Link to={`/ProductDetails?id=${prodId}`} className="img-prd">
                       <img
                         loading="lazy"
                         width="74"
                         height="88"
-                        src={prod.images[0] || "assets/images/products/serum_product.png"}
-                        alt={prod.name}
+                        src={imageSrc}
+                        alt={prod.name || "Product image"}
                       />
                       <span className="prd_quanitty text-body-s">{item.quantity}</span>
                     </Link>
                     <div className="infor-prd">
-                      <Link to={`/ProductDetails?id=${prod._id}`} className="prd_name fw-normal link-underline text-line-clamp-1">
+                      <Link to={`/ProductDetails?id=${prodId}`} className="prd_name fw-normal link-underline text-line-clamp-1">
                         {prod.name}
                       </Link>
                       <p className="prd_size cl-text-5">Size: {item.size}</p>
                       <div className="price-wrap fw-normal gap-6 mb-8">
-                        <span className="price-new text-primary">₹{itemSalePrice}</span>
+                        <span className="price-new text-primary">₹{item.sellingPrice.toFixed(2)}</span>
                       </div>
                       <div className="group-action d-flex align-items-center gap-12 mt-8">
                         <div className="wg-quantity style-2" style={{ scale: '0.8', transformOrigin: 'left center' }}>
                           <button
                             type="button"
                             className="btn-quantity minus-btn"
-                            onClick={() => updateCartItem(prod._id, item.quantity - 1, item.size)}
+                            onClick={() => updateCartItem(prodId, item.quantity - 1, item.size)}
+                            disabled={item.quantity <= 1}
+                            aria-label="Decrease quantity"
                           >
                             <i className="icon icon-Minus"></i>
                           </button>
@@ -589,27 +596,30 @@ export default function CheckoutContent() {
                             name="number"
                             value={item.quantity}
                             readOnly
+                            aria-label="Product quantity"
                           />
                           <button
                             type="button"
                             className="btn-quantity plus-btn"
-                            onClick={() => updateCartItem(prod._id, item.quantity + 1, item.size)}
+                            onClick={() => updateCartItem(prodId, item.quantity + 1, item.size)}
+                            aria-label="Increase quantity"
                           >
                             <i className="icon icon-Plus"></i>
                           </button>
                         </div>
                         <button
                           type="button"
-                          className="tf-btn-rounded style-2 remove p-0 bg-transparent border-0"
-                          onClick={() => removeFromCart(prod._id, item.size)}
+                          className="tf-btn-rounded style-2 btn-remove-cart p-0 bg-transparent border-0"
+                          onClick={() => removeFromCart(prodId, item.size)}
                           style={{ cursor: 'pointer', color: '#db4444' }}
+                          aria-label="Remove item"
                         >
                           <i className="icon icon-Trash" style={{ fontSize: '18px' }}></i>
                         </button>
                       </div>
                     </div>
                     <div className="prd_price fw-normal">
-                      ₹{(prod.salePrice * item.quantity).toFixed(2)}
+                      ₹{item.subtotal.toFixed(2)}
                     </div>
                   </li>
                 );
@@ -618,8 +628,8 @@ export default function CheckoutContent() {
 
             <ul className="box-total mt-24">
               <li className="fw-normal">
-                <span>Subtotal ({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                <span>₹{cart.totalAmount.toFixed(2)}</span>
+                <span>Subtotal ({checkoutItemCount} items)</span>
+                <span>₹{cartSubtotal.toFixed(2)}</span>
               </li>
               <li className="fw-normal">
                 <span>Shipping</span>
@@ -630,7 +640,7 @@ export default function CheckoutContent() {
                   <span className="fw-normal mb-8 text-body-l">Total</span>
                 </p>
                 <span className="fw-normal" style={{ fontSize: '20px', color: '#003087', fontWeight: 'bold' }}>
-                  ₹{(cart.totalAmount + shippingCost).toFixed(2)}
+                  ₹{(cartSubtotal + shippingCost).toFixed(2)}
                 </span>
               </li>
             </ul>

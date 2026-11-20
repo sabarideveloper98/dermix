@@ -73,6 +73,9 @@
     /* Button Quantity
     -------------------------------------------------------------------------*/
     var btnQuantity = function () {
+        if (document.getElementById("root")) {
+            return; // Managed by React components
+        }
         $(".minus-btn").on("click", function (e) {
             e.preventDefault();
             var $this = $(this);
@@ -101,6 +104,9 @@
     /* Delete File 
     -------------------------------------------------------------------------*/
     var deleteFile = function (e) {
+        if (document.getElementById("root")) {
+            return; // Managed by React CartContext
+        }
         function updateCount() {
             var count = $(".list-file-delete .file-delete").length;
             $(".prd__count").text(count);
@@ -110,10 +116,11 @@
             var total = 0;
 
             $(".list-file-delete .tf-mini-cart-item").each(function () {
-                var priceText = $(this).find(".tf-mini-card-price").text().replace("$", "").replace(",", "").trim();
+                var priceText = $(this).find(".tf-mini-card-price").text().replace(/[^\d.]/g, "").trim();
                 var price = parseFloat(priceText);
+                var qty = parseInt($(this).find(".quantity-product").val(), 10) || 1;
                 if (!isNaN(price)) {
-                    total += price;
+                    total += price * qty;
                 }
             });
 

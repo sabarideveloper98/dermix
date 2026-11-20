@@ -17,20 +17,48 @@ const recalculateCart = async (cart) => {
   cart.items = cart.items.filter(item => item.productId !== null);
 
   for (const item of cart.items) {
-    let itemPrice = item.productId.salePrice;
-    
-    if (item.productId.sizes && item.productId.sizes.length > 0) {
-      // Find matching size by name
-      const matchedSize = item.productId.sizes.find(s => s.size && s.size.name === item.size);
-      if (matchedSize && matchedSize.salePrice) {
-        itemPrice = matchedSize.salePrice;
+    const prod = item.productId;
+    if (!prod) continue;
+
+    let itemPrice = Number(
+      prod.salePrice ?? prod.sellingPrice ?? prod.price ?? prod.discountPrice ?? prod.finalPrice ?? prod.mrpPrice ?? 0
+    );
+    if (isNaN(itemPrice) || itemPrice < 0) itemPrice = 0;
+
+    if (Array.isArray(prod.sizes) && prod.sizes.length > 0) {
+      const normalizedSize = String(item.size || '').trim().toLowerCase();
+      const matchedSize = prod.sizes.find(s => {
+        if (!s) return false;
+        const sizeName = s.size ? (s.size.name || s.size) : (s.name || s._id);
+        const sizeId = s.size?._id || s.size || s._id;
+        return (
+          (sizeName && String(sizeName).trim().toLowerCase() === normalizedSize) ||
+          (sizeId && String(sizeId).trim().toLowerCase() === normalizedSize)
+        );
+      });
+
+      if (matchedSize) {
+        const sizeSale = Number(
+          matchedSize.salePrice ?? matchedSize.sellingPrice ?? matchedSize.price ?? matchedSize.discountPrice ?? 0
+        );
+        if (!isNaN(sizeSale) && sizeSale > 0) {
+          itemPrice = sizeSale;
+        }
+      } else if (itemPrice === 0 && prod.sizes[0]) {
+        const firstSizeSale = Number(
+          prod.sizes[0].salePrice ?? prod.sizes[0].sellingPrice ?? prod.sizes[0].price ?? 0
+        );
+        if (!isNaN(firstSizeSale) && firstSizeSale > 0) {
+          itemPrice = firstSizeSale;
+        }
       }
     }
-    
-    totalAmount += itemPrice * item.quantity;
+
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    totalAmount += itemPrice * qty;
   }
 
-  cart.totalAmount = totalAmount;
+  cart.totalAmount = Math.round(totalAmount * 100) / 100;
   await cart.save();
   return cart;
 };
@@ -42,12 +70,7 @@ export const getCart = async (req, res) => {
     if (!cart) {
       cart = await Cart.create({ userId: req.user._id, items: [], totalAmount: 0 });
     } else {
-      await cart.populate({
-        path: 'items.productId',
-        populate: {
-          path: 'sizes.size'
-        }
-      });
+      cart = await recalculateCart(cart);
     }
     res.status(200).json({ success: true, cart });
   } catch (error) {
