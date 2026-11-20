@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
+import { calculateCartTotals } from "../utils/cartCalculations";
 
 export default function ShoppingCart() {
   const { cart, updateCartItem, removeFromCart } = useCart();
@@ -10,11 +11,14 @@ export default function ShoppingCart() {
   const navigate = useNavigate();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const cartCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = cart.totalAmount;
-  const shippingThreshold = 499; // Free shipping over 499
-  const spendMore = Math.max(0, shippingThreshold - totalAmount);
-  const progressPercent = Math.min(100, (totalAmount / shippingThreshold) * 100);
+  // Single source of truth for cart totals and item prices
+  const {
+    totalAmount,
+    totalCount: cartCount,
+    spendMore,
+    shippingProgress: progressPercent,
+    resolvedItems,
+  } = useMemo(() => calculateCartTotals(cart), [cart]);
 
   const handleCheckoutClick = (e) => {
     triggerCheckoutWorkflow({
@@ -89,7 +93,7 @@ export default function ShoppingCart() {
         </div>
 
         <div className="wrap">
-          {cart.items.length === 0 ? (
+          {resolvedItems.length === 0 ? (
             <div className="tf-mini-cart-wrap list-file-delete wrap-empty_text" style={{ display: 'block' }}>
               <div className="tf-mini-cart-main">
                 <div className="tf-mini-cart-sroll">
@@ -116,46 +120,41 @@ export default function ShoppingCart() {
               </div>
             </div>
           ) : (
-            <div className="tf-mini-cart-wrap list-file-delete" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="tf-mini-cart-wrap" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <div className="tf-mini-cart-main" style={{ flex: 1, overflowY: 'auto' }}>
                 <div className="tf-mini-cart-sroll">
                   <div className="tf-mini-cart-items">
-                    {cart.items.map((item) => {
-                      const prod = item.productId;
+                    {resolvedItems.map((item) => {
+                      const prod = item.productId || item.product;
                       if (!prod) return null;
 
-                      let itemMrpPrice = prod.mrpPrice;
-                      let itemSalePrice = prod.salePrice;
-
-                      if (prod.sizes && prod.sizes.length > 0) {
-                        const sizeObj = prod.sizes.find(s => (s.size ? s.size.name : s.name) === item.size);
-                        if (sizeObj && sizeObj.salePrice) {
-                          itemMrpPrice = sizeObj.mrpPrice || itemMrpPrice;
-                          itemSalePrice = sizeObj.salePrice;
-                        }
-                      }
+                      const prodId = prod._id || prod.id;
+                      const imageSrc =
+                        (Array.isArray(prod.images) && prod.images[0]) ||
+                        prod.image ||
+                        "assets/images/products/serum_product.png";
 
                       return (
-                        <div key={`${prod._id}-${item.size}`} className="tf-mini-cart-item file-delete">
+                        <div key={`${prodId}-${item.size}`} className="tf-mini-cart-item">
                           <Link
-                            to={`/ProductDetails?id=${prod._id}`}
+                            to={`/ProductDetails?id=${prodId}`}
                             className="tf-mini-cart-image"
-                            onClick={() => localStorage.setItem('selectedProductId', prod._id)}
+                            onClick={() => localStorage.setItem('selectedProductId', prodId)}
                             data-bs-dismiss="offcanvas"
                           >
                             <img
                               loading="lazy"
                               width="74"
                               height="88"
-                              src={prod.images[0] || "assets/images/products/serum_product.png"}
-                              alt={prod.name}
+                              src={imageSrc}
+                              alt={prod.name || "Product image"}
                             />
                           </Link>
                           <div className="tf-mini-cart-info">
                             <Link
-                              to={`/ProductDetails?id=${prod._id}`}
+                              to={`/ProductDetails?id=${prodId}`}
                               className="name fw-normal link-underline text-line-clamp-1"
-                              onClick={() => localStorage.setItem('selectedProductId', prod._id)}
+                              onClick={() => localStorage.setItem('selectedProductId', prodId)}
                               data-bs-dismiss="offcanvas"
                             >
                               {prod.name}
@@ -166,11 +165,13 @@ export default function ShoppingCart() {
                           </div>
                           <div className="tf-mini-cart-price">
                             <div className="price-wrap gap-6">
-                              <span className="price-new fw-normal text-primary tf-mini-card-price">
-                                ₹{itemSalePrice}
+                              <span className="price-new fw-normal text-primary">
+                                ₹{item.sellingPrice.toFixed(2)}
                               </span>
-                              {itemMrpPrice > itemSalePrice && (
-                                <span className="price-old fw-normal cl-text-6">₹{itemMrpPrice}</span>
+                              {item.mrpPrice > item.sellingPrice && (
+                                <span className="price-old fw-normal cl-text-6">
+                                  ₹{item.mrpPrice.toFixed(2)}
+                                </span>
                               )}
                             </div>
                             <div className="group-action">
@@ -178,7 +179,9 @@ export default function ShoppingCart() {
                                 <button
                                   type="button"
                                   className="btn-quantity minus-btn"
-                                  onClick={() => updateCartItem(prod._id, item.quantity - 1, item.size)}
+                                  onClick={() => updateCartItem(prodId, item.quantity - 1, item.size)}
+                                  disabled={item.quantity <= 1}
+                                  aria-label="Decrease quantity"
                                 >
                                   <i className="icon icon-Minus"></i>
                                 </button>
@@ -188,19 +191,22 @@ export default function ShoppingCart() {
                                   name="number"
                                   value={item.quantity}
                                   readOnly
+                                  aria-label="Product quantity"
                                 />
                                 <button
                                   type="button"
                                   className="btn-quantity plus-btn"
-                                  onClick={() => updateCartItem(prod._id, item.quantity + 1, item.size)}
+                                  onClick={() => updateCartItem(prodId, item.quantity + 1, item.size)}
+                                  aria-label="Increase quantity"
                                 >
                                   <i className="icon icon-Plus"></i>
                                 </button>
                               </div>
                               <button
                                 type="button"
-                                className="tf-btn-rounded style-2 remove"
-                                onClick={() => removeFromCart(prod._id, item.size)}
+                                className="tf-btn-rounded style-2 btn-remove-cart"
+                                onClick={() => removeFromCart(prodId, item.size)}
+                                aria-label="Remove item from cart"
                               >
                                 <i className="icon icon-Trash"></i>
                               </button>
@@ -217,7 +223,9 @@ export default function ShoppingCart() {
                 <div className="tf-mini-cart-total text-body-l fw-normal">
                   <span>Estimated total</span>
                   <div className="price-wrap gap-6">
-                    <span className="price-new tf-totals-total-value fw-normal">₹{totalAmount.toFixed(2)}</span>
+                    <span className="price-new tf-cart-estimated-total fw-normal">
+                      ₹{totalAmount.toFixed(2)}
+                    </span>
                   </div>
                 </div>
                 <div className="tf-mini-cart-view-checkout">
@@ -232,7 +240,7 @@ export default function ShoppingCart() {
                   <button
                     onClick={handleCheckoutClick}
                     className="tf-btn style-2 w-100"
-                    disabled={checkoutLoading || cart.items.length === 0}
+                    disabled={checkoutLoading || resolvedItems.length === 0}
                   >
                     {checkoutLoading ? "Processing..." : "Check out"}
                   </button>

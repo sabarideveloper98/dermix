@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { triggerCheckoutWorkflow } from "../utils/checkoutWorkflow";
+import { calculateCartTotals } from "../utils/cartCalculations";
 
 export default function CartContent() {
   const { cart, updateCartItem, removeFromCart } = useCart();
@@ -15,57 +16,19 @@ export default function CartContent() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponFeedback, setCouponFeedback] = useState({ type: "", text: "" });
 
-  // Resolve size-specific prices and subtotal per item
-  const resolvedItems = useMemo(() => {
-    if (!cart || !Array.isArray(cart.items)) return [];
-
-    return cart.items
-      .map((item) => {
-        const prod = item.productId;
-        if (!prod) return null;
-
-        let salePrice = Number(prod.salePrice || prod.price || 0);
-        let mrpPrice = Number(prod.mrpPrice || salePrice);
-
-        if (Array.isArray(prod.sizes) && prod.sizes.length > 0) {
-          const matchedSize = prod.sizes.find(
-            (s) => (s.size ? s.size.name : s.name) === item.size
-          );
-          if (matchedSize && matchedSize.salePrice) {
-            salePrice = Number(matchedSize.salePrice);
-            mrpPrice = Number(matchedSize.mrpPrice || mrpPrice);
-          }
-        }
-
-        const quantity = Math.max(1, Number(item.quantity) || 1);
-        const subtotal = salePrice * quantity;
-        const mrpSubtotal = mrpPrice * quantity;
-
-        return {
-          ...item,
-          product: prod,
-          salePrice,
-          mrpPrice,
-          quantity,
-          subtotal,
-          mrpSubtotal,
-        };
-      })
-      .filter(Boolean);
-  }, [cart]);
-
-  // Calculations
-  const totalItemsCount = resolvedItems.reduce((acc, it) => acc + it.quantity, 0);
-  const subtotal = resolvedItems.reduce((acc, it) => acc + it.subtotal, 0);
-  const totalMrp = resolvedItems.reduce((acc, it) => acc + it.mrpSubtotal, 0);
-  const mrpSavings = Math.max(0, totalMrp - subtotal);
-
-  // Free shipping threshold (₹499)
-  const shippingThreshold = 499;
-  const isFreeShipping = subtotal >= shippingThreshold;
-  const spendMore = Math.max(0, shippingThreshold - subtotal);
-  const shippingProgress = Math.min(100, (subtotal / shippingThreshold) * 100);
-  const shippingFee = subtotal === 0 || isFreeShipping ? 0 : 50;
+  // Single source of truth for resolved items, pricing, and shipping calculations
+  const {
+    resolvedItems,
+    subtotal,
+    totalCount: totalItemsCount,
+    totalMrp,
+    mrpSavings,
+    isFreeShipping,
+    spendMore,
+    shippingProgress,
+    shippingFee,
+    shippingThreshold,
+  } = useMemo(() => calculateCartTotals(cart), [cart]);
 
   // Coupon application logic
   const handleApplyCoupon = (e) => {
@@ -276,7 +239,7 @@ export default function CartContent() {
                               </div>
 
                               <div
-                                className="cart_remove tf-btn-line fw-normal remove text-danger text-body-xs"
+                                className="cart_remove tf-btn-line fw-normal btn-remove-cart text-danger text-body-xs"
                                 style={{ cursor: "pointer", textDecoration: "underline" }}
                                 onClick={() => removeFromCart(prod._id, item.size)}
                                 role="button"
