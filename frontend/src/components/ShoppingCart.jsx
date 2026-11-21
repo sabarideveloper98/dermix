@@ -231,7 +231,7 @@ export default function ShoppingCart() {
                   </button>
                   <button
                     onClick={handleCheckoutClick}
-                    className="tf-btn style-2 w-100"
+                    className="tf-btn style-2 w-50"
                     disabled={checkoutLoading || cart.items.length === 0}
                   >
                     {checkoutLoading ? "Processing..." : "Check out"}

@@ -71,30 +71,30 @@ export default function HeroSlider() {
                 </picture>
               </div>
 
-              <div className="sld-content">
+              <div className="sld-content" style={{height:"78vh"}}>
                 <div className="container">
                   <div className="row gy-24">
                     <div className="col-sm-7 col-md-8">
                       <div className="sld-content_inner wow fadeInUp">
-                        <div className="sld__tag text-has_dot fade-item fade-item-1">
-                          <img src={dermfix_log} style={{ width: "25%" }} alt="logo" />
-                        </div>
-                        <div className="sld__tag text-has_dot fade-item fade-item-1 slider_top_head">
+                        {/* <div className="sld__tag text-has_dot fade-item fade-item-1"> */}
+                          {/* <img src={dermfix_log} style={{ width: "25%" }} alt="logo" /> */}
+                        {/* </div> */}
+                        {/* <div className="sld__tag text-has_dot fade-item fade-item-1 slider_top_head">
                           <span className="br-dot"></span>
                           India's
-                        </div>
+                        </div> */}
 
-                        <h1 className="sld__title font-instrument_serif fw-normal fade-item fade-item-2 slider_top_main">
+                        {/* <h1 className="sld__title font-instrument_serif fw-normal fade-item fade-item-2 slider_top_main">
                           {slide.title}
-                        </h1>
+                        </h1> */}
 
-                        <h4 className="slide_sub_head">crafted by <span className="laven_high">clinical minds</span></h4>
+                        {/* <h4 className="slide_sub_head">crafted by <span className="laven_high">clinical minds</span></h4> */}
 
-                        <p className="sld__desc fw-light text-body-l cl-text-5 fade-item fade-item-3 mt-4 slide_para">
+                        {/* <p className="sld__desc fw-light text-body-l cl-text-5 fade-item fade-item-3 mt-4 slide_para">
                           Advanced preventive skincare to <span className="laven_high">repair, recovery</span> and <span className="laven_high">protect</span> your skin every day.
-                        </p>
+                        </p> */}
 
-                        <div className="d-flex slide_feature gap-3">
+                        {/* <div className="d-flex slide_feature gap-3">
                           <div className="d-flex feature_flex">
                             <img src={shield} alt="feature" />
                             <h6>Repair <br /> Barrier</h6>
@@ -115,9 +115,9 @@ export default function HeroSlider() {
                             <img src={shield} alt="feature" />
                             <h6>Support <br /> Even Tone</h6>
                           </div>
-                        </div>
+                        </div> */}
 
-                        <div className="group-btn gap-12 flex-wrap fade-item fade-item-4 mt-5">
+                        {/* <div className="group-btn gap-12 flex-wrap fade-item fade-item-4 mt-5">
                           <Link to="/ProductDetails" className="tf-btn">
                             Shop Now
                             <i className="icon icon-ShoppingBag"></i>
@@ -127,7 +127,7 @@ export default function HeroSlider() {
                             Explore Collection
                             <i className="icon icon-ArrowRight"></i>
                           </Link>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </div>
